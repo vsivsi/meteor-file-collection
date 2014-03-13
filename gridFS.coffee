@@ -2,6 +2,8 @@ if Meteor.isServer
 
    mongodb = Npm.require 'mongodb'
    grid = Npm.require 'gridfs-stream'
+   fs = Npm.require 'fs'
+   path = Npm.require 'path'
 
    class gridFS extends Meteor.Collection
 
@@ -13,8 +15,16 @@ if Meteor.isServer
          denyResult = denyResult and denyFunc(userId, file) for denyFunc in @denys[type]
          return allowResult and denyResult
 
+      _bind_env: (func) ->
+         if func?
+            return Meteor.bindEnvironment func, (err) -> throw err
+         else
+            return func
+
       constructor: (@base) ->
          console.log "Making a gridFS collection!"
+
+         @base ?= 'fs'
 
          @db = Meteor._wrapAsync(mongodb.MongoClient.connect)(process.env.MONGO_URL,{})
          @gfs = new grid(@db, mongodb)
@@ -29,7 +39,7 @@ if Meteor.isServer
 
             remove: (userId, file) =>
                if @_check_allow_deny 'remove', userId, file
-                  Meteor._wrapAsync(@gfs.remove.bind(@gfs))({ _id: file._id, root: @base })
+                  Meteor._wrapAsync(@gfs.remove.bind(@gfs))({ _id: "#{file._id}", root: @base })
                   return true
 
                return false
@@ -48,29 +58,26 @@ if Meteor.isServer
 
                return true
 
-      remove: (selector, callback) ->
+      remove: (selector, callback = undefined) ->
+         callback = @_bind_env callback
          console.log "In Server REMOVE"
-         @find(selector).forEach (file) ->
-            Meteor._wrapAsync(@gfs.remove.bind(@gfs))({ _id: file._id, root: @base })
-         callback and callback null
+         if selector?
+            @find(selector).forEach (file) ->
+               Meteor._wrapAsync(@gfs.remove.bind(@gfs))({ _id: "#{file._id}", root: @base })
+            callback and callback null
+         else
+            console.warn "GridFS Collection does not 'remove' with an empty selector"
+            callback null
 
       allow: (allowOptions) ->
          @allows[type].push(func) for type, func of allowOptions when type of @allows
-         # for type, func of allowOptions  when type of @allows
-         #    console.log "Allowing #{type} #{func}"
-         #    @allows[type].push(func)
-         # console.log "Setting an allow function", @allows
 
       deny: (denyOptions) ->
          @denys[type].push(func) for type, func of denyOptions when type of @denys
-         # for type, func of denyOptions  when type of @denys
-         #    console.log "Denying #{type} #{func}"
-         #    @denys[type].push(func)
-         # console.log "Setting a deny function", @denys
 
-      insert: (options, callback) ->
+      insert: (options, callback = undefined) ->
+         callback = @_bind_env callback
          writeStream = @gfs.createWriteStream
-            _id: options._id || new Meteor.Collection.ObjectID()
             filename: options.filename || ''
             mode: 'w'
             root: @base
@@ -78,19 +85,44 @@ if Meteor.isServer
             aliases: options.aliases || null
             metadata: options.metadata || null
             content_type: options.content_type || 'application/octet-stream'
-         if callback
-            writeStream.on('close', (file) -> callback(null, file._id))
+
+         if callback?
+            writeStream.on('close', (file) ->
+               callback(null, file._id))
+
          return writeStream
 
       findOne: (selector, options = {}) ->
-         super selector, { sort: options.sort, skip: options.skip}
-         readStream = @gfs.createReadStream
-            root: @base
-            _id: id
-         return readStream
+         file = super selector, { sort: options.sort, skip: options.skip}
+         if file
+            readStream = @gfs.createReadStream
+               root: @base
+               _id: "#{file._id}"
+            return readStream
+         else
+            return null
 
       upsert: () ->
          throw new Error "GridFS Collections do not support 'upsert'"
+
+      importFile: (filePath, options, callback) ->
+         callback = @_bind_env callback
+         filePath = path.normalize filePath
+         options = options || {}
+         options.filename = path.basename filePath
+         readStream = fs.createReadStream filePath
+         writeStream = @insert options, callback
+         readStream.pipe(writeStream)
+            .on('error', callback)
+
+      exportFile: (id, filePath, callback) ->
+         callback = @_bind_env callback
+         filePath = path.normalize filePath
+         readStream = @findOne { _id: id }
+         writeStream = fs.createWriteStream filePath
+         readStream.pipe(writeStream)
+            .on('finish', callback)
+            .on('error', callback)
 
 ##################################################################################################
 
@@ -100,6 +132,7 @@ if Meteor.isClient
 
       constructor: (@base) ->
          console.log "Making a gridFS collection!"
+         @base ?= 'fs'
          super @base + '.files'
 
       upsert: () ->
