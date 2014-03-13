@@ -1,6 +1,7 @@
 if Meteor.isServer
 
    mongodb = Npm.require 'mongodb'
+   grid = Npm.require 'gridfs-stream'
 
    class gridFS extends Meteor.Collection
 
@@ -16,6 +17,8 @@ if Meteor.isServer
          console.log "Making a gridFS collection!"
 
          @db = Meteor._wrapAsync(mongodb.MongoClient.connect)(process.env.MONGO_URL,{})
+         @gfs = new grid(@db, mongodb)
+         @chunkSize = 2*1024*1024
 
          @allows = { insert: [], update: [], remove: [] }
          @denys = { insert: [], update: [], remove: [] }
@@ -26,7 +29,7 @@ if Meteor.isServer
 
             remove: (userId, file) =>
                if @_check_allow_deny 'remove', userId, file
-                  Meteor._wrapAsync(mongodb.GridStore.unlink)(@db, file.filename, { root: @base })
+                  Meteor._wrapAsync(@gfs.remove.bind(@gfs))({ _id: file._id, root: @base })
                   return true
 
                return false
@@ -48,8 +51,8 @@ if Meteor.isServer
       remove: (selector, callback) ->
          console.log "In Server REMOVE"
          @find(selector).forEach (file) ->
-            Meteor._wrapAsync(mongodb.GridStore.unlink)(@db, file.filename, { root: @base })
-         callback null
+            Meteor._wrapAsync(@gfs.remove.bind(@gfs))({ _id: file._id, root: @base })
+         callback and callback null
 
       allow: (allowOptions) ->
          @allows[type].push(func) for type, func of allowOptions when type of @allows
@@ -65,6 +68,32 @@ if Meteor.isServer
          #    @denys[type].push(func)
          # console.log "Setting a deny function", @denys
 
+      insert: (options, callback) ->
+         writeStream = @gfs.createWriteStream
+            _id: options._id || new Meteor.Collection.ObjectID()
+            filename: options.filename || ''
+            mode: 'w'
+            root: @base
+            chunk_size: options.chunk_size || @chunkSize
+            aliases: options.aliases || null
+            metadata: options.metadata || null
+            content_type: options.content_type || 'application/octet-stream'
+         if callback
+            writeStream.on('close', (file) -> callback(null, file._id))
+         return writeStream
+
+      findOne: (selector, options = {}) ->
+         super selector, { sort: options.sort, skip: options.skip}
+         readStream = @gfs.createReadStream
+            root: @base
+            _id: id
+         return readStream
+
+      upsert: () ->
+         throw new Error "GridFS Collections do not support 'upsert'"
+
+##################################################################################################
+
 if Meteor.isClient
 
    class gridFS extends Meteor.Collection
@@ -73,12 +102,6 @@ if Meteor.isClient
          console.log "Making a gridFS collection!"
          super @base + '.files'
 
+      upsert: () ->
+         throw new Error "GridFS Collections do not support 'upsert'"
 
-# if typeof define is "function" and define.amd?
-#    define gridFS
-# else if typeof module is "object" and module.exports?
-#    module.exports = gridFS
-#    console.log "In module exports"
-# else
-#    this.gridFS = gridFS
-#    console.log "In this exports"
