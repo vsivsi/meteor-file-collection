@@ -21,10 +21,43 @@ if Meteor.isServer
          else
             return func
 
-      constructor: (@base) ->
+      _get: (req, res, next) ->
+         console.log "Cowboy!", req.method
+         next()
+
+      _post: (req, res, next) ->
+         console.log "Cowboy!", req.method
+         next()
+
+      _put: (req, res, next) ->
+         console.log "Cowboy!", req.method
+         next()
+
+      _delete: (req, res, next) ->
+         console.log "Cowboy!", req.method
+         next()
+
+      _connect_gridfs: (req, res, next) ->
+         switch req.method
+            when 'GET' then @_get(req, res, next)
+            when 'POST' then @_post(req, res, next)
+            when 'PUT' then @_put(req, res, next)
+            when 'DELETE' then @_delete(req, res, next)
+            else
+               console.log "Bad method ", req.method
+               next()
+
+      _access_point: (url) ->
+         app = WebApp.rawConnectHandlers
+         app.use url, @_connect_gridfs.bind(@)
+
+      constructor: (@base, @baseURL) ->
          console.log "Making a gridFS collection!"
 
          @base ?= 'fs'
+         @baseURL ?= "/gridfs/#{@base}"
+
+         @_access_point(@baseURL)
 
          @db = Meteor._wrapAsync(mongodb.MongoClient.connect)(process.env.MONGO_URL,{})
          @gfs = new grid(@db, mongodb)
@@ -39,7 +72,8 @@ if Meteor.isServer
 
             remove: (userId, file) =>
                if @_check_allow_deny 'remove', userId, file
-                  Meteor._wrapAsync(@gfs.remove.bind(@gfs))({ _id: "#{file._id}", root: @base })
+                  @remove file
+                  # Meteor._wrapAsync(@gfs.remove.bind(@gfs))({ _id: "#{file._id}", root: @base })
                   return true
 
                return false
@@ -54,6 +88,7 @@ if Meteor.isServer
 
             insert: (userId, file) =>
                if @_check_allow_deny 'insert', userId, file
+                  file.client = true
                   return true
 
                return true
@@ -62,7 +97,7 @@ if Meteor.isServer
          callback = @_bind_env callback
          console.log "In Server REMOVE"
          if selector?
-            @find(selector).forEach (file) ->
+            @find(selector).forEach (file) =>
                Meteor._wrapAsync(@gfs.remove.bind(@gfs))({ _id: "#{file._id}", root: @base })
             callback and callback null
          else
@@ -78,6 +113,7 @@ if Meteor.isServer
       insert: (options, callback = undefined) ->
          callback = @_bind_env callback
          writeStream = @gfs.createWriteStream
+            # _id: options._id or new Meteor.Collection.ObjectID()
             filename: options.filename || ''
             mode: 'w'
             root: @base
@@ -93,7 +129,7 @@ if Meteor.isServer
          return writeStream
 
       findOne: (selector, options = {}) ->
-         file = super selector, { sort: options.sort, skip: options.skip}
+         file = super selector, { sort: options.sort, skip: options.skip }
          if file
             readStream = @gfs.createReadStream
                root: @base
@@ -130,11 +166,25 @@ if Meteor.isClient
 
    class gridFS extends Meteor.Collection
 
-      constructor: (@base) ->
+      constructor: (@base, @baseURL) ->
          console.log "Making a gridFS collection!"
          @base ?= 'fs'
+         @baseURL ?= "/gridfs/#{@base}"
+         @chunkSize = 2*1024*1024
          super @base + '.files'
 
       upsert: () ->
          throw new Error "GridFS Collections do not support 'upsert'"
+
+      insert: (file, callback = undefined) ->
+         subFile = {}
+         subFile._id = new Meteor.Collection.ObjectID()
+         subFile.length = 0
+         subFile.md5 = 'd41d8cd98f00b204e9800998ecf8427e'
+         subFile.uploadDate = new Date()
+         subFile.chunkSize = file.chunkSize or @chunkSize
+         subFile.filename = file.filename if file.filename?
+         subFile.metadata = file.metadata if file.metadata?
+         subFile.contentType = file.contentType if file.contentType?
+         super subFile, callback
 

@@ -10,7 +10,8 @@ Npm.depends({
 });
 
 Package.on_use(function(api) {
-  api.use(['coffeescript']);
+  api.use('coffeescript', ['server','client']);
+  api.use('webapp', 'server');
   api.add_files('gridFS.coffee', ['server','client']);
   api.export('gridFS');
 });
