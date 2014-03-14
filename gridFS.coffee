@@ -26,8 +26,9 @@ if Meteor.isServer
          next()
 
       _post: (req, res, next) ->
-         console.log "Cowboy!", req.method
-         next()
+         console.log "Cowboy!", req
+         res.writeHead(200)
+         res.end("'k thx bye!")
 
       _put: (req, res, next) ->
          console.log "Cowboy!", req.method
@@ -113,7 +114,6 @@ if Meteor.isServer
       insert: (options, callback = undefined) ->
          callback = @_bind_env callback
          writeStream = @gfs.createWriteStream
-            # _id: options._id or new Meteor.Collection.ObjectID()
             filename: options.filename || ''
             mode: 'w'
             root: @base
@@ -173,12 +173,45 @@ if Meteor.isClient
          @chunkSize = 2*1024*1024
          super @base + '.files'
 
+         r = new Resumable
+            target: @baseURL
+            generateUniqueIdentifier: (file) -> "#{new Meteor.Collection.ObjectID()}"
+            chunkSize: @chunkSize
+            testChunks: false
+
+         unless r.support
+            console.error "resumable.js not supported by this Browser, uploads will be disabled"
+         else
+            @resumable = r
+            r.on('fileAdded', (file) =>
+               console.log "fileAdded", file
+               @insert({
+                  _id: file.uniqueIdentifier
+                  filename: file.fileName
+                  contentType: file.file.type
+                  metadata:
+                     uploaded: false
+                     owner: Meteor.userId() ? null
+                     resumable: {}
+               }, () -> r.upload())
+            )
+            r.on('fileSuccess', (file, message) =>
+               console.log "fileSuccess", file, message
+            )
+            r.on('fileError', (file, message) =>
+               console.log "fileError", file, message
+            )
+
       upsert: () ->
          throw new Error "GridFS Collections do not support 'upsert'"
 
       insert: (file, callback = undefined) ->
+         if file._id
+            id = new Meteor.Collection.ObjectID("#{file._id}")
+         else
+            id = new Meteor.Collection.ObjectID()
          subFile = {}
-         subFile._id = new Meteor.Collection.ObjectID()
+         subFile._id = id
          subFile.length = 0
          subFile.md5 = 'd41d8cd98f00b204e9800998ecf8427e'
          subFile.uploadDate = new Date()
