@@ -91,7 +91,7 @@ if Meteor.isServer
                   file.client = true
                   return true
 
-               return true
+               return false
 
       remove: (selector, callback = undefined) ->
          callback = @_bind_env callback
