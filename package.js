@@ -6,7 +6,8 @@ Package.describe({
 
 Npm.depends({
   mongodb: '1.3.23',
-  'gridfs-stream': '0.4.1'
+  'gridfs-stream': '0.4.1',
+  dicer: '0.2.3'
 });
 
 Package.on_use(function(api) {

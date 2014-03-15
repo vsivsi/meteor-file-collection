@@ -4,6 +4,7 @@ if Meteor.isServer
    grid = Npm.require 'gridfs-stream'
    fs = Npm.require 'fs'
    path = Npm.require 'path'
+   dicer = Npm.require 'dicer'
 
    class gridFS extends Meteor.Collection
 
@@ -21,18 +22,102 @@ if Meteor.isServer
          else
             return func
 
+      _find_mime_boundary: (req) ->
+         RE_BOUNDARY = /^multipart\/.+?(?:; boundary=(?:(?:"(.+)")|(?:([^\s]+))))$/i
+         result = RE_BOUNDARY.exec req.headers['content-type']
+         result[1] or result[2]
+
+      _dice_multipart: (req, callback) ->
+         callback = @_bind_env callback
+         boundary = @_find_mime_boundary req
+         # console.log "Boundary! #{boundary}"
+
+         resumable = {}
+
+         d = new dicer { boundary: boundary }
+
+         d.on('part', (p) ->
+            # console.log('New part!')
+            p.on('header', (header) ->
+               RE_RESUMABLE = /^form-data; name="(resumable[^"]+)"/
+               RE_FILE = /^form-data; name="file"; filename="blob"/
+               RE_NUMBER = /Size|Chunk/
+               for k, v of header
+                  if k is 'content-disposition'
+                     if resVar = RE_RESUMABLE.exec(v)?[1]
+                        # console.log "Resumable variable: #{resVar}"
+                        p.on('data', (data) ->
+                           # console.log('Resumable Part #{resVar} data: ' + data)
+                           unless RE_NUMBER.test(resVar)
+                              resumable[resVar] = data.toString()
+                           else
+                              resumable[resVar] = parseInt(data.toString())
+                        )
+                        p.on('error', (err) ->
+                           console.log('Error in Dicer while streaming: \n', err)
+                           callback err
+                        )
+                     else if RE_FILE.exec(v)
+                        callback(null, resumable, p)
+                  # console.log('Part header: k: ' + k + ', v: ' + v)
+            )
+
+            p.on('end', () ->
+               # console.log('End of part\n')
+            )
+         )
+
+         d.on('error', (err) ->
+           console.log('Error in Dicer: \n', err)
+           callback err
+         )
+
+         d.on('finish', () ->
+           # console.log('End of parts')
+           # callback null
+         )
+
+         req.pipe(d)
+
       _get: (req, res, next) ->
          console.log "Cowboy!", req.method
          next()
 
       _post: (req, res, next) ->
-         console.log "Cowboy!", req
-         res.writeHead(200)
-         res.end("'k thx bye!")
+         console.log "Cowboy!", req.method
+
+         @_dice_multipart req, (err, resumable, fileStream) =>
+            if err
+               res.writeHead(500)
+               res.end('Form submission unsuccessful!')
+            else
+               console.log JSON.stringify (resumable)
+               # Shortcut for one chunk files
+               if resumable.resumableTotalChunks is 1 and resumable.resumableChunkNumber is 1
+                  writeStream = @upsert resumable.resumableIdentifier
+                  unless writeStream
+                     res.writeHead(500)
+                     res.end('Form submission unsuccessful!')
+                     return
+               else
+                  writeStream = @insert
+                     filename: "_Resumable_#{resumable.resumableIdentifier}_#{resumable.resumableChunkNumber}_#{resumable.resumableTotalChunks}"
+                     metadata:
+                        _Resumable: resumable
+
+               fileStream.pipe(writeStream)
+                  .on 'close', () ->
+                     res.writeHead(200)
+                     res.end('Form submission successful!')
 
       _put: (req, res, next) ->
          console.log "Cowboy!", req.method
-         next()
+
+         writeStream = fs.createWriteStream '/Users/vsi/uploads/put.txt'
+         req.pipe(writeStream)
+            .on 'finish', () ->
+               res.writeHead(200)
+               res.end("'k thx bye!")
 
       _delete: (req, res, next) ->
          console.log "Cowboy!", req.method
@@ -50,7 +135,7 @@ if Meteor.isServer
 
       _access_point: (url) ->
          app = WebApp.rawConnectHandlers
-         app.use url, @_connect_gridfs.bind(@)
+         app.use(url, @_bind_env(@_connect_gridfs.bind(@)))
 
       constructor: (@base, @baseURL) ->
          console.log "Making a gridFS collection!"
@@ -111,20 +196,43 @@ if Meteor.isServer
       deny: (denyOptions) ->
          @denys[type].push(func) for type, func of denyOptions when type of @denys
 
-      insert: (options, callback = undefined) ->
+      insert: (file, callback = undefined) ->
          callback = @_bind_env callback
          writeStream = @gfs.createWriteStream
-            filename: options.filename || ''
+            filename: file.filename || ''
             mode: 'w'
             root: @base
-            chunk_size: options.chunk_size || @chunkSize
-            aliases: options.aliases || null
-            metadata: options.metadata || null
-            content_type: options.content_type || 'application/octet-stream'
+            chunk_size: file.chunk_size || @chunkSize
+            aliases: file.aliases || null
+            metadata: file.metadata || null
+            content_type: file.content_type || 'application/octet-stream'
 
          if callback?
-            writeStream.on('close', (file) ->
-               callback(null, file._id))
+            writeStream.on('close', (retFile) ->
+               callback(null, retFile._id))
+
+         return writeStream
+
+      upsert: (id, callback = undefined) ->
+         callback = @_bind_env callback
+         file = gridFS.__super__.findOne.bind(@)({ _id: new Meteor.Collection.ObjectID("#{id}") })
+         console.log "upsert: ", file, id
+         unless file
+            callback(null, null) if callback
+            return null
+         writeStream = @gfs.createWriteStream
+            _id: "#{file._id}"
+            filename: file.filename || ''
+            mode: 'w+'
+            root: @base
+            chunk_size: file.chunk_size || @chunkSize
+            aliases: file.aliases || null
+            metadata: file.metadata || null
+            content_type: file.content_type || 'application/octet-stream'
+
+         if callback?
+            writeStream.on('close', (retFile) ->
+               callback(null, retFile._id))
 
          return writeStream
 
@@ -138,18 +246,16 @@ if Meteor.isServer
          else
             return null
 
-      upsert: () ->
-         throw new Error "GridFS Collections do not support 'upsert'"
-
       importFile: (filePath, options, callback) ->
          callback = @_bind_env callback
          filePath = path.normalize filePath
          options = options || {}
          options.filename = path.basename filePath
          readStream = fs.createReadStream filePath
-         writeStream = @insert options, callback
+         writeStream = @upsert options, callback
          readStream.pipe(writeStream)
             .on('error', callback)
+            .on('close', callback)
 
       exportFile: (id, filePath, callback) ->
          callback = @_bind_env callback
@@ -178,6 +284,8 @@ if Meteor.isClient
             generateUniqueIdentifier: (file) -> "#{new Meteor.Collection.ObjectID()}"
             chunkSize: @chunkSize
             testChunks: false
+            headers:
+               'X-Auth-Token': Accounts._storedLoginToken() or ''
 
          unless r.support
             console.error "resumable.js not supported by this Browser, uploads will be disabled"
@@ -203,7 +311,7 @@ if Meteor.isClient
             )
 
       upsert: () ->
-         throw new Error "GridFS Collections do not support 'upsert'"
+         throw new Error "GridFS Collections do not support 'upsert' on client"
 
       insert: (file, callback = undefined) ->
          if file._id
