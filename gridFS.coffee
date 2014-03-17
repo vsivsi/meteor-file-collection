@@ -234,8 +234,7 @@ if Meteor.isServer
          subFile.length = 0
          subFile.md5 = 'd41d8cd98f00b204e9800998ecf8427e'
          subFile.uploadDate = new Date()
-         # subFile.chunkSize = file.chunkSize or @chunkSize - 1
-         subFile.chunkSize = @chunkSize
+         subFile.chunkSize = file.chunkSize or @chunkSize
          subFile.filename = file.filename if file.filename?
          subFile.metadata = file.metadata or {}
          subfile.aliases = file.aliases if file.aliases?
@@ -283,8 +282,8 @@ if Meteor.isServer
             _id: "#{file._id}"
             mode: 'w+'
             root: @base
-            chunkSize: @chunkSize
-            # metadata: file.metadata ? {}
+            chunkSize: file.chunkSize or @chunkSize
+            metadata: file.metadata ? {}
 
          # if options.chunkNumber is options.lastChunk
          #    delete subFile.metadata.chunkNumber
@@ -374,6 +373,7 @@ if Meteor.isClient
                   _id: file.uniqueIdentifier
                   filename: file.fileName
                   contentType: file.file.type
+                  chunkSize: @chunkSize
                   metadata:
                      uploaded: false
                      owner: Meteor.userId() ? null
@@ -400,8 +400,7 @@ if Meteor.isClient
          subFile.length = 0
          subFile.md5 = 'd41d8cd98f00b204e9800998ecf8427e'
          subFile.uploadDate = new Date()
-#         subFile.chunkSize = file.chunkSize or @chunkSize
-         subFile.chunkSize = @chunkSize
+         subFile.chunkSize = file.chunkSize or @chunkSize
          subFile.filename = file.filename if file.filename?
          subFile.metadata = file.metadata or {}
          subFile.contentType = file.contentType if file.contentType?
