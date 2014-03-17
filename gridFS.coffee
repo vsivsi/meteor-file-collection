@@ -272,11 +272,11 @@ if Meteor.isServer
 
          console.log "File: ", file
 
-         # console.log "Chunkage: ", file.metadata.chunkNumber + 1, options.chunkNumber, (file.metadata.chunkNumber + 1 is options.chunkNumber)
+         console.log "Chunkage: ", file.metadata.chunkNumber + 1, options.chunkNumber, (file.metadata.chunkNumber + 1 is options.chunkNumber)
 
-         # unless file and ((options.chunkNumber is 1) or (file.metadata?.chunkNumber + 1 is options.chunkNumber))
-         #    callback(null, null) if callback
-         #    return null
+         unless file and ((options.chunkNumber is 1) or (file.metadata?.chunkNumber + 1 is options.chunkNumber))
+            callback(null, null) if callback
+            return null
 
          subFile =
             _id: "#{file._id}"
@@ -285,10 +285,10 @@ if Meteor.isServer
             chunkSize: file.chunkSize or @chunkSize
             metadata: file.metadata ? {}
 
-         # if options.chunkNumber is options.lastChunk
-         #    delete subFile.metadata.chunkNumber
-         # else
-         #    subFile.metadata.chunkNumber = options.chunkNumber
+         if options.chunkNumber is options.lastChunk
+            delete subFile.metadata.chunkNumber
+         else
+            subFile.metadata.chunkNumber = options.chunkNumber
 
          console.log "upsert: ", subFile
 
@@ -359,7 +359,7 @@ if Meteor.isClient
             generateUniqueIdentifier: (file) -> "#{new Meteor.Collection.ObjectID()}"
             chunkSize: @chunkSize
             testChunks: false
-            simultaneousUploads: 1
+            simultaneousUploads: 2
             headers:
                'X-Auth-Token': Accounts._storedLoginToken() or ''
 
