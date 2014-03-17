@@ -33,49 +33,55 @@ if Meteor.isServer
          # console.log "Boundary! #{boundary}"
 
          resumable = {}
+         resCount = 0
+         fileStream = null
 
          d = new dicer { boundary: boundary }
 
-         d.on('part', (p) ->
-            # console.log('New part!')
-            p.on('header', (header) ->
+         d.on 'part', (p) ->
+
+            console.log('New part!')
+
+            p.on 'header', (header) ->
                RE_RESUMABLE = /^form-data; name="(resumable[^"]+)"/
                RE_FILE = /^form-data; name="file"; filename="blob"/
                RE_NUMBER = /Size|Chunk/
                for k, v of header
                   if k is 'content-disposition'
                      if resVar = RE_RESUMABLE.exec(v)?[1]
-                        # console.log "Resumable variable: #{resVar}"
-                        p.on('data', (data) ->
-                           # console.log('Resumable Part #{resVar} data: ' + data)
+                        resData = ''
+                        resCount++
+
+                        p.on 'data', (data) -> resData += data.toString()
+
+                        p.on 'end', () ->
+                           resCount--
+                           console.log('Resumable Part #{resVar} data: ' + resData)
                            unless RE_NUMBER.test(resVar)
-                              resumable[resVar] = data.toString()
+                              resumable[resVar] = resData
                            else
-                              resumable[resVar] = parseInt(data.toString())
-                        )
-                        p.on('error', (err) ->
+                              resumable[resVar] = parseInt(resData)
+                           if resCount is 0 and fileStream
+                              callback(null, resumable, fileStream)
+
+                        p.on 'error', (err) ->
                            console.log('Error in Dicer while streaming: \n', err)
                            callback err
-                        )
+
                      else if RE_FILE.exec(v)
-                        callback(null, resumable, p)
-                  # console.log('Part header: k: ' + k + ', v: ' + v)
-            )
+                        console.log "Filestream!"
+                        fileStream = p
+                        if resCount is 0
+                           callback(null, resumable, fileStream)
 
-            p.on('end', () ->
-               # console.log('End of part\n')
-            )
-         )
-
-         d.on('error', (err) ->
+         d.on 'error', (err) ->
            console.log('Error in Dicer: \n', err)
            callback err
-         )
 
-         d.on('finish', () ->
-           # console.log('End of parts')
-           # callback null
-         )
+         d.on 'finish', () ->
+            console.log('End of parts')
+            unless fileStream
+               callback(new Error "No file blob in multipart POST")
 
          req.pipe(d)
 
@@ -90,25 +96,46 @@ if Meteor.isServer
             if err
                res.writeHead(500)
                res.end('Form submission unsuccessful!')
+               return
             else
-               console.log JSON.stringify (resumable)
-               # Shortcut for one chunk files
+               console.log "From Resumable:" + JSON.stringify (resumable)
+               unless resumable
+                  res.writeHead(500)
+                  res.end('Form submission unsuccessful!')
+                  return
+
+               # Shortcut for one chunk files, just write it!
                if resumable.resumableTotalChunks is 1 and resumable.resumableChunkNumber is 1
-                  writeStream = @upsert resumable.resumableIdentifier
+                  console.log "Upserting one chunk"
+                  writeStream = @upsert { _id: resumable.resumableIdentifier }
                   unless writeStream
                      res.writeHead(500)
                      res.end('Form submission unsuccessful!')
                      return
-               else
-                  writeStream = @insert
-                     filename: "_Resumable_#{resumable.resumableIdentifier}_#{resumable.resumableChunkNumber}_#{resumable.resumableTotalChunks}"
-                     metadata:
-                        _Resumable: resumable
 
-               fileStream.pipe(writeStream)
-                  .on 'close', () ->
-                     res.writeHead(200)
-                     res.end('Form submission successful!')
+               else # write a chunk for this file.
+                  writeStream = @upsert { _id: resumable.resumableIdentifier }, { chunkNumber: resumable.resumableChunkNumber, lastChunk: resumable.resumableTotalChunks }
+
+                  unless writeStream
+                     writeStream = @upsert
+                        filename: "_Resumable_#{resumable.resumableIdentifier}_#{resumable.resumableChunkNumber}_#{resumable.resumableTotalChunks}"
+                        metadata:
+                           _Resumable: resumable
+
+               console.log "Piping!"
+               try
+                  fileStream.pipe(writeStream)
+                     .on 'close', () ->
+                        console.log "Piping Close!"
+                        res.writeHead(200)
+                        res.end('Form submission successful!')
+                     .on 'error', () ->
+                        console.log "Piping Error!"
+                        res.writeHead(500)
+                        res.end('Form submission unsuccessful!')
+               catch
+                  console.error "Caught during pipe"
+                  console.trace()
 
       _put: (req, res, next) ->
          console.log "Cowboy!", req.method
@@ -126,6 +153,7 @@ if Meteor.isServer
       _connect_gridfs: (req, res, next) ->
          switch req.method
             when 'GET' then @_get(req, res, next)
+            when 'HEAD' then @_get(req, res, next)
             when 'POST' then @_post(req, res, next)
             when 'PUT' then @_put(req, res, next)
             when 'DELETE' then @_delete(req, res, next)
@@ -197,43 +225,92 @@ if Meteor.isServer
          @denys[type].push(func) for type, func of denyOptions when type of @denys
 
       insert: (file, callback = undefined) ->
+         if file._id
+            id = new Meteor.Collection.ObjectID("#{file._id}")
+         else
+            id = new Meteor.Collection.ObjectID()
+         subFile = {}
+         subFile._id = id
+         subFile.length = 0
+         subFile.md5 = 'd41d8cd98f00b204e9800998ecf8427e'
+         subFile.uploadDate = new Date()
+         # subFile.chunkSize = file.chunkSize or @chunkSize - 1
+         subFile.chunkSize = @chunkSize
+         subFile.filename = file.filename if file.filename?
+         subFile.metadata = file.metadata or {}
+         subfile.aliases = file.aliases if file.aliases?
+         subFile.contentType = file.contentType if file.contentType?
+         super subFile, callback
+         # callback = @_bind_env callback
+         # writeStream = @gfs.createWriteStream
+         #    filename: file.filename || ''
+         #    mode: 'w'
+         #    root: @base
+         #    chunk_size: file.chunk_size || @chunkSize
+         #    aliases: file.aliases || null
+         #    metadata: file.metadata || null
+         #    content_type: file.content_type || 'application/octet-stream'
+
+         # if callback?
+         #    writeStream.on('close', (retFile) ->
+         #       callback(null, retFile._id))
+
+         # return writeStream
+
+      upsert: (file, options = {}, callback = undefined) ->
+
          callback = @_bind_env callback
-         writeStream = @gfs.createWriteStream
-            filename: file.filename || ''
-            mode: 'w'
-            root: @base
-            chunk_size: file.chunk_size || @chunkSize
-            aliases: file.aliases || null
-            metadata: file.metadata || null
-            content_type: file.content_type || 'application/octet-stream'
 
-         if callback?
-            writeStream.on('close', (retFile) ->
-               callback(null, retFile._id))
+         options.chunkNumber ?= 1
+         options.lastChunk ?= 1
 
-         return writeStream
+         unless file._id
+            file._id = @insert file
 
-      upsert: (id, callback = undefined) ->
-         callback = @_bind_env callback
-         file = gridFS.__super__.findOne.bind(@)({ _id: new Meteor.Collection.ObjectID("#{id}") })
-         console.log "upsert: ", file, id
-         unless file
-            callback(null, null) if callback
-            return null
-         writeStream = @gfs.createWriteStream
+         console.log "ID: #{file._id}"
+
+         file = gridFS.__super__.findOne.bind(@)({ _id: new Meteor.Collection.ObjectID("#{file._id}") })
+
+         console.log "File: ", file
+
+         # console.log "Chunkage: ", file.metadata.chunkNumber + 1, options.chunkNumber, (file.metadata.chunkNumber + 1 is options.chunkNumber)
+
+         # unless file and ((options.chunkNumber is 1) or (file.metadata?.chunkNumber + 1 is options.chunkNumber))
+         #    callback(null, null) if callback
+         #    return null
+
+         subFile =
             _id: "#{file._id}"
-            filename: file.filename || ''
             mode: 'w+'
             root: @base
-            chunk_size: file.chunk_size || @chunkSize
-            aliases: file.aliases || null
-            metadata: file.metadata || null
-            content_type: file.content_type || 'application/octet-stream'
+            chunkSize: @chunkSize
+            # metadata: file.metadata ? {}
+
+         # if options.chunkNumber is options.lastChunk
+         #    delete subFile.metadata.chunkNumber
+         # else
+         #    subFile.metadata.chunkNumber = options.chunkNumber
+
+         console.log "upsert: ", subFile
+
+         writeStream = @gfs.createWriteStream subFile
+         # _id: "#{file._id}"
+         # filename: file.filename || ''
+         # mode: 'w+'
+         # root: @base
+         # chunk_size: file.chunk_size || @chunkSize
+         # aliases: file.aliases || null
+         # metadata: file.metadata || null
+         # content_type: file.content_type || 'application/octet-stream'
+
+         writeStream.on 'close', (retFile) ->
+            console.log "Done writing: " + options.chunkNumber
 
          if callback?
-            writeStream.on('close', (retFile) ->
-               callback(null, retFile._id))
+            writeStream.on 'close', (retFile) ->
+               callback(null, retFile._id)
 
+         console.log "Returning writeStream"
          return writeStream
 
       findOne: (selector, options = {}) ->
@@ -252,10 +329,9 @@ if Meteor.isServer
          options = options || {}
          options.filename = path.basename filePath
          readStream = fs.createReadStream filePath
-         writeStream = @upsert options, callback
+         writeStream = @upsert options, {}, callback
          readStream.pipe(writeStream)
             .on('error', callback)
-            .on('close', callback)
 
       exportFile: (id, filePath, callback) ->
          callback = @_bind_env callback
@@ -284,6 +360,7 @@ if Meteor.isClient
             generateUniqueIdentifier: (file) -> "#{new Meteor.Collection.ObjectID()}"
             chunkSize: @chunkSize
             testChunks: false
+            simultaneousUploads: 1
             headers:
                'X-Auth-Token': Accounts._storedLoginToken() or ''
 
@@ -300,7 +377,7 @@ if Meteor.isClient
                   metadata:
                      uploaded: false
                      owner: Meteor.userId() ? null
-                     resumable: {}
+                     _Resumable: { }
                }, () -> r.upload())
             )
             r.on('fileSuccess', (file, message) =>
@@ -323,9 +400,10 @@ if Meteor.isClient
          subFile.length = 0
          subFile.md5 = 'd41d8cd98f00b204e9800998ecf8427e'
          subFile.uploadDate = new Date()
-         subFile.chunkSize = file.chunkSize or @chunkSize
+#         subFile.chunkSize = file.chunkSize or @chunkSize
+         subFile.chunkSize = @chunkSize
          subFile.filename = file.filename if file.filename?
-         subFile.metadata = file.metadata if file.metadata?
+         subFile.metadata = file.metadata or {}
          subFile.contentType = file.contentType if file.contentType?
          super subFile, callback
 
