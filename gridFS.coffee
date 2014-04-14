@@ -174,7 +174,7 @@ if Meteor.isServer
          @_access_point(@baseURL)
 
          @db = Meteor._wrapAsync(mongodb.MongoClient.connect)(process.env.MONGO_URL,{})
-         @gfs = new grid(@db, mongodb)
+         @gfs = new grid(@db, mongodb, @base)
          @chunkSize = 2*1024*1024
 
          @allows = { insert: [], update: [], remove: [] }
@@ -292,7 +292,7 @@ if Meteor.isServer
 
          console.log "upsert: ", subFile
 
-         writeStream = @gfs.createWriteStream subFile
+         writeStream = Meteor._wrapAsync(@gfs.createWriteStream.bind(@gfs)) subFile
          # _id: "#{file._id}"
          # filename: file.filename || ''
          # mode: 'w+'
@@ -315,7 +315,7 @@ if Meteor.isServer
       findOne: (selector, options = {}) ->
          file = super selector, { sort: options.sort, skip: options.skip }
          if file
-            readStream = @gfs.createReadStream
+            readStream = Meteor._wrapAsync(@gfs.createReadStream.bind(@gfs))
                root: @base
                _id: "#{file._id}"
             return readStream
