@@ -1,7 +1,7 @@
 if Meteor.isServer
 
    mongodb = Npm.require 'mongodb'
-   grid = Npm.require 'gridfs-stream'
+   grid = Npm.require 'gridfs-locking-stream'
    fs = Npm.require 'fs'
    path = Npm.require 'path'
    dicer = Npm.require 'dicer'
