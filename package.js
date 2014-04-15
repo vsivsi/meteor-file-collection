@@ -5,10 +5,9 @@ Package.describe({
 });
 
 Npm.depends({
-  // Switch to 1.4.0 once it is out
-  // mongodb: '1.4.0',
-  mongodb: 'https://github.com/vsivsi/node-mongodb-native/tarball/4b59ff3b30df6a068b03cb10144f587563664bff',
+  mongodb: '1.4.0',
   'gridfs-locking-stream': '0.1.2',
+  'gridfs-locks': '1.0.1',
   dicer: '0.2.3'
 });
 
