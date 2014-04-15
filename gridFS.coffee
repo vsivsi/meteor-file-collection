@@ -2,6 +2,7 @@ if Meteor.isServer
 
    mongodb = Npm.require 'mongodb'
    grid = Npm.require 'gridfs-locking-stream'
+   gridLocks = Npm.require 'gridfs-locks'
    fs = Npm.require 'fs'
    path = Npm.require 'path'
    dicer = Npm.require 'dicer'
@@ -105,6 +106,7 @@ if Meteor.isServer
 
                # See if this file already exists in some form
                file = gridFS.__super__.findOne.bind(@)({ _id: new Meteor.Collection.ObjectID("#{resumable.resumableIdentifier}") })
+               lastChunk = false
 
                unless file
                   res.writeHead(404)
@@ -116,14 +118,15 @@ if Meteor.isServer
                    (file.metadata?._Resumable?.resumableChunkNumber + 1 is resumable.resumableChunkNumber is resumable.resumableTotalChunks))
                   delete file.metadata._Resumable
                   console.log "Upserting last chunk", file
-                  writeStream = @upsert { _id: resumable.resumableIdentifier, metadata : file.metadata }
+                  lastChunk = true
+                  writeStream = @upsert { _id: new mongodb.ObjectID(resumable.resumableIdentifier), metadata : file.metadata }
 
                # Next chunk of a contiguous file
                else if ((resumable.resumableChunkNumber is 1) or
                         (file.metadata?._Resumable?.resumableChunkNumber + 1 is resumable.resumableChunkNumber))
                   file.metadata._Resumable = resumable
                   console.log "Upserting next chunk", file
-                  writeStream = @upsert { _id: resumable.resumableIdentifier, metadata : file.metadata }
+                  writeStream = @upsert { _id: new mongodb.ObjectID(resumable.resumableIdentifier), metadata : file.metadata }
 
                # Out of order chunk of a file, stash it...
                else
@@ -141,17 +144,61 @@ if Meteor.isServer
                console.log "Piping!"
                try
                   fileStream.pipe(writeStream)
-                     .on 'close', () ->
+                     .on 'close', @_bind_env((file) =>
                         console.log "Piping Close!"
                         res.writeHead(200)
                         res.end('Form submission successful!')
-                     .on 'error', () ->
-                        console.log "Piping Error!"
+                        unless lastChunk
+                          @_check_order(file)
+                        )
+                     .on 'error', @_bind_env((err) =>
+                        console.log "Piping Error!", err
                         res.writeHead(500)
-                        res.end('Form submission unsuccessful!')
-               catch
-                  console.error "Caught during pipe"
+                        res.end('Form submission unsuccessful!'))
+               catch err
+                  console.error "Caught during pipe", err
                   console.trace()
+
+      _check_order: (file) ->
+         console.log "Checking the order of chunks for processing...", file
+         fileId = new mongodb.ObjectID file.metadata._Resumable.resumableIdentifier
+         console.log "fileId: #{fileId}"
+         lock = gridLocks.Lock fileId, @locks, {}
+         lock.obtainWriteLock()
+         lock.on 'locked', @_bind_env(() =>
+            OOO_arr = @find({_id: {$ne: fileId}, 'metadata._Resumable.resumableIdentifier': file.metadata._Resumable.resumableIdentifier},
+                            { sort: { 'metadata._Resumable.resumableChunkNumber': 1 }}).fetch()
+            console.log "Found #{OOO_arr.length} OOO parts"
+            if OOO_arr.length > 0
+               mainfile = gridFS.__super__.findOne.bind(@)({ _id: fileId })
+               if mainfile
+                  console.log "Found mainfile, which has #{mainfile.metadata._Resumable.resumableChunkNumber} parts"
+                  if mainfile.metadata._Resumable.resumableChunkNumber + OOO_arr.length is mainfile.metadata._Resumable.resumableTotalChunks
+                     # Manipulate the chunks and files collections directly under write lock
+                     console.log "Start reassembling the file!!!!"
+
+                     chunks = @db.collection "#{@base}.chunks"
+                     files = @db.collection "#{@base}.files"
+
+                     # go through all of the OOO uploaded parts and reassign them
+                     for part, i in OOO_arr
+                        # console.log part._id
+                        partId = new mongodb.ObjectID part._id._str
+                        if i isnt part.metadata._Resumable.resumableChunkNumber - mainfile.metadata._Resumable.resumableChunkNumber - 1
+                           throw "WTF Chunk numbers!"
+                        chunks.update { files_id: partId, n: 0 }, { $set: { files_id: fileId, n: part.metadata._Resumable.resumableChunkNumber - 1 }}, (err, res) => console.log "Updated", err, res
+                        files.remove { _id: partId }, (err, res) => console.log "removed", err, res
+
+                     # check for a hanging chunk
+                     chunks.update { files_id: partId, n: 1 }, { $set: { files_id: fileId, n: part.metadata._Resumable.resumableChunkNumber }}, (err, res) => console.log "Last bit updated", err, res
+
+                     totalSize = mainfile.metadata._Resumable.resumableTotalSize
+                     delete mainfile.metadata._Resumable
+                     files.update { _id: fileId }, { $set: { length: totalSize, metadata: mainfile.metadata }}, (err, res) => console.log "file updated", err, res
+
+            lock.releaseLock()
+         )
+         lock.on 'timed-out', @_bind_env(() => console.error "Lock timed out")
 
       _put: (req, res, next) ->
          console.log "Cowboy!", req.method
@@ -190,6 +237,7 @@ if Meteor.isServer
          @_access_point(@baseURL)
 
          @db = Meteor._wrapAsync(mongodb.MongoClient.connect)(process.env.MONGO_URL,{})
+         @locks = gridLocks.LockCollection @db, { root: @base, timeOut: 180, lockExpiration: 90 }
          @gfs = new grid(@db, mongodb, @base)
          @chunkSize = 2*1024*1024
 
@@ -241,10 +289,14 @@ if Meteor.isServer
          @denys[type].push(func) for type, func of denyOptions when type of @denys
 
       insert: (file, callback = undefined) ->
+         # if file._id
+         #    id = new Meteor.Collection.ObjectID("#{file._id}")
+         # else
+         #    id = new Meteor.Collection.ObjectID()
          if file._id
-            id = new Meteor.Collection.ObjectID("#{file._id}")
+            id = new mongodb.ObjectID("#{file._id}")
          else
-            id = new Meteor.Collection.ObjectID()
+            id = new mongodb.ObjectID()
          subFile = {}
          subFile._id = id
          subFile.length = 0
@@ -255,6 +307,7 @@ if Meteor.isServer
          subFile.metadata = file.metadata or {}
          subfile.aliases = file.aliases if file.aliases?
          subFile.contentType = file.contentType if file.contentType?
+         console.log "About to insert"
          super subFile, callback
 
       upsert: (file, options = {}, callback = undefined) ->
@@ -262,13 +315,18 @@ if Meteor.isServer
          callback = @_bind_env callback
 
          unless file._id
-            file._id = @insert file
-            file = gridFS.__super__.findOne.bind(@)({ _id: new Meteor.Collection.ObjectID("#{file._id}") })
+            console.log "@@@ Fresh insert for ", file
+            id = @insert file
+            file = gridFS.__super__.findOne.bind(@)({ _id: id })
+            # file._id = new Meteor.Collection.ObjectID("#{file._id}")
+            # file._id = id
+            # file = gridFS.__super__.findOne.bind(@)({ _id: new Meteor.Collection.ObjectID("#{file._id}") })
 
          console.log "File: ", file
 
          subFile =
-            _id: "#{file._id}"
+            # _id: "#{file._id}"
+            _id: file._id
             mode: 'w+'
             root: @base
             metadata: file.metadata ? {}
@@ -279,7 +337,7 @@ if Meteor.isServer
          writeStream = Meteor._wrapAsync(@gfs.createWriteStream.bind(@gfs)) subFile
 
          writeStream.on 'close', (retFile) ->
-            console.log "Done writing: " + options.chunkNumber
+            console.log "Done writing"
 
          if callback?
             writeStream.on 'close', (retFile) ->
