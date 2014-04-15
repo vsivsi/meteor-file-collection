@@ -6,6 +6,7 @@ if Meteor.isServer
    fs = Npm.require 'fs'
    path = Npm.require 'path'
    dicer = Npm.require 'dicer'
+   async = Npm.require 'async'
 
    class gridFS extends Meteor.Collection
 
@@ -162,49 +163,68 @@ if Meteor.isServer
 
       _check_order: (file) ->
          console.log "Checking the order of chunks for processing...", file
-         fileId = new Meteor.Collection.ObjectID(file.metadata._Resumable.resumableIdentifier)
-         fileMongoId = mongodb.ObjectID("#{file.metadata._Resumable.resumableIdentifier}")
+         fileId = mongodb.ObjectID("#{file.metadata._Resumable.resumableIdentifier}")
          console.log "fileId: #{fileId}"
-         lock = gridLocks.Lock(fileMongoId, @locks, {}).obtainWriteLock()
-         lock.on 'locked', @_bind_env(() =>
-            OOO_arr = @find({_id: {$ne: fileId}, 'metadata._Resumable.resumableIdentifier': file.metadata._Resumable.resumableIdentifier},
-                            { sort: { 'metadata._Resumable.resumableChunkNumber': 1 }}).fetch()
-            console.log "Found #{OOO_arr.length} OOO parts"
-            if OOO_arr.length > 0
-               mainfile = gridFS.__super__.findOne.bind(@)({ _id: fileId })
-               if mainfile
+         lock = gridLocks.Lock(fileId, @locks, {}).obtainWriteLock()
+         lock.on 'locked', () =>
+            files = @db.collection "#{@base}.files"
+
+            files.find({'metadata._Resumable.resumableIdentifier': file.metadata._Resumable.resumableIdentifier},
+                       { sort: { 'metadata._Resumable.resumableChunkNumber': 1 }}).toArray (err, OOO_arr) =>
+               throw err if err
+               console.log "Found #{OOO_arr.length} OOO parts"
+               unless OOO_arr.length > 1
+                  return lock.releaseLock()
+               else
+                  mainfile = OOO_arr.shift()
                   console.log "Found mainfile, which has #{mainfile.metadata._Resumable.resumableChunkNumber} parts"
                   console.log mainfile
-                  if mainfile.metadata._Resumable.resumableChunkNumber + OOO_arr.length is mainfile.metadata._Resumable.resumableTotalChunks
+                  unless mainfile.metadata._Resumable.resumableChunkNumber + OOO_arr.length is mainfile.metadata._Resumable.resumableTotalChunks
+                     return lock.releaseLock()
+                  else
                      # Manipulate the chunks and files collections directly under write lock
                      console.log "Start reassembling the file!!!!"
-                     files = @db.collection "#{@base}.files"
                      chunks = @db.collection "#{@base}.chunks"
 
-                     # go through all of the OOO uploaded parts and reassign them
-                     for part, i in OOO_arr
-                        # This really needs the async library
-                        partId = mongodb.ObjectID("#{part._id}")
-                        partlock = gridLocks.Lock(partId, @locks, {}).obtainWriteLock()
-                        partlock.on 'locked', do (part, i, partId) -> return (() ->
-                           console.log "Working on #{i}, #{partId}, ", part, mainfile
-                           if i isnt part.metadata._Resumable.resumableChunkNumber - mainfile.metadata._Resumable.resumableChunkNumber - 1
-                              throw "WTF Chunk numbers!"
-                           chunks.update { files_id: partId, n: 0 }, { $set: { files_id: fileMongoId, n: part.metadata._Resumable.resumableChunkNumber - 1 }}, (err, res) => console.log "Updated", err, res
-                           files.remove { _id: partId }, (err, res) => console.log "removed", err, res
-                           if i + mainfile.metadata._Resumable.resumableChunkNumber is mainfile.metadata._Resumable.resumableTotalChunks
-                              # check for a hanging chunk
-                              chunks.update { files_id: partId, n: 1 }, { $set: { files_id: fileMongoId, n: part.metadata._Resumable.resumableChunkNumber }}, (err, res) => console.log "Last bit updated", err, res
-                           partlock.removeLock())
+                     async.eachLimit OOO_arr, 3,
+                        (part, cb) =>
+                           partId = mongodb.ObjectID("#{part._id}")
+                           partlock = gridLocks.Lock(partId, @locks, {}).obtainWriteLock()
+                           partlock.on 'locked', () ->
+                              console.log "Working on #{part.metadata._Resumable.resumableChunkNumber}, #{partId}, ", part, mainfile
+                              async.series [
+                                    (cb) -> chunks.update { files_id: partId, n: 0 },
+                                       { $set: { files_id: fileId, n: part.metadata._Resumable.resumableChunkNumber - 1 }}
+                                       cb
+                                    (cb) -> files.remove { _id: partId }, cb
+                                 ],
+                                 (err, res) =>
+                                    throw err if err
+                                    unless part.metadata._Resumable.resumableChunkNumber is mainfile.metadata._Resumable.resumableTotalChunks
+                                       partlock.removeLock()
+                                       cb()
+                                    else
+                                       # check for a hanging chunk
+                                       chunks.update { files_id: partId, n: 1 },
+                                          { $set: { files_id: fileId, n: part.metadata._Resumable.resumableChunkNumber }}
+                                          (err, res) ->
+                                             throw err if err
+                                             console.log "Last bit updated", res
+                                             partlock.removeLock()
+                                             cb()
 
-                     totalSize = mainfile.metadata._Resumable.resumableTotalSize
-                     delete mainfile.metadata._Resumable
-                     # The line above is whacking the async contents of the loop above that
-                     files.update { _id: fileMongoId }, { $set: { length: totalSize, metadata: mainfile.metadata }}, (err, res) => console.log "file updated", err, res
-            # WARNING! The above update will *probably* finish before this, but who knows!!!
-            lock.releaseLock()
-         )
-         lock.on 'timed-out', @_bind_env(() => console.error "Lock timed out")
+                           partlock.on 'timed-out', () ->  throw "Part Lock timed out"
+                        (err) =>
+                           throw err if err
+                           totalSize = mainfile.metadata._Resumable.resumableTotalSize
+                           delete mainfile.metadata._Resumable
+                           # The line above is whacking the async contents of the loop above that
+                           files.update { _id: fileId }, { $set: { length: totalSize, metadata: mainfile.metadata }},
+                              (err, res) =>
+                                 console.log "file updated", err, res
+                                 lock.releaseLock()
+
+         lock.on 'timed-out', () -> throw "File Lock timed out"
 
       _put: (req, res, next) ->
          console.log "Cowboy!", req.method
