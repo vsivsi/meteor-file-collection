@@ -223,6 +223,12 @@ if Meteor.isServer
                               (err, res) =>
                                  console.log "file updated", err, res
                                  lock.releaseLock()
+                                 # Now open the file to update the md5 hash...
+                                 @gfs.createWriteStream { _id: fileId }, (err, stream) ->
+                                    throw err if err
+                                    console.log "Writing to stream to change md5 sum"
+                                    stream.write('')
+                                    stream.end()
 
          lock.on 'timed-out', () -> throw "File Lock timed out"
 
