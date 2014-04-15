@@ -105,7 +105,8 @@ if Meteor.isServer
                   return
 
                # See if this file already exists in some form
-               file = gridFS.__super__.findOne.bind(@)({ _id: new Meteor.Collection.ObjectID("#{resumable.resumableIdentifier}") })
+               ID = new Meteor.Collection.ObjectID(resumable.resumableIdentifier)
+               file = gridFS.__super__.findOne.bind(@)({ _id: ID })
                lastChunk = false
 
                unless file
@@ -119,14 +120,14 @@ if Meteor.isServer
                   delete file.metadata._Resumable
                   console.log "Upserting last chunk", file
                   lastChunk = true
-                  writeStream = @upsert { _id: new mongodb.ObjectID(resumable.resumableIdentifier), metadata : file.metadata }
+                  writeStream = @upsert { _id: ID, metadata : file.metadata }
 
                # Next chunk of a contiguous file
                else if ((resumable.resumableChunkNumber is 1) or
                         (file.metadata?._Resumable?.resumableChunkNumber + 1 is resumable.resumableChunkNumber))
                   file.metadata._Resumable = resumable
                   console.log "Upserting next chunk", file
-                  writeStream = @upsert { _id: new mongodb.ObjectID(resumable.resumableIdentifier), metadata : file.metadata }
+                  writeStream = @upsert { _id: ID, metadata : file.metadata }
 
                # Out of order chunk of a file, stash it...
                else
@@ -161,9 +162,10 @@ if Meteor.isServer
 
       _check_order: (file) ->
          console.log "Checking the order of chunks for processing...", file
-         fileId = new mongodb.ObjectID file.metadata._Resumable.resumableIdentifier
+         fileId = new Meteor.Collection.ObjectID(file.metadata._Resumable.resumableIdentifier)
+         fileMongoId = mongodb.ObjectID("#{file.metadata._Resumable.resumableIdentifier}")
          console.log "fileId: #{fileId}"
-         lock = gridLocks.Lock fileId, @locks, {}
+         lock = gridLocks.Lock mongodb.ObjectID("#{fileId}"), @locks, {}
          lock.obtainWriteLock()
          lock.on 'locked', @_bind_env(() =>
             OOO_arr = @find({_id: {$ne: fileId}, 'metadata._Resumable.resumableIdentifier': file.metadata._Resumable.resumableIdentifier},
@@ -176,25 +178,27 @@ if Meteor.isServer
                   if mainfile.metadata._Resumable.resumableChunkNumber + OOO_arr.length is mainfile.metadata._Resumable.resumableTotalChunks
                      # Manipulate the chunks and files collections directly under write lock
                      console.log "Start reassembling the file!!!!"
-
-                     chunks = @db.collection "#{@base}.chunks"
                      files = @db.collection "#{@base}.files"
+                     chunks = @db.collection "#{@base}.chunks"
+                     locks = @db.collection "#{@base}.locks"
 
                      # go through all of the OOO uploaded parts and reassign them
                      for part, i in OOO_arr
                         # console.log part._id
-                        partId = new mongodb.ObjectID part._id._str
+                        # partId = new Meteor.Collection.ObjectID(part._id._str)
+                        partId = mongodb.ObjectID("#{part._id}")
                         if i isnt part.metadata._Resumable.resumableChunkNumber - mainfile.metadata._Resumable.resumableChunkNumber - 1
                            throw "WTF Chunk numbers!"
-                        chunks.update { files_id: partId, n: 0 }, { $set: { files_id: fileId, n: part.metadata._Resumable.resumableChunkNumber - 1 }}, (err, res) => console.log "Updated", err, res
+                        chunks.update { files_id: partId, n: 0 }, { $set: { files_id: fileMongoId, n: part.metadata._Resumable.resumableChunkNumber - 1 }}, (err, res) => console.log "Updated", err, res
                         files.remove { _id: partId }, (err, res) => console.log "removed", err, res
+                        locks.remove { files_id: partId }, (err, res) => console.log "dead lock removed", err, res
 
                      # check for a hanging chunk
-                     chunks.update { files_id: partId, n: 1 }, { $set: { files_id: fileId, n: part.metadata._Resumable.resumableChunkNumber }}, (err, res) => console.log "Last bit updated", err, res
+                     chunks.update { files_id: partId, n: 1 }, { $set: { files_id: fileMongoId, n: part.metadata._Resumable.resumableChunkNumber }}, (err, res) => console.log "Last bit updated", err, res
 
                      totalSize = mainfile.metadata._Resumable.resumableTotalSize
                      delete mainfile.metadata._Resumable
-                     files.update { _id: fileId }, { $set: { length: totalSize, metadata: mainfile.metadata }}, (err, res) => console.log "file updated", err, res
+                     files.update { _id: fileMongoId }, { $set: { length: totalSize, metadata: mainfile.metadata }}, (err, res) => console.log "file updated", err, res
 
             lock.releaseLock()
          )
@@ -276,7 +280,7 @@ if Meteor.isServer
          console.log "In Server REMOVE"
          if selector?
             @find(selector).forEach (file) =>
-               Meteor._wrapAsync(@gfs.remove.bind(@gfs))({ _id: "#{file._id}", root: @base })
+               Meteor._wrapAsync(@gfs.remove.bind(@gfs))({ _id: mongodb.ObjectID("#{file._id}"), root: @base })
             callback and callback null
          else
             console.warn "GridFS Collection does not 'remove' with an empty selector"
@@ -289,14 +293,10 @@ if Meteor.isServer
          @denys[type].push(func) for type, func of denyOptions when type of @denys
 
       insert: (file, callback = undefined) ->
-         # if file._id
-         #    id = new Meteor.Collection.ObjectID("#{file._id}")
-         # else
-         #    id = new Meteor.Collection.ObjectID()
-         if file._id
-            id = new mongodb.ObjectID("#{file._id}")
-         else
-            id = new mongodb.ObjectID()
+         try
+            id = new Meteor.Collection.ObjectID("#{file._id}")
+         catch
+            id = new Meteor.Collection.ObjectID()
          subFile = {}
          subFile._id = id
          subFile.length = 0
@@ -318,15 +318,11 @@ if Meteor.isServer
             console.log "@@@ Fresh insert for ", file
             id = @insert file
             file = gridFS.__super__.findOne.bind(@)({ _id: id })
-            # file._id = new Meteor.Collection.ObjectID("#{file._id}")
-            # file._id = id
-            # file = gridFS.__super__.findOne.bind(@)({ _id: new Meteor.Collection.ObjectID("#{file._id}") })
 
          console.log "File: ", file
 
          subFile =
-            # _id: "#{file._id}"
-            _id: file._id
+            _id: mongodb.ObjectID("#{file._id}")
             mode: 'w+'
             root: @base
             metadata: file.metadata ? {}
@@ -351,7 +347,7 @@ if Meteor.isServer
          if file
             readStream = Meteor._wrapAsync(@gfs.createReadStream.bind(@gfs))
                root: @base
-               _id: "#{file._id}"
+               _id: mongodb.ObjectID("#{file._id}")
             return readStream
          else
             return null
@@ -425,9 +421,9 @@ if Meteor.isClient
          throw new Error "GridFS Collections do not support 'upsert' on client"
 
       insert: (file, callback = undefined) ->
-         if file._id
+         try
             id = new Meteor.Collection.ObjectID("#{file._id}")
-         else
+         catch
             id = new Meteor.Collection.ObjectID()
          subFile = {}
          subFile._id = id
