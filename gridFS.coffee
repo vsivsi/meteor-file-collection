@@ -30,7 +30,6 @@ if Meteor.isServer
       _dice_multipart: (req, callback) ->
          callback = @_bind_env callback
          boundary = @_find_mime_boundary req
-         # console.log "Boundary! #{boundary}"
 
          resumable = {}
          resCount = 0
@@ -104,23 +103,40 @@ if Meteor.isServer
                   res.end('Form submission unsuccessful!')
                   return
 
-               # Shortcut for one chunk files, just write it!
-               if resumable.resumableTotalChunks is 1 and resumable.resumableChunkNumber is 1
-                  console.log "Upserting one chunk"
-                  writeStream = @upsert { _id: resumable.resumableIdentifier }
-                  unless writeStream
-                     res.writeHead(500)
-                     res.end('Form submission unsuccessful!')
-                     return
+               # See if this file already exists in some form
+               file = gridFS.__super__.findOne.bind(@)({ _id: new Meteor.Collection.ObjectID("#{resumable.resumableIdentifier}") })
 
-               else # write a chunk for this file.
-                  writeStream = @upsert { _id: resumable.resumableIdentifier }, { chunkNumber: resumable.resumableChunkNumber, lastChunk: resumable.resumableTotalChunks }
+               unless file
+                  res.writeHead(404)
+                  res.end('Upload document not found!')
+                  return
 
-                  unless writeStream
-                     writeStream = @upsert
-                        filename: "_Resumable_#{resumable.resumableIdentifier}_#{resumable.resumableChunkNumber}_#{resumable.resumableTotalChunks}"
-                        metadata:
-                           _Resumable: resumable
+               # Shortcut for last chunk of a contiguous file, just write it!
+               if ((resumable.resumableChunkNumber is resumable.resumableTotalChunks is 1) or
+                   (file.metadata?._Resumable?.resumableChunkNumber + 1 is resumable.resumableChunkNumber is resumable.resumableTotalChunks))
+                  delete file.metadata._Resumable
+                  console.log "Upserting last chunk", file
+                  writeStream = @upsert { _id: resumable.resumableIdentifier, metadata : file.metadata }
+
+               # Next chunk of a contiguous file
+               else if ((resumable.resumableChunkNumber is 1) or
+                        (file.metadata?._Resumable?.resumableChunkNumber + 1 is resumable.resumableChunkNumber))
+                  file.metadata._Resumable = resumable
+                  console.log "Upserting next chunk", file
+                  writeStream = @upsert { _id: resumable.resumableIdentifier, metadata : file.metadata }
+
+               # Out of order chunk of a file, stash it...
+               else
+                  console.log "Upserting OOO chunk", file
+                  writeStream = @upsert
+                     filename: "_Resumable_#{resumable.resumableIdentifier}_#{resumable.resumableChunkNumber}_#{resumable.resumableTotalChunks}"
+                     metadata:
+                        _Resumable: resumable
+
+               unless writeStream
+                  res.writeHead(500)
+                  res.end('Form submission unsuccessful!')
+                  return
 
                console.log "Piping!"
                try
@@ -240,67 +256,27 @@ if Meteor.isServer
          subfile.aliases = file.aliases if file.aliases?
          subFile.contentType = file.contentType if file.contentType?
          super subFile, callback
-         # callback = @_bind_env callback
-         # writeStream = @gfs.createWriteStream
-         #    filename: file.filename || ''
-         #    mode: 'w'
-         #    root: @base
-         #    chunk_size: file.chunk_size || @chunkSize
-         #    aliases: file.aliases || null
-         #    metadata: file.metadata || null
-         #    content_type: file.content_type || 'application/octet-stream'
-
-         # if callback?
-         #    writeStream.on('close', (retFile) ->
-         #       callback(null, retFile._id))
-
-         # return writeStream
 
       upsert: (file, options = {}, callback = undefined) ->
 
          callback = @_bind_env callback
 
-         options.chunkNumber ?= 1
-         options.lastChunk ?= 1
-
          unless file._id
             file._id = @insert file
-
-         console.log "ID: #{file._id}"
-
-         file = gridFS.__super__.findOne.bind(@)({ _id: new Meteor.Collection.ObjectID("#{file._id}") })
+            file = gridFS.__super__.findOne.bind(@)({ _id: new Meteor.Collection.ObjectID("#{file._id}") })
 
          console.log "File: ", file
-
-         console.log "Chunkage: ", file.metadata.chunkNumber + 1, options.chunkNumber, (file.metadata.chunkNumber + 1 is options.chunkNumber)
-
-         unless file and ((options.chunkNumber is 1) or (file.metadata?.chunkNumber + 1 is options.chunkNumber))
-            callback(null, null) if callback
-            return null
 
          subFile =
             _id: "#{file._id}"
             mode: 'w+'
             root: @base
-            chunkSize: file.chunkSize or @chunkSize
             metadata: file.metadata ? {}
-
-         if options.chunkNumber is options.lastChunk
-            delete subFile.metadata.chunkNumber
-         else
-            subFile.metadata.chunkNumber = options.chunkNumber
+            timeOut: 30
 
          console.log "upsert: ", subFile
 
          writeStream = Meteor._wrapAsync(@gfs.createWriteStream.bind(@gfs)) subFile
-         # _id: "#{file._id}"
-         # filename: file.filename || ''
-         # mode: 'w+'
-         # root: @base
-         # chunk_size: file.chunk_size || @chunkSize
-         # aliases: file.aliases || null
-         # metadata: file.metadata || null
-         # content_type: file.content_type || 'application/octet-stream'
 
          writeStream.on 'close', (retFile) ->
             console.log "Done writing: " + options.chunkNumber
@@ -359,7 +335,8 @@ if Meteor.isClient
             generateUniqueIdentifier: (file) -> "#{new Meteor.Collection.ObjectID()}"
             chunkSize: @chunkSize
             testChunks: false
-            simultaneousUploads: 2
+            simultaneousUploads: 3
+            prioritizeFirstAndLastChunk: true
             headers:
                'X-Auth-Token': Accounts._storedLoginToken() or ''
 
@@ -375,7 +352,6 @@ if Meteor.isClient
                   contentType: file.file.type
                   chunkSize: @chunkSize
                   metadata:
-                     uploaded: false
                      owner: Meteor.userId() ? null
                      _Resumable: { }
                }, () -> r.upload())
