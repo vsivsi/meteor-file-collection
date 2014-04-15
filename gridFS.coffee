@@ -88,7 +88,31 @@ if Meteor.isServer
 
       _get: (req, res, next) ->
          console.log "Cowboy!", req.method
-         next()
+         console.log "Request: ", req.url
+
+         file = gridFS.__super__.findOne.bind(@)({ md5: req.url.slice(1) })
+
+         console.log file
+
+         unless file
+            res.writeHead(404)
+            res.end("#{req.url} Not found!")
+            return
+
+         stream = @findOne { _id: file._id }
+         if stream
+            res.writeHead 200,
+               'Content-type': file.contentType
+               'Content-Disposition': "attachment; filename=\"#{file.filename}\""
+            stream.pipe(res)
+                  .on 'close', () ->
+                     res.end()
+                  .on 'error', (err) ->
+                     res.writeHead(500)
+                     res.end(err)
+         else
+            res.writeHead(404)
+            res.end("#{req.url} Not found!")
 
       _post: (req, res, next) ->
          console.log "Cowboy!", req.method
@@ -173,62 +197,64 @@ if Meteor.isServer
                        { sort: { 'metadata._Resumable.resumableChunkNumber': 1 }}).toArray (err, OOO_arr) =>
                throw err if err
                console.log "Found #{OOO_arr.length} OOO parts"
+
                unless OOO_arr.length > 1
                   return lock.releaseLock()
-               else
-                  mainfile = OOO_arr.shift()
-                  console.log "Found mainfile, which has #{mainfile.metadata._Resumable.resumableChunkNumber} parts"
-                  console.log mainfile
-                  unless mainfile.metadata._Resumable.resumableChunkNumber + OOO_arr.length is mainfile.metadata._Resumable.resumableTotalChunks
-                     return lock.releaseLock()
-                  else
-                     # Manipulate the chunks and files collections directly under write lock
-                     console.log "Start reassembling the file!!!!"
-                     chunks = @db.collection "#{@base}.chunks"
 
-                     async.eachLimit OOO_arr, 3,
-                        (part, cb) =>
-                           partId = mongodb.ObjectID("#{part._id}")
-                           partlock = gridLocks.Lock(partId, @locks, {}).obtainWriteLock()
-                           partlock.on 'locked', () ->
-                              console.log "Working on #{part.metadata._Resumable.resumableChunkNumber}, #{partId}, ", part, mainfile
-                              async.series [
-                                    (cb) -> chunks.update { files_id: partId, n: 0 },
-                                       { $set: { files_id: fileId, n: part.metadata._Resumable.resumableChunkNumber - 1 }}
-                                       cb
-                                    (cb) -> files.remove { _id: partId }, cb
-                                 ],
-                                 (err, res) =>
-                                    throw err if err
-                                    unless part.metadata._Resumable.resumableChunkNumber is mainfile.metadata._Resumable.resumableTotalChunks
+               mainfile = OOO_arr.shift()
+               console.log "Found mainfile, which has #{mainfile.metadata._Resumable.resumableChunkNumber} parts"
+               console.log mainfile
+
+               unless mainfile.metadata._Resumable.resumableChunkNumber + OOO_arr.length is mainfile.metadata._Resumable.resumableTotalChunks
+                  return lock.releaseLock()
+
+               # Manipulate the chunks and files collections directly under write lock
+               console.log "Start reassembling the file!!!!"
+               chunks = @db.collection "#{@base}.chunks"
+
+               async.eachLimit OOO_arr, 3,
+                  (part, cb) =>
+                     partId = mongodb.ObjectID("#{part._id}")
+                     partlock = gridLocks.Lock(partId, @locks, {}).obtainWriteLock()
+                     partlock.on 'locked', () ->
+                        console.log "Working on #{part.metadata._Resumable.resumableChunkNumber}, #{partId}, ", part, mainfile
+                        async.series [
+                              (cb) -> chunks.update { files_id: partId, n: 0 },
+                                 { $set: { files_id: fileId, n: part.metadata._Resumable.resumableChunkNumber - 1 }}
+                                 cb
+                              (cb) -> files.remove { _id: partId }, cb
+                           ],
+                           (err, res) =>
+                              throw err if err
+                              unless part.metadata._Resumable.resumableChunkNumber is mainfile.metadata._Resumable.resumableTotalChunks
+                                 partlock.removeLock()
+                                 cb()
+                              else
+                                 # check for a hanging chunk
+                                 chunks.update { files_id: partId, n: 1 },
+                                    { $set: { files_id: fileId, n: part.metadata._Resumable.resumableChunkNumber }}
+                                    (err, res) ->
+                                       throw err if err
+                                       console.log "Last bit updated", res
                                        partlock.removeLock()
                                        cb()
-                                    else
-                                       # check for a hanging chunk
-                                       chunks.update { files_id: partId, n: 1 },
-                                          { $set: { files_id: fileId, n: part.metadata._Resumable.resumableChunkNumber }}
-                                          (err, res) ->
-                                             throw err if err
-                                             console.log "Last bit updated", res
-                                             partlock.removeLock()
-                                             cb()
 
-                           partlock.on 'timed-out', () ->  throw "Part Lock timed out"
-                        (err) =>
-                           throw err if err
-                           totalSize = mainfile.metadata._Resumable.resumableTotalSize
-                           delete mainfile.metadata._Resumable
-                           # The line above is whacking the async contents of the loop above that
-                           files.update { _id: fileId }, { $set: { length: totalSize, metadata: mainfile.metadata }},
-                              (err, res) =>
-                                 console.log "file updated", err, res
-                                 lock.releaseLock()
-                                 # Now open the file to update the md5 hash...
-                                 @gfs.createWriteStream { _id: fileId }, (err, stream) ->
-                                    throw err if err
-                                    console.log "Writing to stream to change md5 sum"
-                                    stream.write('')
-                                    stream.end()
+                     partlock.on 'timed-out', () ->  throw "Part Lock timed out"
+                  (err) =>
+                     throw err if err
+                     totalSize = mainfile.metadata._Resumable.resumableTotalSize
+                     delete mainfile.metadata._Resumable
+                     # The line above is whacking the async contents of the loop above that
+                     files.update { _id: fileId }, { $set: { length: totalSize, metadata: mainfile.metadata }},
+                        (err, res) =>
+                           console.log "file updated", err, res
+                           lock.releaseLock()
+                           # Now open the file to update the md5 hash...
+                           @gfs.createWriteStream { _id: fileId }, (err, stream) ->
+                              throw err if err
+                              console.log "Writing to stream to change md5 sum"
+                              stream.write('')
+                              stream.end()
 
          lock.on 'timed-out', () -> throw "File Lock timed out"
 
@@ -241,17 +267,17 @@ if Meteor.isServer
                res.writeHead(200)
                res.end("'k thx bye!")
 
-      _delete: (req, res, next) ->
-         console.log "Cowboy!", req.method
-         next()
+      # _delete: (req, res, next) ->
+      #    console.log "Cowboy!", req.method
+      #    next()
 
       _connect_gridfs: (req, res, next) ->
          switch req.method
             when 'GET' then @_get(req, res, next)
-            when 'HEAD' then @_get(req, res, next)
+            # when 'HEAD' then @_get(req, res, next)
             when 'POST' then @_post(req, res, next)
             when 'PUT' then @_put(req, res, next)
-            when 'DELETE' then @_delete(req, res, next)
+            # when 'DELETE' then @_delete(req, res, next)
             else
                console.log "Bad method ", req.method
                next()
@@ -272,6 +298,10 @@ if Meteor.isServer
          @locks = gridLocks.LockCollection @db, { root: @base, timeOut: 180, lockExpiration: 90 }
          @gfs = new grid(@db, mongodb, @base)
          @chunkSize = 2*1024*1024
+
+         # Make an index on md5, to support GET requests
+         @gfs.files.ensureIndex [['md5', 1]], (err, ret) ->
+            throw err if err
 
          @allows = { insert: [], update: [], remove: [] }
          @denys = { insert: [], update: [], remove: [] }
@@ -372,6 +402,7 @@ if Meteor.isServer
 
       findOne: (selector, options = {}) ->
          file = super selector, { sort: options.sort, skip: options.skip }
+         console.log "findOne", selector, file
          if file
             readStream = Meteor._wrapAsync(@gfs.createReadStream.bind(@gfs))
                root: @base
@@ -418,7 +449,7 @@ if Meteor.isClient
             chunkSize: @chunkSize
             testChunks: false
             simultaneousUploads: 3
-            prioritizeFirstAndLastChunk: true
+            prioritizeFirstAndLastChunk: false
             headers:
                'X-Auth-Token': Accounts._storedLoginToken() or ''
 
