@@ -39,6 +39,11 @@ if Meteor.isServer
          denyResult = denyResult and denyFunc(userId, file, fields) for denyFunc in @denys[type]
          return allowResult and denyResult
 
+      _lookup_userId_by_token: (authToken) ->
+         console.log "Looking up user by token #{authToken} which hashes to #{Accounts._hashLoginToken(authToken)}"
+         userDoc = Meteor.users.findOne { 'services.resume.loginTokens': { $elemMatch: { hashedToken: Accounts._hashLoginToken(authToken) } } }
+         return userDoc?._id
+
       _bind_env: (func) ->
          if func?
             return Meteor.bindEnvironment func, (err) -> throw err
@@ -175,7 +180,7 @@ if Meteor.isServer
       _post: (req, res, next) ->
          console.log "Cowboy!", req.method
 
-         console.log "X-Auth-Token: ", req.headers['x-auth-token']
+         console.log "X-Auth-Token: ", req.headers['x-auth-token'], "UserId: ", @_lookup_userId_by_token(req.headers['x-auth-token'])
 
          @_dice_multipart req, (err, resumable, fileStream) =>
             if err
@@ -314,7 +319,7 @@ if Meteor.isServer
       _put: (req, res, next) ->
          console.log "Cowboy!", req.method
 
-         console.log "X-Auth-Token: ", req.headers['x-auth-token']
+         console.log "X-Auth-Token: ", req.headers['x-auth-token'], "UserId: ", @_lookup_userId_by_token(req.headers['x-auth-token'])
 
          try
             ID = new Meteor.Collection.ObjectID(req.url.slice(1))
