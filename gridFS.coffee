@@ -1,3 +1,23 @@
+
+defaultChunkSize = 2*1024*1024
+
+_shared_insert_func = (file, chunkSize) ->
+   try
+      id = new Meteor.Collection.ObjectID("#{file._id}")
+   catch
+      id = new Meteor.Collection.ObjectID()
+   subFile = {}
+   subFile._id = id
+   subFile.length = 0
+   subFile.md5 = 'd41d8cd98f00b204e9800998ecf8427e'
+   subFile.uploadDate = new Date()
+   subFile.chunkSize = chunkSize
+   subFile.filename = file.filename ? ''
+   subFile.metadata = file.metadata ? {}
+   subFile.aliases = file.aliases ? []
+   subFile.contentType = file.contentType ? 'application/octet-stream'
+   return subFile
+
 if Meteor.isServer
 
    mongodb = Npm.require 'mongodb'
@@ -11,12 +31,12 @@ if Meteor.isServer
 
    class gridFS extends Meteor.Collection
 
-      _check_allow_deny: (type, userId, file) ->
+      _check_allow_deny: (type, userId, file, fields) ->
          console.log "In Client '#{type}' allow: #{file.filename} {@db}"
          allowResult = false
-         allowResult = allowResult or allowFunc(userId, file) for allowFunc in @allows[type]
+         allowResult = allowResult or allowFunc(userId, file, fields) for allowFunc in @allows[type]
          denyResult = true
-         denyResult = denyResult and denyFunc(userId, file) for denyFunc in @denys[type]
+         denyResult = denyResult and denyFunc(userId, file, fields) for denyFunc in @denys[type]
          return allowResult and denyResult
 
       _bind_env: (func) ->
@@ -177,11 +197,19 @@ if Meteor.isServer
                   return
 
                file = gridFS.__super__.findOne.bind(@)({ _id: ID })
-               lastChunk = false
 
                unless file
                   res.writeHead(404)
                   res.end('Upload document not found!')
+                  return
+
+               unless ((file.chunkSize is resumable.resumableChunkSize) and
+                       (resumable.resumableCurrentChunkSize is resumable.resumableChunkSize) or
+                       ((resumable.resumableChunkNumber is resumable.resumableTotalChunks) and
+                        (resumable.resumableCurrentChunkSize < 2*resumable.resumableChunkSize)))
+
+                  res.writeHead(501)
+                  res.end('Invalid chunkSize')
                   return
 
                file.metadata._Resumable = resumable
@@ -339,8 +367,10 @@ if Meteor.isServer
          app = WebApp.rawConnectHandlers
          app.use(url, @_bind_env(@_connect_gridfs.bind(@)))
 
-      constructor: (@base, @baseURL) ->
+      constructor: (@base, @baseURL, @chunkSize) ->
          console.log "Making a gridFS collection!"
+
+         @chunkSize ?= defaultChunkSize
 
          @base ?= 'fs'
          @baseURL ?= "/gridfs/#{@base}"
@@ -350,7 +380,6 @@ if Meteor.isServer
          @db = Meteor._wrapAsync(mongodb.MongoClient.connect)(process.env.MONGO_URL,{})
          @locks = gridLocks.LockCollection @db, { root: @base, timeOut: 360, lockExpiration: 90 }
          @gfs = new grid(@db, mongodb, @base)
-         @chunkSize = 2*1024*1024
 
          # Make an index on md5, to support GET requests
          @gfs.files.ensureIndex [['md5', 1]], (err, ret) ->
@@ -365,23 +394,30 @@ if Meteor.isServer
 
             remove: (userId, file) =>
                if @_check_allow_deny 'remove', userId, file
+
+                  # This causes the file data itself to be removed from gridFS
                   @remove file
-                  # Meteor._wrapAsync(@gfs.remove.bind(@gfs))({ _id: "#{file._id}", root: @base })
                   return true
 
                return false
 
             update: (userId, file, fields) =>
-               if @_check_allow_deny 'update', userId, file
+               if @_check_allow_deny 'update', userId, file, fields
+
+                  # Only metadata may be safely updated by client
                   if fields.length is 1 and fields[0] is 'metadata'
-                     # Only metadata may be updated
                      return true
 
                return false
 
             insert: (userId, file) =>
                if @_check_allow_deny 'insert', userId, file
-                  file.client = true
+
+                  # Enforce the server set chunksize
+                  unless file.chunkSize is @chunkSize
+                     console.warn "Bad insert chunkSize #{@chunkSize} != #{file.chunkSize}"
+                     return false
+
                   return true
 
                return false
@@ -404,21 +440,8 @@ if Meteor.isServer
          @denys[type].push(func) for type, func of denyOptions when type of @denys
 
       insert: (file, callback = undefined) ->
-         try
-            id = new Meteor.Collection.ObjectID("#{file._id}")
-         catch
-            id = new Meteor.Collection.ObjectID()
-         subFile = {}
-         subFile._id = id
-         subFile.length = 0
-         subFile.md5 = 'd41d8cd98f00b204e9800998ecf8427e'
-         subFile.uploadDate = new Date()
-         subFile.chunkSize = file.chunkSize ? @chunkSize
-         subFile.filename = file.filename ? ''
-         subFile.metadata = file.metadata ? {}
-         subFile.aliases = file.aliases ? []
-         subFile.contentType = file.contentType ? 'application/octet-stream'
-         super subFile, callback
+         file = _shared_insert_func file, @chunkSize
+         super file, callback
 
       upsert: (file, options = {}, callback = undefined) ->
 
@@ -482,11 +505,11 @@ if Meteor.isClient
 
    class gridFS extends Meteor.Collection
 
-      constructor: (@base, @baseURL) ->
+      constructor: (@base, @baseURL, @chunkSize) ->
          console.log "Making a gridFS collection!"
+         @chunkSize ?= defaultChunkSize
          @base ?= 'fs'
          @baseURL ?= "/gridfs/#{@base}"
-         @chunkSize = 2*1024*1024
          super @base + '.files'
 
          r = new Resumable
@@ -509,9 +532,6 @@ if Meteor.isClient
                   _id: file.uniqueIdentifier
                   filename: file.fileName
                   contentType: file.file.type
-                  chunkSize: @chunkSize
-                  metadata:
-                     owner: Meteor.userId() ? null
                }, () -> r.upload())
             )
             r.on('fileSuccess', (file, message) =>
@@ -525,19 +545,6 @@ if Meteor.isClient
          throw new Error "GridFS Collections do not support 'upsert' on client"
 
       insert: (file, callback = undefined) ->
-         try
-            id = new Meteor.Collection.ObjectID("#{file._id}")
-         catch
-            id = new Meteor.Collection.ObjectID()
-         subFile = {}
-         subFile._id = id
-         subFile.length = 0
-         subFile.md5 = 'd41d8cd98f00b204e9800998ecf8427e'
-         subFile.uploadDate = new Date()
-         subFile.chunkSize = file.chunkSize ? @chunkSize
-         subFile.filename = file.filename ? ''
-         subFile.metadata = file.metadata ? {}
-         subFile.aliases = file.aliases ? []
-         subFile.contentType = file.contentType ? 'application/octet-stream'
-         super subFile, callback
+         file = _shared_insert_func file, @chunkSize
+         super file, callback
 
