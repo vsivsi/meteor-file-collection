@@ -138,9 +138,13 @@ if Meteor.isServer
 
          stream = @findOne { _id: file._id }
          if stream
-            res.writeHead 200,
-               'Content-type': file.contentType
-               'Content-Disposition': "attachment; filename=\"#{file.filename}\""
+            unless parsedUrl.query.download
+               res.writeHead 200,
+                  'Content-type': file.contentType
+            else
+               res.writeHead 200,
+                  'Content-type': file.contentType
+                  'Content-Disposition': "attachment; filename=\"#{file.filename}\""
             stream.pipe(res)
                   .on 'close', () ->
                      res.end()
