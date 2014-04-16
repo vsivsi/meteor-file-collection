@@ -288,11 +288,13 @@ if Meteor.isServer
          console.log "Cowboy!", req.method
 
          try
-            ID = Meteor.Collection.ObjectID req.url.slice(1)
+            ID = new Meteor.Collection.ObjectID(req.url.slice(1))
          catch
             res.writeHead(400)
             res.end("#{req.url} Bad ID, Not found!")
             return
+
+         console.log req.url.slice(1), ID
 
          file = gridFS.__super__.findOne.bind(@)({ _id: ID })
 
@@ -311,12 +313,12 @@ if Meteor.isServer
          stream = @upsert { _id: ID }
          if stream
             req.pipe(stream)
-                  .on 'close', () ->
-                     res.writeHead(200)
-                     res.end()
-                  .on 'error', (err) ->
-                     res.writeHead(500)
-                     res.end(err)
+               .on 'close', () ->
+                  res.writeHead(200)
+                  res.end()
+               .on 'error', (err) ->
+                  res.writeHead(500)
+                  res.end(err)
          else
             res.writeHead(404)
             res.end("#{req.url} Not found!")
