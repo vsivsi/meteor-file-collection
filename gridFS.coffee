@@ -7,6 +7,7 @@ if Meteor.isServer
    path = Npm.require 'path'
    dicer = Npm.require 'dicer'
    async = Npm.require 'async'
+   url = Npm.require 'url'
 
    class gridFS extends Meteor.Collection
 
@@ -40,9 +41,6 @@ if Meteor.isServer
          d = new dicer { boundary: boundary }
 
          d.on 'part', (p) ->
-
-            console.log('New part!')
-
             p.on 'header', (header) ->
                RE_RESUMABLE = /^form-data; name="(resumable[^"]+)"/
                RE_FILE = /^form-data; name="file"; filename="blob"/
@@ -57,7 +55,7 @@ if Meteor.isServer
 
                         p.on 'end', () ->
                            resCount--
-                           console.log('Resumable Part #{resVar} data: ' + resData)
+                           # console.log('Resumable Part #{resVar} data: ' + resData)
                            unless RE_NUMBER.test(resVar)
                               resumable[resVar] = resData
                            else
@@ -70,7 +68,7 @@ if Meteor.isServer
                            callback err
 
                      else if RE_FILE.exec(v)
-                        console.log "Filestream!"
+                        # console.log "Filestream!"
                         fileStream = p
                         if resCount is 0
                            callback(null, resumable, fileStream)
@@ -80,17 +78,56 @@ if Meteor.isServer
            callback err
 
          d.on 'finish', () ->
-            console.log('End of parts')
+            # console.log('End of parts')
             unless fileStream
                callback(new Error "No file blob in multipart POST")
 
          req.pipe(d)
 
+      _lookup_resumable_part: (resumable, res) ->
+
+         # See if this file already exists in some form
+         try
+            ID = new Meteor.Collection.ObjectID(resumable.resumableIdentifier)
+         catch
+            res.writeHead(501)
+            res.end('Bad ID!')
+            return
+
+         file = gridFS.__super__.findOne.bind(@)({ _id: ID })
+
+         # See if file is all done
+         if (file and file.length is resumable.resumableTotalSize)
+            res.writeHead(200)
+            res.end()
+            return
+
+         # See if this part is already sitting around
+         file = gridFS.__super__.findOne.bind(@)
+            'metadata._Resumable.resumableIdentifier': resumable.resumableIdentifier,
+            'metadata._Resumable.resumableChunkNumber': resumable.resumableChunkNumber
+
+         if (file and file.length is resumable.CurrentChunkSize)
+            res.writeHead(200)
+            res.end()
+            return
+
+         res.writeHead(404)
+         res.end("Not found")
+         return
+
       _get: (req, res, next) ->
          console.log "Cowboy!", req.method
-         console.log "Request: ", req.url
 
-         file = gridFS.__super__.findOne.bind(@)({ md5: req.url.slice(1) })
+         parsedUrl = url.parse req.url, true
+
+         # If this is a resumable GET request
+         if parsedUrl.query.resumableIdentifier?
+            return @_lookup_resumable_part parsedUrl.query, res
+
+         console.log parsedUrl
+
+         file = gridFS.__super__.findOne.bind(@)({ md5: parsedUrl.pathname.slice(1) })
 
          console.log file
 
@@ -123,9 +160,8 @@ if Meteor.isServer
                res.end(err)
                return
             else
-               console.log "From Resumable:" + JSON.stringify (resumable)
                unless resumable
-                  res.writeHead(400)
+                  res.writeHead(501)
                   res.end('Not a resumable.js POST!')
                   return
 
@@ -133,7 +169,7 @@ if Meteor.isServer
                try
                   ID = new Meteor.Collection.ObjectID(resumable.resumableIdentifier)
                catch
-                  res.writeHead(400)
+                  res.writeHead(501)
                   res.end('Bad ID!')
                   return
 
@@ -145,44 +181,23 @@ if Meteor.isServer
                   res.end('Upload document not found!')
                   return
 
-               # Shortcut for last chunk of a contiguous file, just write it!
-               if ((resumable.resumableChunkNumber is resumable.resumableTotalChunks is 1) or
-                   (file.metadata?._Resumable?.resumableChunkNumber + 1 is resumable.resumableChunkNumber is resumable.resumableTotalChunks))
-                  delete file.metadata._Resumable
-                  console.log "Upserting last chunk", file
-                  lastChunk = true
-                  writeStream = @upsert { _id: ID, metadata : file.metadata }
-
-               # Next chunk of a contiguous file
-               else if ((resumable.resumableChunkNumber is 1) or
-                        (file.metadata?._Resumable?.resumableChunkNumber + 1 is resumable.resumableChunkNumber))
-                  file.metadata._Resumable = resumable
-                  console.log "Upserting next chunk", file
-                  writeStream = @upsert { _id: ID, metadata : file.metadata }
-
-               # Out of order chunk of a file, stash it...
-               else
-                  console.log "Upserting OOO chunk", file
-                  writeStream = @upsert
-                     filename: "_Resumable_#{resumable.resumableIdentifier}_#{resumable.resumableChunkNumber}_#{resumable.resumableTotalChunks}"
-                     metadata:
-                        _Resumable: resumable
+               file.metadata._Resumable = resumable
+               writeStream = @upsert
+                  filename: "_Resumable_#{resumable.resumableIdentifier}_#{resumable.resumableChunkNumber}_#{resumable.resumableTotalChunks}"
+                  metadata: file.metadata
 
                unless writeStream
-                  res.writeHead(410)
+                  res.writeHead(404)
                   res.end('Gone!')
                   return
 
-               console.log "Piping!"
                try
                   fileStream.pipe(writeStream)
                      .on 'close', @_bind_env((file) =>
                         console.log "Piping Close!"
                         res.writeHead(200)
-                        res.end('Form submission successful!')
-                        unless lastChunk
-                          @_check_order(file)
-                        )
+                        res.end()
+                        @_check_order(file))
                      .on 'error', @_bind_env((err) =>
                         console.log "Piping Error!", err
                         res.writeHead(500)
@@ -194,7 +209,6 @@ if Meteor.isServer
                   console.trace()
 
       _check_order: (file) ->
-         console.log "Checking the order of chunks for processing...", file
          fileId = mongodb.ObjectID("#{file.metadata._Resumable.resumableIdentifier}")
          console.log "fileId: #{fileId}"
          lock = gridLocks.Lock(fileId, @locks, {}).obtainWriteLock()
@@ -202,30 +216,32 @@ if Meteor.isServer
             files = @db.collection "#{@base}.files"
 
             files.find({'metadata._Resumable.resumableIdentifier': file.metadata._Resumable.resumableIdentifier},
-                       { sort: { 'metadata._Resumable.resumableChunkNumber': 1 }}).toArray (err, OOO_arr) =>
+                       { sort: { 'metadata._Resumable.resumableChunkNumber': 1 }}).toArray (err, parts) =>
                throw err if err
-               console.log "Found #{OOO_arr.length} OOO parts"
+               console.log "Found #{parts.length} OOO parts"
 
-               unless OOO_arr.length > 1
+               unless parts.length >= 1
                   return lock.releaseLock()
 
-               mainfile = OOO_arr.shift()
-               console.log "Found mainfile, which has #{mainfile.metadata._Resumable.resumableChunkNumber} parts"
-               console.log mainfile
+               lastPart = 0
+               goodParts = parts.filter (el) ->
+                  l = lastPart
+                  lastPart = el.metadata?._Resumable.resumableChunkNumber
+                  return el.length is el.metadata?._Resumable.resumableCurrentChunkSize and lastPart is l + 1
 
-               unless mainfile.metadata._Resumable.resumableChunkNumber + OOO_arr.length is mainfile.metadata._Resumable.resumableTotalChunks
+               unless goodParts.length is goodParts[0].metadata._Resumable.resumableTotalChunks
+                  console.log "Found #{goodParts.length} of #{goodParts[0].metadata._Resumable.resumableTotalChunks}, so bailing for now."
                   return lock.releaseLock()
 
                # Manipulate the chunks and files collections directly under write lock
                console.log "Start reassembling the file!!!!"
                chunks = @db.collection "#{@base}.chunks"
-
-               async.eachLimit OOO_arr, 3,
+               totalSize = goodParts[0].metadata._Resumable.resumableTotalSize
+               async.eachLimit goodParts, 3,
                   (part, cb) =>
                      partId = mongodb.ObjectID("#{part._id}")
                      partlock = gridLocks.Lock(partId, @locks, {}).obtainWriteLock()
                      partlock.on 'locked', () ->
-                        console.log "Working on #{part.metadata._Resumable.resumableChunkNumber}, #{partId}, ", part, mainfile
                         async.series [
                               (cb) -> chunks.update { files_id: partId, n: 0 },
                                  { $set: { files_id: fileId, n: part.metadata._Resumable.resumableChunkNumber - 1 }}
@@ -234,7 +250,7 @@ if Meteor.isServer
                            ],
                            (err, res) =>
                               throw err if err
-                              unless part.metadata._Resumable.resumableChunkNumber is mainfile.metadata._Resumable.resumableTotalChunks
+                              unless part.metadata._Resumable.resumableChunkNumber is part.metadata._Resumable.resumableTotalChunks
                                  partlock.removeLock()
                                  cb()
                               else
@@ -250,10 +266,8 @@ if Meteor.isServer
                      partlock.on 'timed-out', () ->  throw "Part Lock timed out"
                   (err) =>
                      throw err if err
-                     totalSize = mainfile.metadata._Resumable.resumableTotalSize
-                     delete mainfile.metadata._Resumable
-                     # The line above is whacking the async contents of the loop above that
-                     files.update { _id: fileId }, { $set: { length: totalSize, metadata: mainfile.metadata }},
+
+                     files.update { _id: fileId }, { $set: { length: totalSize }},
                         (err, res) =>
                            console.log "file updated", err, res
                            lock.releaseLock()
@@ -331,7 +345,7 @@ if Meteor.isServer
          @_access_point(@baseURL)
 
          @db = Meteor._wrapAsync(mongodb.MongoClient.connect)(process.env.MONGO_URL,{})
-         @locks = gridLocks.LockCollection @db, { root: @base, timeOut: 180, lockExpiration: 90 }
+         @locks = gridLocks.LockCollection @db, { root: @base, timeOut: 360, lockExpiration: 90 }
          @gfs = new grid(@db, mongodb, @base)
          @chunkSize = 2*1024*1024
 
@@ -401,7 +415,6 @@ if Meteor.isServer
          subFile.metadata = file.metadata or {}
          subfile.aliases = file.aliases if file.aliases?
          subFile.contentType = file.contentType if file.contentType?
-         console.log "About to insert"
          super subFile, callback
 
       upsert: (file, options = {}, callback = undefined) ->
@@ -409,11 +422,8 @@ if Meteor.isServer
          callback = @_bind_env callback
 
          unless file._id
-            console.log "@@@ Fresh insert for ", file
             id = @insert file
             file = gridFS.__super__.findOne.bind(@)({ _id: id })
-
-         console.log "File: ", file
 
          subFile =
             _id: mongodb.ObjectID("#{file._id}")
@@ -421,8 +431,6 @@ if Meteor.isServer
             root: @base
             metadata: file.metadata ? {}
             timeOut: 30
-
-         console.log "upsert: ", subFile
 
          writeStream = Meteor._wrapAsync(@gfs.createWriteStream.bind(@gfs)) subFile
 
@@ -438,7 +446,6 @@ if Meteor.isServer
 
       findOne: (selector, options = {}) ->
          file = super selector, { sort: options.sort, skip: options.skip }
-         console.log "findOne", selector, file
          if file
             readStream = Meteor._wrapAsync(@gfs.createReadStream.bind(@gfs))
                root: @base
@@ -483,7 +490,7 @@ if Meteor.isClient
             target: @baseURL
             generateUniqueIdentifier: (file) -> "#{new Meteor.Collection.ObjectID()}"
             chunkSize: @chunkSize
-            testChunks: false
+            testChunks: true
             simultaneousUploads: 3
             prioritizeFirstAndLastChunk: false
             headers:
@@ -502,7 +509,6 @@ if Meteor.isClient
                   chunkSize: @chunkSize
                   metadata:
                      owner: Meteor.userId() ? null
-                     _Resumable: { }
                }, () -> r.upload())
             )
             r.on('fileSuccess', (file, message) =>
@@ -528,6 +534,6 @@ if Meteor.isClient
          subFile.chunkSize = file.chunkSize or @chunkSize
          subFile.filename = file.filename if file.filename?
          subFile.metadata = file.metadata or {}
-         subFile.contentType = file.contentType if file.contentType?
+         subFile.contentType = file.contentType or 'application/octet-stream'
          super subFile, callback
 
