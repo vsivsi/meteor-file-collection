@@ -111,8 +111,8 @@ if Meteor.isServer
                      res.writeHead(500)
                      res.end(err)
          else
-            res.writeHead(404)
-            res.end("#{req.url} Not found!")
+            res.writeHead(410)
+            res.end("#{req.url} Gone!")
 
       _post: (req, res, next) ->
          console.log "Cowboy!", req.method
@@ -120,17 +120,23 @@ if Meteor.isServer
          @_dice_multipart req, (err, resumable, fileStream) =>
             if err
                res.writeHead(500)
-               res.end('Form submission unsuccessful!')
+               res.end(err)
                return
             else
                console.log "From Resumable:" + JSON.stringify (resumable)
                unless resumable
-                  res.writeHead(500)
-                  res.end('Form submission unsuccessful!')
+                  res.writeHead(400)
+                  res.end('Not a resumable.js POST!')
                   return
 
                # See if this file already exists in some form
-               ID = new Meteor.Collection.ObjectID(resumable.resumableIdentifier)
+               try
+                  ID = new Meteor.Collection.ObjectID(resumable.resumableIdentifier)
+               catch
+                  res.writeHead(400)
+                  res.end('Bad ID!')
+                  return
+
                file = gridFS.__super__.findOne.bind(@)({ _id: ID })
                lastChunk = false
 
@@ -163,8 +169,8 @@ if Meteor.isServer
                         _Resumable: resumable
 
                unless writeStream
-                  res.writeHead(500)
-                  res.end('Form submission unsuccessful!')
+                  res.writeHead(410)
+                  res.end('Gone!')
                   return
 
                console.log "Piping!"
@@ -180,8 +186,10 @@ if Meteor.isServer
                      .on 'error', @_bind_env((err) =>
                         console.log "Piping Error!", err
                         res.writeHead(500)
-                        res.end('Form submission unsuccessful!'))
+                        res.end(err))
                catch err
+                  res.writeHead(500)
+                  res.end(err)
                   console.error "Caught during pipe", err
                   console.trace()
 
@@ -261,11 +269,39 @@ if Meteor.isServer
       _put: (req, res, next) ->
          console.log "Cowboy!", req.method
 
-         writeStream = fs.createWriteStream '/Users/vsi/uploads/put.txt'
-         req.pipe(writeStream)
-            .on 'finish', () ->
-               res.writeHead(200)
-               res.end("'k thx bye!")
+         try
+            ID = Meteor.Collection.ObjectID req.url.slice(1)
+         catch
+            res.writeHead(400)
+            res.end("#{req.url} Bad ID, Not found!")
+            return
+
+         file = gridFS.__super__.findOne.bind(@)({ _id: ID })
+
+         console.log file
+
+         unless file
+            res.writeHead(404)
+            res.end("#{req.url} Not found!")
+            return
+
+         if file.length > 0
+            res.writeHead(409)
+            res.end("#{req.url} Not empty!")
+            return
+
+         stream = @upsert { _id: ID }
+         if stream
+            req.pipe(stream)
+                  .on 'close', () ->
+                     res.writeHead(200)
+                     res.end()
+                  .on 'error', (err) ->
+                     res.writeHead(500)
+                     res.end(err)
+         else
+            res.writeHead(404)
+            res.end("#{req.url} Not found!")
 
       # _delete: (req, res, next) ->
       #    console.log "Cowboy!", req.method
