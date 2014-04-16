@@ -55,7 +55,6 @@ if Meteor.isServer
 
                         p.on 'end', () ->
                            resCount--
-                           # console.log('Resumable Part #{resVar} data: ' + resData)
                            unless RE_NUMBER.test(resVar)
                               resumable[resVar] = resData
                            else
@@ -68,7 +67,6 @@ if Meteor.isServer
                            callback err
 
                      else if RE_FILE.exec(v)
-                        # console.log "Filestream!"
                         fileStream = p
                         if resCount is 0
                            callback(null, resumable, fileStream)
@@ -78,7 +76,6 @@ if Meteor.isServer
            callback err
 
          d.on 'finish', () ->
-            # console.log('End of parts')
             unless fileStream
                callback(new Error "No file blob in multipart POST")
 
@@ -157,6 +154,8 @@ if Meteor.isServer
 
       _post: (req, res, next) ->
          console.log "Cowboy!", req.method
+
+         console.log "X-Auth-Token: ", req.headers['x-auth-token']
 
          @_dice_multipart req, (err, resumable, fileStream) =>
             if err
@@ -287,6 +286,8 @@ if Meteor.isServer
       _put: (req, res, next) ->
          console.log "Cowboy!", req.method
 
+         console.log "X-Auth-Token: ", req.headers['x-auth-token']
+
          try
             ID = new Meteor.Collection.ObjectID(req.url.slice(1))
          catch
@@ -294,11 +295,7 @@ if Meteor.isServer
             res.end("#{req.url} Bad ID, Not found!")
             return
 
-         console.log req.url.slice(1), ID
-
          file = gridFS.__super__.findOne.bind(@)({ _id: ID })
-
-         console.log file
 
          unless file
             res.writeHead(404)
@@ -310,7 +307,7 @@ if Meteor.isServer
             res.end("#{req.url} Not empty!")
             return
 
-         stream = @upsert { _id: ID }
+         stream = @upsert file
          if stream
             req.pipe(stream)
                .on 'close', () ->
@@ -416,11 +413,11 @@ if Meteor.isServer
          subFile.length = 0
          subFile.md5 = 'd41d8cd98f00b204e9800998ecf8427e'
          subFile.uploadDate = new Date()
-         subFile.chunkSize = file.chunkSize or @chunkSize
-         subFile.filename = file.filename if file.filename?
-         subFile.metadata = file.metadata or {}
-         subfile.aliases = file.aliases if file.aliases?
-         subFile.contentType = file.contentType if file.contentType?
+         subFile.chunkSize = file.chunkSize ? @chunkSize
+         subFile.filename = file.filename ? ''
+         subFile.metadata = file.metadata ? {}
+         subFile.aliases = file.aliases ? []
+         subFile.contentType = file.contentType ? 'application/octet-stream'
          super subFile, callback
 
       upsert: (file, options = {}, callback = undefined) ->
@@ -500,7 +497,7 @@ if Meteor.isClient
             simultaneousUploads: 3
             prioritizeFirstAndLastChunk: false
             headers:
-               'X-Auth-Token': Accounts._storedLoginToken() or ''
+               'X-Auth-Token': Accounts._storedLoginToken() ? ''
 
          unless r.support
             console.error "resumable.js not supported by this Browser, uploads will be disabled"
@@ -537,9 +534,10 @@ if Meteor.isClient
          subFile.length = 0
          subFile.md5 = 'd41d8cd98f00b204e9800998ecf8427e'
          subFile.uploadDate = new Date()
-         subFile.chunkSize = file.chunkSize or @chunkSize
-         subFile.filename = file.filename if file.filename?
-         subFile.metadata = file.metadata or {}
-         subFile.contentType = file.contentType or 'application/octet-stream'
+         subFile.chunkSize = file.chunkSize ? @chunkSize
+         subFile.filename = file.filename ? ''
+         subFile.metadata = file.metadata ? {}
+         subFile.aliases = file.aliases ? []
+         subFile.contentType = file.contentType ? 'application/octet-stream'
          super subFile, callback
 
