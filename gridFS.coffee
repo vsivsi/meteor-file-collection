@@ -368,7 +368,7 @@ if Meteor.isServer
                   console.log "Method: ", req.method
 
                   q = r.query req.meteorUserId, req.params or {}, req.query or {}
-                  console.log "finding One, query:", q
+                  console.log "finding One, query:", JSON.stringify(q,false,1)
                   unless q?
                      console.log "No query returned, so passing"
                      next()
