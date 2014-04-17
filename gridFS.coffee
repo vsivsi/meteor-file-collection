@@ -42,7 +42,7 @@ if Meteor.isServer
       _lookup_userId_by_token: (authToken) ->
          console.log "Looking up user by token #{authToken} which hashes to #{Accounts._hashLoginToken(authToken)}"
          userDoc = Meteor.users.findOne { 'services.resume.loginTokens': { $elemMatch: { hashedToken: Accounts._hashLoginToken(authToken) } } }
-         return userDoc?._id
+         return userDoc?._id or null
 
       _bind_env: (func) ->
          if func?
