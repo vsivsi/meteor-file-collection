@@ -53,11 +53,15 @@ if Meteor.isServer
       _find_mime_boundary: (req) ->
          RE_BOUNDARY = /^multipart\/.+?(?:; boundary=(?:(?:"(.+)")|(?:([^\s]+))))$/i
          result = RE_BOUNDARY.exec req.headers['content-type']
-         result[1] or result[2]
+         result?[1] or result?[2]
 
       _dice_resumable_multipart: (req, callback) ->
          callback = @_bind_env callback
          boundary = @_find_mime_boundary req
+
+         unless boundary
+           err = new Error('No MIME multipart boundary found for dicer')
+           return callback err
 
          resumable = {}
          resCount = 0
@@ -110,13 +114,17 @@ if Meteor.isServer
          callback = @_bind_env callback
          boundary = @_find_mime_boundary req
 
+         unless boundary
+           err = new Error('No MIME multipart boundary found for dicer')
+           return callback err
+
          fileStream = null
 
          d = new dicer { boundary: boundary }
 
          d.on 'part', (p) ->
             p.on 'header', (header) ->
-               RE_FILE = /^form-data; name="file"; filename="blob"/
+               RE_FILE = /^form-data; name="file"; filename="[^"]*"/
                RE_NUMBER = /Size|Chunk/
                for k, v of header
                   if k is 'content-disposition'
@@ -135,18 +143,20 @@ if Meteor.isServer
          req.pipe(d)
 
       _post: (req, res, next) ->
-         console.log "Cowboy!", req.method, req.gridFS
+         console.log "Cowboy!", req.method, req.gridFS, req.headers
 
          @_dice_multipart req, (err, fileStream) =>
             if err
                res.writeHead(500)
-               res.end(err)
+               res.end()
                return
             else
+               console.log "Got fileStream callback"
                stream = @upsert req.gridFS
                if stream
-                  req.pipe(stream)
+                  fileStream.pipe(stream)
                      .on 'close', () ->
+                        console.log "Closing the stream..."
                         res.writeHead(200)
                         res.end()
                      .on 'error', (err) ->
@@ -157,7 +167,6 @@ if Meteor.isServer
                   res.end("Gone!")
 
       _resumable_post: (req, res, next) ->
-         console.log "Cowboy!", req.method, req.gridFS
 
          @_dice_resumable_multipart req, (err, resumable, fileStream) =>
             if err
