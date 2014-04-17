@@ -9,7 +9,8 @@ Npm.depends({
   'gridfs-locking-stream': '0.1.2',
   'gridfs-locks': '1.0.1',
   dicer: '0.2.3',
-  async: '0.7.0'
+  async: '0.7.0',
+  express: '4.0.0'
 });
 
 Package.on_use(function(api) {
