@@ -55,7 +55,7 @@ if Meteor.isServer
          result = RE_BOUNDARY.exec req.headers['content-type']
          result[1] or result[2]
 
-      _dice_multipart: (req, callback) ->
+      _dice_resumable_multipart: (req, callback) ->
          callback = @_bind_env callback
          boundary = @_find_mime_boundary req
 
@@ -106,68 +106,60 @@ if Meteor.isServer
 
          req.pipe(d)
 
-      _lookup_resumable_part: (resumable, res) ->
+      _dice_multipart: (req, callback) ->
+         callback = @_bind_env callback
+         boundary = @_find_mime_boundary req
 
-         # See if this file already exists in some form
-         try
-            ID = new Meteor.Collection.ObjectID(resumable.resumableIdentifier)
-         catch
-            res.writeHead(501)
-            res.end('Bad ID!')
-            return
+         fileStream = null
 
-         file = gridFS.__super__.findOne.bind(@)({ _id: ID })
+         d = new dicer { boundary: boundary }
 
-         # See if file is all done
-         if (file and file.length is resumable.resumableTotalSize)
-            res.writeHead(200)
-            res.end()
-            return
+         d.on 'part', (p) ->
+            p.on 'header', (header) ->
+               RE_FILE = /^form-data; name="file"; filename="blob"/
+               RE_NUMBER = /Size|Chunk/
+               for k, v of header
+                  if k is 'content-disposition'
+                     if RE_FILE.exec(v)
+                        fileStream = p
+                        callback(null, fileStream)
 
-         # See if this part is already sitting around
-         file = gridFS.__super__.findOne.bind(@)
-            'metadata._Resumable.resumableIdentifier': resumable.resumableIdentifier,
-            'metadata._Resumable.resumableChunkNumber': resumable.resumableChunkNumber
+         d.on 'error', (err) ->
+           console.log('Error in Dicer: \n', err)
+           callback err
 
-         if (file and file.length is resumable.CurrentChunkSize)
-            res.writeHead(200)
-            res.end()
-            return
+         d.on 'finish', () ->
+            unless fileStream
+               callback(new Error "No file blob in multipart POST")
 
-         res.writeHead(404)
-         res.end("Not found")
-         return
-
-      _get: (req, res, next) ->
-         console.log "Cowboy!", req.method, req.gridFS
-
-         # If this is a resumable GET request
-         if req.query?.resumableIdentifier?
-            return @_lookup_resumable_part req.query, res
-
-         stream = @findOne { _id: req.gridFS._id }
-         if stream
-            unless req.query.download
-               res.writeHead 200,
-                  'Content-type': req.gridFS.contentType
-            else
-               res.writeHead 200,
-                  'Content-type': req.gridFS.contentType
-                  'Content-Disposition': "attachment; filename=\"#{req.gridFS.filename}\""
-            stream.pipe(res)
-                  .on 'close', () ->
-                     res.end()
-                  .on 'error', (err) ->
-                     res.writeHead(500)
-                     res.end(err)
-         else
-            res.writeHead(410)
-            res.end("#{req.url} Gone!")
+         req.pipe(d)
 
       _post: (req, res, next) ->
          console.log "Cowboy!", req.method, req.gridFS
 
-         @_dice_multipart req, (err, resumable, fileStream) =>
+         @_dice_multipart req, (err, fileStream) =>
+            if err
+               res.writeHead(500)
+               res.end(err)
+               return
+            else
+               stream = @upsert req.gridFS
+               if stream
+                  req.pipe(stream)
+                     .on 'close', () ->
+                        res.writeHead(200)
+                        res.end()
+                     .on 'error', (err) ->
+                        res.writeHead(500)
+                        res.end(err)
+               else
+                  res.writeHead(410)
+                  res.end("Gone!")
+
+      _resumable_post: (req, res, next) ->
+         console.log "Cowboy!", req.method, req.gridFS
+
+         @_dice_resumable_multipart req, (err, resumable, fileStream) =>
             if err
                res.writeHead(500)
                res.end(err)
@@ -301,6 +293,39 @@ if Meteor.isServer
 
          lock.on 'timed-out', () -> throw "File Lock timed out"
 
+      _resumable_get: (req, res, next) ->
+
+         file = gridFS.__super__.findOne.bind(@)({ $or: [ { _id: req.query.resumableIdentifier, length: req.query.resumableTotalSize }, { length: req.query.resumableCurrentChunkSize, 'metadata._Resumable.resumableIdentifier': req.query.resumableIdentifier, 'metadata._Resumable.resumableChunkNumber': req.query.resumableChunkNumber } ] } )
+
+         if file
+            res.writeHead(200)
+            res.end()
+         else
+            res.writeHead(404)
+            res.end()
+
+      _get: (req, res, next) ->
+         console.log "Cowboy!", req.method, req.gridFS
+
+         stream = @findOne { _id: req.gridFS._id }
+         if stream
+            unless req.query.download
+               res.writeHead 200,
+                  'Content-type': req.gridFS.contentType
+            else
+               res.writeHead 200,
+                  'Content-type': req.gridFS.contentType
+                  'Content-Disposition': "attachment; filename=\"#{req.gridFS.filename}\""
+            stream.pipe(res)
+                  .on 'close', () ->
+                     res.end()
+                  .on 'error', (err) ->
+                     res.writeHead(500)
+                     res.end(err)
+         else
+            res.writeHead(410)
+            res.end("#{req.url} Gone!")
+
       _put: (req, res, next) ->
 
          console.log "Cowboy!", req.method, req.gridFS
@@ -324,25 +349,10 @@ if Meteor.isServer
          res.writeHead(204)
          res.end()
 
-      _build_access_point: (http) ->
-         @router.use express.query()
-         @router.use (req, res, next) =>
-
-            console.log "Headers: ", req.headers
-
-            # Lookup userId if token is provided
-            if req.headers?['x-auth-token']?
-               req.meteorUserId = @_lookup_userId_by_token req.headers['x-auth-token']
-            else if req.query?['x-auth-token']?
-               console.log "Has query x-auth-token: #{req.query['x-auth-token']}"
-               req.meteorUserId = @_lookup_userId_by_token req.query['x-auth-token']
-
-            console.log "Request:", req.method, req.url, req.headers?['x-auth-token'] or req.query?['x-auth-token'], req.meteorUserId
-
-            next()
+      _build_access_point: (http, route) ->
 
          for r in http
-            @router[r.method] r.path, do (r) =>
+            route[r.method] r.path, do (r) =>
                (req, res, next) =>
                   console.log "Params", req.params
                   console.log "Queries: ", req.query
@@ -367,7 +377,7 @@ if Meteor.isServer
                         res.writeHead(404)
                         res.end()
 
-         @router.route('/*')
+         route.route('/*')
             .get(@_get.bind(@))
             .put(@_put.bind(@))
             .post(@_post.bind(@))
@@ -391,9 +401,37 @@ if Meteor.isServer
             throw err if err
 
          @baseURL = options.baseURL ? "/gridfs/#{@base}"
-         @router = express.Router()
-         @_build_access_point(options.http ? [])
-         WebApp.rawConnectHandlers.use(@baseURL, @_bind_env(@router))
+
+         if options.resumable or options.http
+            r = express.Router()
+            r.use express.query()
+            r.use (req, res, next) =>
+               unless req.meteorUserId?
+                  console.log "Headers: ", req.headers
+                  # Lookup userId if token is provided
+                  if req.headers?['x-auth-token']?
+                     req.meteorUserId = @_lookup_userId_by_token req.headers['x-auth-token']
+                  else if req.query?['x-auth-token']?
+                     console.log "Has query x-auth-token: #{req.query['x-auth-token']}"
+                     req.meteorUserId = @_lookup_userId_by_token req.query['x-auth-token']
+                  console.log "Request:", req.method, req.url, req.headers?['x-auth-token'] or req.query?['x-auth-token'], req.meteorUserId
+               next()
+            WebApp.rawConnectHandlers.use(@baseURL, @_bind_env(r))
+
+         if options.resumable
+            r = express.Router()
+            r.route('/_resumable')
+               .get(@_resumable_get.bind(@))
+               .post(@_resumable_post.bind(@))
+               .all((req, res, next) ->
+                  res.writeHead(404)
+                  res.end())
+            WebApp.rawConnectHandlers.use(@baseURL, @_bind_env(r))
+
+         if options.http
+            @router = express.Router()
+            @_build_access_point(options.http ? [], @router)
+            WebApp.rawConnectHandlers.use(@baseURL, @_bind_env(@router))
 
          @allows = { insert: [], update: [], remove: [] }
          @denys = { insert: [], update: [], remove: [] }
@@ -521,34 +559,36 @@ if Meteor.isClient
          @baseURL = options.baseURL ? "/gridfs/#{@base}"
          super @base + '.files'
 
-         r = new Resumable
-            target: "#{@baseURL}/_resumable"
-            generateUniqueIdentifier: (file) -> "#{new Meteor.Collection.ObjectID()}"
-            chunkSize: @chunkSize
-            testChunks: true
-            simultaneousUploads: 3
-            prioritizeFirstAndLastChunk: false
-            headers: () ->
-               { 'X-Auth-Token': Accounts._storedLoginToken() ? '' }
+         if options.resumable
+            r = new Resumable
+               target: "#{@baseURL}/_resumable"
+               generateUniqueIdentifier: (file) -> "#{new Meteor.Collection.ObjectID()}"
+               chunkSize: @chunkSize
+               testChunks: true
+               simultaneousUploads: 3
+               prioritizeFirstAndLastChunk: false
+               headers: () ->
+                  { 'X-Auth-Token': Accounts._storedLoginToken() ? '' }
 
-         unless r.support
-            console.error "resumable.js not supported by this Browser, uploads will be disabled"
-         else
-            @resumable = r
-            r.on('fileAdded', (file) =>
-               console.log "fileAdded", file
-               @insert({
-                  _id: file.uniqueIdentifier
-                  filename: file.fileName
-                  contentType: file.file.type
-               }, () -> r.upload())
-            )
-            r.on('fileSuccess', (file, message) =>
-               console.log "fileSuccess", file, message
-            )
-            r.on('fileError', (file, message) =>
-               console.log "fileError", file, message
-            )
+            unless r.support
+               console.error "resumable.js not supported by this Browser, uploads will be disabled"
+               @resumable = null
+            else
+               @resumable = r
+               r.on('fileAdded', (file) =>
+                  console.log "fileAdded", file
+                  @insert({
+                     _id: file.uniqueIdentifier
+                     filename: file.fileName
+                     contentType: file.file.type
+                  }, () -> r.upload())
+               )
+               r.on('fileSuccess', (file, message) =>
+                  console.log "fileSuccess", file, message
+               )
+               r.on('fileError', (file, message) =>
+                  console.log "fileError", file, message
+               )
 
       upsert: () ->
          throw new Error "GridFS Collections do not support 'upsert' on client"
