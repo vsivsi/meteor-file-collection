@@ -126,13 +126,17 @@ if Meteor.isServer
 
          d.on 'part', (p) ->
             p.on 'header', (header) ->
-               RE_FILE = /^form-data; name="file"; filename="[^"]*"/
-               RE_NUMBER = /Size|Chunk/
+               RE_FILE = /^form-data; name="file"; filename="([^"]+)"/
                for k, v of header
+                  console.log "Part header: k: #{k}, v: #{v}"
+                  if k is 'content-type'
+                     ft = v
                   if k is 'content-disposition'
-                     if RE_FILE.exec(v)
+                     if re = RE_FILE.exec(v)
                         fileStream = p
-                        callback(null, fileStream)
+                        console.log "Parsing this shit!", v
+                        fn = re[1]
+               callback(null, fileStream, fn, ft)
 
          d.on 'error', (err) ->
            console.log('Error in Dicer: \n', err)
@@ -140,7 +144,7 @@ if Meteor.isServer
 
          d.on 'finish', () ->
             unless fileStream
-               callback(new Error "No file blob in multipart POST")
+               callback(new Error "No file in multipart POST")
 
          req.pipe(d)
 
@@ -152,26 +156,32 @@ if Meteor.isServer
             res.end("#{req.url} Not found!")
             return
 
-         @_dice_multipart req, (err, fileStream) =>
+         @_dice_multipart req, (err, fileStream, filename, filetype) =>
             if err
                res.writeHead(500)
                res.end()
                return
+            console.log "filename: #{filename} filetype: #{filetype}"
+
+            if filename or filetype
+               set = {}
+               set.contentType = filetype if filetype
+               set.filename = filename if filename
+               @update { _id: req.gridFS._id }, { $set: set }
+
+            stream = @upsert req.gridFS
+            if stream
+               fileStream.pipe(stream)
+                  .on 'close', () ->
+                     console.log "Closing the stream..."
+                     res.writeHead(200)
+                     res.end()
+                  .on 'error', (err) ->
+                     res.writeHead(500)
+                     res.end(err)
             else
-               console.log "Got fileStream callback"
-               stream = @upsert req.gridFS
-               if stream
-                  fileStream.pipe(stream)
-                     .on 'close', () ->
-                        console.log "Closing the stream..."
-                        res.writeHead(200)
-                        res.end()
-                     .on 'error', (err) ->
-                        res.writeHead(500)
-                        res.end(err)
-               else
-                  res.writeHead(410)
-                  res.end("Gone!")
+               res.writeHead(410)
+               res.end("Gone!")
 
       _resumable_post: (req, res, next) ->
 
@@ -385,6 +395,9 @@ if Meteor.isServer
             res.writeHead(404)
             res.end("#{req.url} Not found!")
             return
+
+         if req.headers['content-type']
+            @update { _id: req.gridFS._id }, { $set: { contentType: req.headers['content-type'] }}
 
          stream = @upsert req.gridFS
          if stream
