@@ -1,3 +1,9 @@
+############################################################################
+###     Copyright (C) 2014 by Vaughn Iverson
+###     fileCollection is free software released under the MIT/X11 license.
+###     See included LICENSE file for details.
+############################################################################
+
 if Meteor.isServer
 
    express = Npm.require 'express'
