@@ -220,5 +220,5 @@ if Meteor.isServer
 
          if options.http
             @router = express.Router()
-            build_access_point.bind(@)(options.http ? [], @router)
+            build_access_point.bind(@)(options.http, @router)
             WebApp.rawConnectHandlers.use(@baseURL, share.bind_env(@router))
