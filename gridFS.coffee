@@ -667,20 +667,32 @@ if Meteor.isClient
          super @base + '.files'
 
          if options.resumable
+            @resumable = null
             r = new Resumable
                target: "#{@baseURL}/_resumable"
                generateUniqueIdentifier: (file) -> "#{new Meteor.Collection.ObjectID()}"
+               fileParameterName: 'file'
                chunkSize: @chunkSize
                testChunks: true
                simultaneousUploads: 3
+               maxFiles: undefined
+               maxFilesErrorCallback: undefined
                prioritizeFirstAndLastChunk: false
-               headers: { 'X-Auth-Token': Accounts._storedLoginToken() ? '' }
+               query: undefined
+               headers: {}
 
             unless r.support
                console.error "resumable.js not supported by this Browser, uploads will be disabled"
-               @resumable = null
             else
                @resumable = r
+
+               console.log @resumable
+
+               # Autoupdate the token depending on who is logged in
+               Deps.autorun () =>
+                  Meteor.userId()
+                  @resumable.opts.headers['X-Auth-Token'] = Accounts._storedLoginToken() ? ''
+
                r.on('fileAdded', (file) =>
                   console.log "fileAdded", file
                   @insert({
