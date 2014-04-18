@@ -29,7 +29,6 @@ if Meteor.isServer
                if k is 'content-disposition'
                   if re = RE_FILE.exec(v)
                      fileStream = p
-                     console.log "Parsing this shit!", v
                      fn = re[1]
             callback(null, fileStream, fn, ft)
 
@@ -46,11 +45,6 @@ if Meteor.isServer
    post = (req, res, next) ->
       console.log "Cowboy!", req.method, req.gridFS, req.headers
 
-      unless @_check_allow_deny 'update', req.meteorUserId, req.gridFS, ['length', 'md5']
-         res.writeHead(404)
-         res.end("#{req.url} Not found!")
-         return
-
       dice_multipart req, (err, fileStream, filename, filetype) =>
          if err
             res.writeHead(500)
@@ -64,7 +58,7 @@ if Meteor.isServer
             set.filename = filename if filename
             @update { _id: req.gridFS._id }, { $set: set }
 
-         stream = @upsert req.gridFS
+         stream = @upsertStream req.gridFS
          if stream
             fileStream.pipe(stream)
                .on 'close', () ->
@@ -95,7 +89,7 @@ if Meteor.isServer
          res.end()
          return
 
-      stream = @findOne { _id: req.gridFS._id }
+      stream = @findStream { _id: req.gridFS._id }
       if stream
          res.writeHead 200, headers
          stream.pipe(res)
@@ -112,15 +106,10 @@ if Meteor.isServer
 
       console.log "Cowboy!", req.method, req.gridFS
 
-      unless @_check_allow_deny 'update', req.meteorUserId, req.gridFS, ['length', 'md5']
-         res.writeHead(404)
-         res.end("#{req.url} Not found!")
-         return
-
       if req.headers['content-type']
          @update { _id: req.gridFS._id }, { $set: { contentType: req.headers['content-type'] }}
 
-      stream = @upsert req.gridFS
+      stream = @upsertStream req.gridFS
       if stream
          req.pipe(stream)
             .on 'close', () ->
@@ -135,12 +124,6 @@ if Meteor.isServer
 
    del = (req, res, next) ->
       console.log "Cowboy!", req.method, req.gridFS
-
-      unless @_check_allow_deny 'remove', req.meteorUserId, req.gridFS
-         res.writeHead(404)
-         res.end("#{req.url} Not found!")
-         return
-
       @remove req.gridFS
       res.writeHead(204)
       res.end()
@@ -157,23 +140,41 @@ if Meteor.isServer
                req.params._id = new Meteor.Collection.ObjectID("#{req.params._id}") if req.params?._id?
                req.query._id = new Meteor.Collection.ObjectID("#{req.query._id}") if req.query?._id?
 
-               q = r.query req.meteorUserId, req.params or {}, req.query or {}
-               console.log "finding One, query:", JSON.stringify(q,false,1)
-               unless q?
-                  console.log "No query returned, so passing"
-                  next()
+               lookup = r.lookup? req.params or {}, req.query or {}
+               unless lookup?
+                  # No lookup returned, so bailing
+                  res.writeHead(500)
+                  res.end()
+                  return
                else
-                  try
-                     req.gridFS = gridFSCollection.__super__.findOne.bind(@)(q)
-                     if req.gridFS
-                        console.log "Found file #{req.gridFS._id}"
-                        next()
-                     else
-                        res.writeHead(404)
-                        res.end()
-                  catch
+                  req.gridFS = @findOne lookup
+                  unless req.gridFS
                      res.writeHead(404)
                      res.end()
+                     return
+
+                  console.log "Found file #{req.gridFS._id}"
+
+                  switch req.method
+                     when 'HEAD', 'GET'
+                        next()
+                        return
+                     when 'POST', 'PUT'
+                        unless share.check_allow_deny.bind(@) 'update', req.meteorUserId, req.gridFS
+                           res.writeHead(404)
+                           res.end()
+                           return
+                     when 'DELETE'
+                        unless share.check_allow_deny.bind(@) 'remove', req.meteorUserId, req.gridFS
+                           res.writeHead(404)
+                           res.end()
+                           return
+                     else
+                        res.writeHead(500)
+                        res.end()
+                        return
+
+                  next()
 
       route.route('/*')
          .head(get.bind(@))
@@ -182,7 +183,7 @@ if Meteor.isServer
          .post(post.bind(@))
          .delete(del.bind(@))
          .all (req, res, next) ->
-            res.writeHead(404)
+            res.writeHead(500)
             res.end()
 
    # Performs a meteor userId lookup by hased access token
@@ -218,7 +219,6 @@ if Meteor.isServer
          if options.resumable
             share.setup_resumable.bind(@)()
 
-         if options.http
-            @router = express.Router()
-            build_access_point.bind(@)(options.http, @router)
-            WebApp.rawConnectHandlers.use(@baseURL, share.bind_env(@router))
+         @router = express.Router()
+         build_access_point.bind(@)(options.http, @router)
+         WebApp.rawConnectHandlers.use(@baseURL, share.bind_env(@router))

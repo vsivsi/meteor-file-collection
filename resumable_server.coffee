@@ -155,14 +155,14 @@ if Meteor.isServer
                res.end('Bad ID!')
                return
 
-            file = gridFSCollection.__super__.findOne.bind(@)({ _id: ID })
+            file = @findOne { _id: ID }
 
             unless file
                res.writeHead(404)
                res.end('Upload document not found!')
                return
 
-            unless @_check_allow_deny 'update', req.meteorUserId, file, ['length', 'md5']
+            unless share.check_allow_deny.bind(@) 'update', req.meteorUserId, file, ['length', 'md5']
                res.writeHead(404)
                res.end("#{req.url} Not found!")
                return
@@ -177,7 +177,7 @@ if Meteor.isServer
                return
 
             file.metadata._Resumable = resumable
-            writeStream = @upsert
+            writeStream = @upsertStream
                filename: "_Resumable_#{resumable.resumableIdentifier}_#{resumable.resumableChunkNumber}_#{resumable.resumableTotalChunks}"
                metadata: file.metadata
 
@@ -207,7 +207,7 @@ if Meteor.isServer
 
       console.log "Query: ", req.query
 
-      file = gridFSCollection.__super__.findOne.bind(@)(
+      file = @findOne(
          $or: [
             {
                _id: req.query.resumableIdentifier
@@ -228,7 +228,7 @@ if Meteor.isServer
 
       console.log "Show me the file!", file
 
-      if @_check_allow_deny 'update', req.meteorUserId, file, ['length', 'md5']
+      if share.check_allow_deny.bind(@) 'update', req.meteorUserId, file, ['length', 'md5']
          res.writeHead(200)
          res.end()
          return
@@ -242,6 +242,6 @@ if Meteor.isServer
 	       .get(resumable_get.bind(@))
 	       .post(resumable_post.bind(@))
 	       .all((req, res, next) ->
-	          res.writeHead(404)
+	          res.writeHead(500)
 	          res.end())
 	    WebApp.rawConnectHandlers.use(@baseURL, share.bind_env(r))

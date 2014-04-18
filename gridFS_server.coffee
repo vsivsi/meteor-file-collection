@@ -11,16 +11,6 @@ if Meteor.isServer
 
    class gridFSCollection extends Meteor.Collection
 
-      _check_allow_deny: (type, userId, file, fields) ->
-         console.log "In Client '#{type}' allow: #{file.filename}"
-         allowResult = false
-         allowResult = allowResult or allowFunc(userId, file, fields) for allowFunc in @allows[type]
-         denyResult = true
-         denyResult = denyResult and denyFunc(userId, file, fields) for denyFunc in @denys[type]
-         result = allowResult and denyResult
-         console.log "Permission: #{if result then "granted" else "denied"}"
-         return result
-
       constructor: (options = {}) ->
          unless @ instanceof gridFSCollection
             return new gridFSCollection(options)
@@ -58,7 +48,7 @@ if Meteor.isServer
             remove: (userId, file) =>
 
                # call application rules
-               if @_check_allow_deny 'remove', userId, file
+               if share.check_allow_deny.bind(@) 'remove', userId, file
 
                   # This causes the file data itself to be removed from gridFS
                   @remove file
@@ -82,7 +72,7 @@ if Meteor.isServer
                #    return false
 
                ## call application rules
-               # if @_check_allow_deny 'update', userId, file, fields
+               # if share.check_allow_deny.bind(@) 'update', userId, file, fields
                #    console.log "Update approved"
                #    return true
 
@@ -114,7 +104,7 @@ if Meteor.isServer
                   return false
 
                # call application rules
-               if @_check_allow_deny 'insert', userId, file
+               if share.check_allow_deny.bind(@) 'insert', userId, file
                   return true
 
                return false
@@ -131,16 +121,16 @@ if Meteor.isServer
          file = share.insert_func file, @chunkSize
          super file, callback
 
-      upsert: (file, options = {}, callback = undefined) ->
+      upsertStream: (file, options = {}, callback = undefined) ->
          callback = share.bind_env callback
 
          unless file._id
             id = @insert file
-            file = gridFSCollection.__super__.findOne.bind(@)({ _id: id })
+            file = @findOne { _id: id }
 
          subFile =
             _id: mongodb.ObjectID("#{file._id}")
-            mode: 'w+'
+            mode: options.mode ? 'w'
             root: @base
             metadata: file.metadata ? {}
             timeOut: 30
@@ -148,21 +138,24 @@ if Meteor.isServer
          writeStream = Meteor._wrapAsync(@gfs.createWriteStream.bind(@gfs)) subFile
 
          writeStream.on 'close', (retFile) ->
-            console.log "Done writing"
 
          if callback?
             writeStream.on 'close', (retFile) ->
                callback(null, retFile._id)
 
-         console.log "Returning writeStream"
          return writeStream
 
-      findOne: (selector, options = {}) ->
-         file = super selector, { sort: options.sort, skip: options.skip }
+      findStream: (selector, options = {}, callback = undefined) ->
+         file = @findOne selector, { sort: options.sort, skip: options.skip }
          if file
             readStream = Meteor._wrapAsync(@gfs.createReadStream.bind(@gfs))
                root: @base
                _id: mongodb.ObjectID("#{file._id}")
+
+            if callback?
+               readStream.on 'end', (retFile) ->
+                  callback(null, retFile._id)
+
             return readStream
          else
             return null
@@ -183,14 +176,15 @@ if Meteor.isServer
          options = options || {}
          options.filename = path.basename filePath
          readStream = fs.createReadStream filePath
-         writeStream = @upsert options, {}, callback
+         writeStream = @upsertStream options, {}, callback
          readStream.pipe(writeStream)
+            .on('finish', callback)
             .on('error', callback)
 
       exportFile: (id, filePath, callback) ->
          callback = share.bind_env callback
          filePath = path.normalize filePath
-         readStream = @findOne { _id: id }
+         readStream = @findStream { _id: id }
          writeStream = fs.createWriteStream filePath
          readStream.pipe(writeStream)
             .on('finish', callback)
