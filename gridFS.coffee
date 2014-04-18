@@ -534,21 +534,27 @@ if Meteor.isServer
                return false
 
             update: (userId, file, fields) =>
+               # Only metedata, filename, aliases and contentType should ever be changed by the client
 
-               # Only metedata, filename, aliases and contentType may be changed by the client
-               unless fields.every((x) -> ['metadata', 'aliases', 'filename', 'contentType'].indexOf(x) isnt -1)
-                  console.log "Update failed"
-                  return false
+               # unless fields.every((x) -> ['metadata', 'aliases', 'filename', 'contentType'].indexOf(x) isnt -1)
+               #    console.log "Update failed"
+               #    return false
 
-               if @_check_allow_deny 'update', userId, file, fields
-                  console.log "Update approved"
-                  return true
+               # if @_check_allow_deny 'update', userId, file, fields
+               #    console.log "Update approved"
+               #    return true
 
-               console.log "Update failed"
+               # Cowboy updates are not allowed from the client. There's too much to screw up.
+               # For example, if you store file ownership info in a sub document under 'metadata'
+               # it will be complicate to guard against that being changed if you allow other parts
+               # of the metadata sub doc to be updated. Write specific Meteor methods instead to allow
+               # reasonable changes to the "metadata" parts of the gridFS file record.
+               # i.e. ['metadata', 'aliases', 'filename', 'contentType']
                return false
 
             insert: (userId, file) =>
 
+               # Make darn sure we're creating a valid gridFS .files document
                check file,
                   _id: Meteor.Collection.ObjectID
                   length: Match.Where (x) ->
@@ -667,51 +673,48 @@ if Meteor.isClient
          super @base + '.files'
 
          if options.resumable
-            @resumable = null
-            r = new Resumable
-               target: "#{@baseURL}/_resumable"
-               generateUniqueIdentifier: (file) -> "#{new Meteor.Collection.ObjectID()}"
-               fileParameterName: 'file'
-               chunkSize: @chunkSize
-               testChunks: true
-               simultaneousUploads: 3
-               maxFiles: undefined
-               maxFilesErrorCallback: undefined
-               prioritizeFirstAndLastChunk: false
-               query: undefined
-               headers: {}
+            _setup_resumable.bind(@)()
 
-            unless r.support
-               console.error "resumable.js not supported by this Browser, uploads will be disabled"
-            else
-               @resumable = r
-
-               console.log @resumable
-
-               # Autoupdate the token depending on who is logged in
-               Deps.autorun () =>
-                  Meteor.userId()
-                  @resumable.opts.headers['X-Auth-Token'] = Accounts._storedLoginToken() ? ''
-
-               r.on('fileAdded', (file) =>
-                  console.log "fileAdded", file
-                  @insert({
-                     _id: file.uniqueIdentifier
-                     filename: file.fileName
-                     contentType: file.file.type
-                  }, () -> r.upload())
-               )
-               r.on('fileSuccess', (file, message) =>
-                  console.log "fileSuccess", file, message
-               )
-               r.on('fileError', (file, message) =>
-                  console.log "fileError", file, message
-               )
+      # remove works as-is. No modifications necessary so it currently goes straight to super
 
       upsert: () ->
          throw new Error "GridFS Collections do not support 'upsert' on client"
 
+      update: () ->
+         throw new Error "GridFS Collections do not support 'update' on client"
+
+      # Insert only creates an empty (but valid) gridFS file. To put data into it from a client,
+      # you need to use an HTTP POST or PUT after the record is inserted. For security reasons,
+      # you shouldn't be able to POST or PUT to a file that hasn't been inserted.
+
       insert: (file, callback = undefined) ->
+         # This call ensures that a full gridFS file document
+         # gets built from whatever is provided
          file = _shared_insert_func file, @chunkSize
          super file, callback
+
+   _setup_resumable = () ->
+      r = new Resumable
+         target: "#{@baseURL}/_resumable"
+         generateUniqueIdentifier: (file) -> "#{new Meteor.Collection.ObjectID()}"
+         fileParameterName: 'file'
+         chunkSize: @chunkSize
+         testChunks: true
+         simultaneousUploads: 3
+         maxFiles: undefined
+         maxFilesErrorCallback: undefined
+         prioritizeFirstAndLastChunk: false
+         query: undefined
+         headers: {}
+
+      unless r.support
+         console.error "resumable.js not supported by this Browser, uploads will be disabled"
+         @resumable = null
+      else
+         # Autoupdate the token depending on who is logged in
+         Deps.autorun () =>
+            Meteor.userId()
+            r.opts.headers['X-Auth-Token'] = Accounts._storedLoginToken() ? ''
+         @resumable = r
+
 
