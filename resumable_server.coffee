@@ -8,8 +8,8 @@ if Meteor.isServer
    async = Npm.require 'async'
 
    dice_resumable_multipart = (req, callback) ->
-      callback = @_bind_env callback
-      boundary = @_find_mime_boundary req
+      callback = share.bind_env callback
+      boundary = share.find_mime_boundary req
 
       unless boundary
         err = new Error('No MIME multipart boundary found for dicer')
@@ -116,12 +116,12 @@ if Meteor.isServer
 
             try
                fileStream.pipe(writeStream)
-                  .on 'close', @_bind_env((file) =>
+                  .on 'close', share.bind_env((file) =>
                      console.log "Piping Close!"
                      res.writeHead(200)
                      res.end()
                      check_order.bind(@)(file))
-                  .on 'error', @_bind_env((err) =>
+                  .on 'error', share.bind_env((err) =>
                      console.log "Piping Error!", err
                      res.writeHead(500)
                      res.end(err))
@@ -244,4 +244,4 @@ if Meteor.isServer
 	       .all((req, res, next) ->
 	          res.writeHead(404)
 	          res.end())
-	    WebApp.rawConnectHandlers.use(@baseURL, @_bind_env(r))
+	    WebApp.rawConnectHandlers.use(@baseURL, share.bind_env(r))
