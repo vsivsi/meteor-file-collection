@@ -29,15 +29,17 @@ if Meteor.isServer
    async = Npm.require 'async'
    express = Npm.require 'express'
 
-   class gridFS extends Meteor.Collection
+   class gridFSCollection extends Meteor.Collection
 
       _check_allow_deny: (type, userId, file, fields) ->
-         console.log "In Client '#{type}' allow: #{file.filename} {@db}"
+         console.log "In Client '#{type}' allow: #{file.filename}"
          allowResult = false
          allowResult = allowResult or allowFunc(userId, file, fields) for allowFunc in @allows[type]
          denyResult = true
          denyResult = denyResult and denyFunc(userId, file, fields) for denyFunc in @denys[type]
-         return allowResult and denyResult
+         result = allowResult and denyResult
+         console.log "Permission: #{if result then "granted" else "denied"}"
+         return result
 
       _lookup_userId_by_token: (authToken) ->
          console.log "Looking up user by token #{authToken} which hashes to #{Accounts._hashLoginToken(authToken)}"
@@ -145,6 +147,11 @@ if Meteor.isServer
       _post: (req, res, next) ->
          console.log "Cowboy!", req.method, req.gridFS, req.headers
 
+         unless @_check_allow_deny 'update', req.meteorUserId, req.gridFS, ['length', 'md5']
+            res.writeHead(404)
+            res.end("#{req.url} Not found!")
+            return
+
          @_dice_multipart req, (err, fileStream) =>
             if err
                res.writeHead(500)
@@ -187,11 +194,16 @@ if Meteor.isServer
                   res.end('Bad ID!')
                   return
 
-               file = gridFS.__super__.findOne.bind(@)({ _id: ID })
+               file = gridFSCollection.__super__.findOne.bind(@)({ _id: ID })
 
                unless file
                   res.writeHead(404)
                   res.end('Upload document not found!')
+                  return
+
+               unless @_check_allow_deny 'update', req.meteorUserId, file, ['length', 'md5']
+                  res.writeHead(404)
+                  res.end("#{req.url} Not found!")
                   return
 
                unless ((file.chunkSize is resumable.resumableChunkSize) and
@@ -304,27 +316,57 @@ if Meteor.isServer
 
       _resumable_get: (req, res, next) ->
 
-         file = gridFS.__super__.findOne.bind(@)({ $or: [ { _id: req.query.resumableIdentifier, length: req.query.resumableTotalSize }, { length: req.query.resumableCurrentChunkSize, 'metadata._Resumable.resumableIdentifier': req.query.resumableIdentifier, 'metadata._Resumable.resumableChunkNumber': req.query.resumableChunkNumber } ] } )
+         console.log "Query: ", req.query
 
-         if file
-            res.writeHead(200)
-            res.end()
-         else
+         file = gridFSCollection.__super__.findOne.bind(@)(
+            $or: [
+               {
+                  _id: req.query.resumableIdentifier
+                  length: req.query.resumableTotalSize
+               }
+               {
+                  length: req.query.resumableCurrentChunkSize
+                  'metadata._Resumable.resumableIdentifier': req.query.resumableIdentifier
+                  'metadata._Resumable.resumableChunkNumber': req.query.resumableChunkNumber
+               }
+            ]
+         )
+
+         unless file
             res.writeHead(404)
             res.end()
+            return
+
+         console.log "Show me the file!", file
+
+         if @_check_allow_deny 'update', req.meteorUserId, file, ['length', 'md5']
+            res.writeHead(200)
+            res.end()
+            return
+
+         res.writeHead(404)
+         res.end()
 
       _get: (req, res, next) ->
          console.log "Cowboy!", req.method, req.gridFS
 
+         headers =
+            'Content-type': req.gridFS.contentType
+            'Content-MD5': req.gridFS.md5
+            'Content-Length': req.gridFS.length
+            'Last-Modified': req.gridFS.uploadDate.toUTCString()
+
+         if req.query.download
+            headers['Content-Disposition'] = "attachment; filename=\"#{req.gridFS.filename}\""
+
+         if req.method is 'HEAD'
+            res.writeHead 204, headers
+            res.end()
+            return
+
          stream = @findOne { _id: req.gridFS._id }
          if stream
-            unless req.query.download
-               res.writeHead 200,
-                  'Content-type': req.gridFS.contentType
-            else
-               res.writeHead 200,
-                  'Content-type': req.gridFS.contentType
-                  'Content-Disposition': "attachment; filename=\"#{req.gridFS.filename}\""
+            res.writeHead 200, headers
             stream.pipe(res)
                   .on 'close', () ->
                      res.end()
@@ -338,6 +380,11 @@ if Meteor.isServer
       _put: (req, res, next) ->
 
          console.log "Cowboy!", req.method, req.gridFS
+
+         unless @_check_allow_deny 'update', req.meteorUserId, req.gridFS, ['length', 'md5']
+            res.writeHead(404)
+            res.end("#{req.url} Not found!")
+            return
 
          stream = @upsert req.gridFS
          if stream
@@ -354,6 +401,12 @@ if Meteor.isServer
 
       _delete: (req, res, next) ->
          console.log "Cowboy!", req.method, req.gridFS
+
+         unless @_check_allow_deny 'remove', req.meteorUserId, req.gridFS
+            res.writeHead(404)
+            res.end("#{req.url} Not found!")
+            return
+
          @remove req.gridFS
          res.writeHead(204)
          res.end()
@@ -367,6 +420,9 @@ if Meteor.isServer
                   console.log "Queries: ", req.query
                   console.log "Method: ", req.method
 
+                  req.params._id = new Meteor.Collection.ObjectID("#{req.params._id}") if req.params?._id?
+                  req.query._id = new Meteor.Collection.ObjectID("#{req.query._id}") if req.query?._id?
+
                   q = r.query req.meteorUserId, req.params or {}, req.query or {}
                   console.log "finding One, query:", JSON.stringify(q,false,1)
                   unless q?
@@ -374,8 +430,7 @@ if Meteor.isServer
                      next()
                   else
                      try
-                        q._id = new Meteor.Collection.ObjectID("#{q._id}") if q._id?
-                        req.gridFS = gridFS.__super__.findOne.bind(@)(q)
+                        req.gridFS = gridFSCollection.__super__.findOne.bind(@)(q)
                         if req.gridFS
                            console.log "Found file #{req.gridFS._id}"
                            next()
@@ -387,6 +442,7 @@ if Meteor.isServer
                         res.end()
 
          route.route('/*')
+            .head(@_get.bind(@))
             .get(@_get.bind(@))
             .put(@_put.bind(@))
             .post(@_post.bind(@))
@@ -395,8 +451,21 @@ if Meteor.isServer
                res.writeHead(404)
                res.end()
 
+      _handle_auth: (req, res, next) =>
+         unless req.meteorUserId?
+            console.log "Headers: ", req.headers
+            # Lookup userId if token is provided
+            if req.headers?['x-auth-token']?
+               req.meteorUserId = @_lookup_userId_by_token req.headers['x-auth-token']
+            else if req.query?['x-auth-token']?
+               console.log "Has query x-auth-token: #{req.query['x-auth-token']}"
+               req.meteorUserId = @_lookup_userId_by_token req.query['x-auth-token']
+            console.log "Request:", req.method, req.url, req.headers?['x-auth-token'] or req.query?['x-auth-token'], req.meteorUserId
+         next()
+
       constructor: (options = {}) ->
-         console.log "Making a gridFS collection!"
+         unless @ instanceof gridFSCollection
+            return new gridFSCollection(options)
 
          @chunkSize = options.chunkSize ? defaultChunkSize
          @base = options.base ? 'fs'
@@ -408,23 +477,16 @@ if Meteor.isServer
          # Make an index on md5, to support GET requests
          @gfs.files.ensureIndex [['md5', 1]], (err, ret) ->
             throw err if err
+         # Make an index on aliases, to support alternative GET requests
+         @gfs.files.ensureIndex [['aliases', 1]], (err, ret) ->
+            throw err if err
 
          @baseURL = options.baseURL ? "/gridfs/#{@base}"
 
          if options.resumable or options.http
             r = express.Router()
             r.use express.query()
-            r.use (req, res, next) =>
-               unless req.meteorUserId?
-                  console.log "Headers: ", req.headers
-                  # Lookup userId if token is provided
-                  if req.headers?['x-auth-token']?
-                     req.meteorUserId = @_lookup_userId_by_token req.headers['x-auth-token']
-                  else if req.query?['x-auth-token']?
-                     console.log "Has query x-auth-token: #{req.query['x-auth-token']}"
-                     req.meteorUserId = @_lookup_userId_by_token req.query['x-auth-token']
-                  console.log "Request:", req.method, req.url, req.headers?['x-auth-token'] or req.query?['x-auth-token'], req.meteorUserId
-               next()
+            r.use @_handle_auth.bind(@)
             WebApp.rawConnectHandlers.use(@baseURL, @_bind_env(r))
 
          if options.resumable
@@ -447,7 +509,7 @@ if Meteor.isServer
 
          super @base + '.files'
 
-         gridFS.__super__.allow.bind(@)
+         gridFSCollection.__super__.allow.bind(@)
 
             remove: (userId, file) =>
                if @_check_allow_deny 'remove', userId, file
@@ -459,22 +521,43 @@ if Meteor.isServer
                return false
 
             update: (userId, file, fields) =>
+
+               # Only metedata, filename, aliases and contentType may be changed by the client
+               unless fields.every((x) -> ['metadata', 'aliases', 'filename', 'contentType'].indexOf(x) isnt -1)
+                  console.log "Update failed"
+                  return false
+
                if @_check_allow_deny 'update', userId, file, fields
+                  console.log "Update approved"
+                  return true
 
-                  # Only metadata may be safely updated by client
-                  if fields.length is 1 and fields[0] is 'metadata'
-                     return true
-
+               console.log "Update failed"
                return false
 
             insert: (userId, file) =>
+
+               check file,
+                  _id: Meteor.Collection.ObjectID
+                  length: Match.Where (x) ->
+                     check x, Match.Integer
+                     x >= 0
+                  md5: Match.Where (x) ->
+                     check x, String
+                     x.length is 32
+                  uploadDate: Date
+                  chunkSize: Match.Where (x) ->
+                     check x, Match.Integer
+                     x > 0
+                  filename: String
+                  contentType: String
+                  aliases: [ String ]
+                  metadata: Object
+
+               unless file.chunkSize is @chunkSize
+                  console.error "Invalid chunksize"
+                  return false
+
                if @_check_allow_deny 'insert', userId, file
-
-                  # Enforce the server set chunksize
-                  unless file.chunkSize is @chunkSize
-                     console.warn "Bad insert chunkSize #{@chunkSize} != #{file.chunkSize}"
-                     return false
-
                   return true
 
                return false
@@ -505,7 +588,7 @@ if Meteor.isServer
 
          unless file._id
             id = @insert file
-            file = gridFS.__super__.findOne.bind(@)({ _id: id })
+            file = gridFSCollection.__super__.findOne.bind(@)({ _id: id })
 
          subFile =
             _id: mongodb.ObjectID("#{file._id}")
@@ -559,10 +642,12 @@ if Meteor.isServer
 
 if Meteor.isClient
 
-   class gridFS extends Meteor.Collection
+   class gridFSCollection extends Meteor.Collection
 
       constructor: (options) ->
-         console.log "Making a gridFS collection!"
+         unless @ instanceof gridFSCollection
+            return new gridFSCollection(options)
+
          @chunkSize = options.chunkSize ? defaultChunkSize
          @base = options.base ? 'fs'
          @baseURL = options.baseURL ? "/gridfs/#{@base}"
@@ -576,8 +661,7 @@ if Meteor.isClient
                testChunks: true
                simultaneousUploads: 3
                prioritizeFirstAndLastChunk: false
-               headers: () ->
-                  { 'X-Auth-Token': Accounts._storedLoginToken() ? '' }
+               headers: { 'X-Auth-Token': Accounts._storedLoginToken() ? '' }
 
             unless r.support
                console.error "resumable.js not supported by this Browser, uploads will be disabled"

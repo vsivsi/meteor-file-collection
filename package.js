@@ -17,7 +17,7 @@ Package.on_use(function(api) {
   api.use('coffeescript', ['server','client']);
   api.use('webapp', 'server');
   api.add_files('gridFS.coffee', ['server','client']);
-  api.export('gridFS');
+  api.export('gridFSCollection');
 });
 
 // Package.on_test(function(api) {
