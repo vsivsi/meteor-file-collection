@@ -1,7 +1,7 @@
 ############################################################################
-###     Copyright (C) 2014 by Vaughn Iverson
-###     fileCollection is free software released under the MIT/X11 license.
-###     See included LICENSE file for details.
+#     Copyright (C) 2014 by Vaughn Iverson
+#     fileCollection is free software released under the MIT/X11 license.
+#     See included LICENSE file for details.
 ############################################################################
 
 if Meteor.isServer
@@ -11,6 +11,8 @@ if Meteor.isServer
    grid = Npm.require 'gridfs-locking-stream'
    gridLocks = Npm.require 'gridfs-locks'
    dicer = Npm.require 'dicer'
+
+   # Fast MIME Multipart parsing of generic HTTP POST request bodies
 
    dice_multipart = (req, callback) ->
       callback = share.bind_env callback
@@ -38,7 +40,7 @@ if Meteor.isServer
             callback(null, fileStream, fn, ft)
 
       d.on 'error', (err) ->
-        console.log('Error in Dicer: \n', err)
+        console.error('Error in Dicer: \n', err)
         callback err
 
       d.on 'finish', () ->
@@ -47,38 +49,48 @@ if Meteor.isServer
 
       req.pipe(d)
 
-   post = (req, res, next) ->
-      console.log "Cowboy!", req.method, req.gridFS, req.headers
+   # Handle a generic HTTP POST file upload
 
+   # This curl command should be properly handled by this code:
+   # % curl -X POST 'http://127.0.0.1:3000/gridfs/fs/38a14c8fef2d6cef53c70792' \
+   #        -F 'file=@"universe.png";type=image/png' -H 'X-Auth-Token: zrtrotHrDzwA4nC5'
+
+   post = (req, res, next) ->
+
+      # Parse MIME Multipart request bidy
       dice_multipart req, (err, fileStream, filename, filetype) =>
          if err
+            console.error('Error parsing POST body', err)
             res.writeHead(500)
             res.end()
             return
-         console.log "filename: #{filename} filetype: #{filetype}"
 
+         # Handle filename or filetype data when included
          if filename or filetype
             set = {}
             set.contentType = filetype if filetype
             set.filename = filename if filename
             @update { _id: req.gridFS._id }, { $set: set }
 
+         # Write the file data.  No chunks here, this is the whole thing
          stream = @upsertStream req.gridFS
          if stream
             fileStream.pipe(stream)
                .on 'close', () ->
-                  console.log "Closing the stream..."
                   res.writeHead(200)
                   res.end()
                .on 'error', (err) ->
                   res.writeHead(500)
-                  res.end(err)
+                  res.end()
          else
             res.writeHead(410)
-            res.end("Gone!")
+            res.end()
+
+   # Handle a generic HTTP GET request
+   # This also handles HEAD requests
+   # If the request URL has a "?download=true" query, then a browser download response is triggered
 
    get = (req, res, next) ->
-      console.log "Cowboy!", req.method, req.gridFS
 
       headers =
          'Content-type': req.gridFS.contentType
@@ -86,14 +98,17 @@ if Meteor.isServer
          'Content-Length': req.gridFS.length
          'Last-Modified': req.gridFS.uploadDate.toUTCString()
 
+      # Trigger download in browser
       if req.query.download
          headers['Content-Disposition'] = "attachment; filename=\"#{req.gridFS.filename}\""
 
+      # HEADs don't have a body
       if req.method is 'HEAD'
          res.writeHead 204, headers
          res.end()
          return
 
+      # Send the file
       stream = @findStream { _id: req.gridFS._id }
       if stream
          res.writeHead 200, headers
@@ -105,15 +120,21 @@ if Meteor.isServer
                   res.end(err)
       else
          res.writeHead(410)
-         res.end("#{req.url} Gone!")
+         res.end()
+
+   # Handle a generic HTTP PUT request
+
+   # This curl command should be properly handled by this code:
+   # % curl -X PUT 'http://127.0.0.1:3000/gridfs/fs/7868f3df8425ae68a572b334' \
+   #        -T "universe.png" -H 'Content-Type: image/png' -H 'X-Auth-Token: tEPAwXbGwgfGiJL35'
 
    put = (req, res, next) ->
 
-      console.log "Cowboy!", req.method, req.gridFS
-
+      # Handle content type if it's present
       if req.headers['content-type']
          @update { _id: req.gridFS._id }, { $set: { contentType: req.headers['content-type'] }}
 
+      # Write the file
       stream = @upsertStream req.gridFS
       if stream
          req.pipe(stream)
@@ -127,24 +148,35 @@ if Meteor.isServer
          res.writeHead(404)
          res.end("#{req.url} Not found!")
 
+   # Handle a generic HTTP DELETE request
+
+   # This curl command should be properly handled by this code:
+   # % curl -X DELETE 'http://127.0.0.1:3000/gridfs/fs/7868f3df8425ae68a572b334' \
+   #        -H 'X-Auth-Token: tEPAwXbGwgfGiJL35'
+
    del = (req, res, next) ->
-      console.log "Cowboy!", req.method, req.gridFS
+
       @remove req.gridFS
       res.writeHead(204)
       res.end()
 
+   # Setup all of the application specified paths and file lookups in express
+   # Also performs allow/deny permission checks for POST/PUT/DELETE
+
    build_access_point = (http, route) ->
 
+      # Loop over the app supplied http paths
       for r in http
-         route[r.method] r.path, do (r) =>
-            (req, res, next) =>
-               console.log "Params", req.params
-               console.log "Queries: ", req.query
-               console.log "Method: ", req.method
 
+         # Add an express middleware for each application REST path
+         route[r.method] r.path, do (r) =>
+
+            (req, res, next) =>
+               # params and queries literally named "_id" get converted to ObjectIDs automatically
                req.params._id = new Meteor.Collection.ObjectID("#{req.params._id}") if req.params?._id?
                req.query._id = new Meteor.Collection.ObjectID("#{req.query._id}") if req.query?._id?
 
+               # Build the path lookup mongoDB query object for the gridFS files collection
                lookup = r.lookup? req.params or {}, req.query or {}
                unless lookup?
                   # No lookup returned, so bailing
@@ -152,14 +184,14 @@ if Meteor.isServer
                   res.end()
                   return
                else
+                  # Perform the collection query
                   req.gridFS = @findOne lookup
                   unless req.gridFS
                      res.writeHead(404)
                      res.end()
                      return
 
-                  console.log "Found file #{req.gridFS._id}"
-
+                  # Make sure that the requested method is permitted for this file in the allow/deny rules
                   switch req.method
                      when 'HEAD', 'GET'
                         next()
@@ -181,13 +213,20 @@ if Meteor.isServer
 
                   next()
 
+      # Add all of generic request handling methods to the express route
       route.route('/*')
-         .head(get.bind(@))
+         .all (req, res, next) ->  # Make sure a file has been selected by some rule
+            unless req.gridFS
+               res.writeHead(404)
+               res.end()
+               return
+            next()
+         .head(get.bind(@))   # Generic HTTP method handlers
          .get(get.bind(@))
          .put(put.bind(@))
          .post(post.bind(@))
          .delete(del.bind(@))
-         .all (req, res, next) ->
+         .all (req, res, next) ->   # Unkown methods are denied
             res.writeHead(500)
             res.end()
 
@@ -210,20 +249,21 @@ if Meteor.isServer
             req.meteorUserId = lookup_userId_by_token req.headers['x-auth-token']
          # Or as a URL query of the same name
          else if req.query?['x-auth-token']?
-            console.log "Has query x-auth-token: #{req.query['x-auth-token']}"
             req.meteorUserId = lookup_userId_by_token req.query['x-auth-token']
-         console.log "Request:", req.method, req.url, req.headers?['x-auth-token'] or req.query?['x-auth-token'], req.meteorUserId
       next()
 
+   # Set up all of the middleware, including optional support for Resumable.js chunked uploads
    share.setupHttpAccess = (options) ->
          r = express.Router()
-         r.use express.query()
-         r.use handle_auth
+         r.use express.query()   # Parse URL query strings
+         r.use handle_auth       # Turn x-auth-tokens into Meteor userIds
          WebApp.rawConnectHandlers.use(@baseURL, share.bind_env(r))
 
+         # Set up support for resumable.js if requested
          if options.resumable
             share.setup_resumable.bind(@)()
 
+         # Setup application HTTP REST interface
          @router = express.Router()
          build_access_point.bind(@)(options.http, @router)
          WebApp.rawConnectHandlers.use(@baseURL, share.bind_env(@router))

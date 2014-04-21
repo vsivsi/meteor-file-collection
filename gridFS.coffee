@@ -1,7 +1,7 @@
 ############################################################################
-###     Copyright (C) 2014 by Vaughn Iverson
-###     fileCollection is free software released under the MIT/X11 license.
-###     See included LICENSE file for details.
+#     Copyright (C) 2014 by Vaughn Iverson
+#     fileCollection is free software released under the MIT/X11 license.
+#     See included LICENSE file for details.
 ############################################################################
 
 share.defaultChunkSize = 2*1024*1024
@@ -22,5 +22,3 @@ share.insert_func = (file, chunkSize) ->
    subFile.aliases = file.aliases ? []
    subFile.contentType = file.contentType ? 'application/octet-stream'
    return subFile
-
-

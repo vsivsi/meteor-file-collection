@@ -1,7 +1,7 @@
 ############################################################################
-###     Copyright (C) 2014 by Vaughn Iverson
-###     fileCollection is free software released under the MIT/X11 license.
-###     See included LICENSE file for details.
+#     Copyright (C) 2014 by Vaughn Iverson
+#     fileCollection is free software released under the MIT/X11 license.
+#     See included LICENSE file for details.
 ############################################################################
 
 if Meteor.isServer
@@ -12,6 +12,9 @@ if Meteor.isServer
    gridLocks = Npm.require 'gridfs-locks'
    dicer = Npm.require 'dicer'
    async = Npm.require 'async'
+
+   # This function checks to see if all of the parts of a Resumable.js uploaded file are now in the gridFS
+   # Collection. If so, it completes the file by moving all of the chunks to the correct file and cleans up
 
    check_order = (file) ->
       fileId = mongodb.ObjectID("#{file.metadata._Resumable.resumableIdentifier}")
@@ -85,13 +88,16 @@ if Meteor.isServer
 
       lock.on 'timed-out', () -> throw "File Lock timed out"
 
+   # Fast MIME Multipart parsing of the Resumable.js HTTP POST request bodies
+
    dice_resumable_multipart = (req, callback) ->
       callback = share.bind_env callback
       boundary = share.find_mime_boundary req
 
       unless boundary
-        err = new Error('No MIME multipart boundary found for dicer')
-        return callback err
+         console.error 'No MIME multipart boundary found for dicer'
+         err = new Error('No MIME multipart boundary found for dicer')
+         return callback err
 
       resumable = {}
       resCount = 0
@@ -122,7 +128,7 @@ if Meteor.isServer
                            callback(null, resumable, fileStream)
 
                      p.on 'error', (err) ->
-                        console.log('Error in Dicer while streaming: \n', err)
+                        console.error('Error in Dicer while streaming: \n', err)
                         callback err
 
                   else if RE_FILE.exec(v)
@@ -131,7 +137,7 @@ if Meteor.isServer
                         callback(null, resumable, fileStream)
 
       d.on 'error', (err) ->
-        console.log('Error in Dicer: \n', err)
+        console.error('Error in Dicer: \n', err)
         callback err
 
       d.on 'finish', () ->
@@ -140,17 +146,22 @@ if Meteor.isServer
 
       req.pipe(d)
 
+   # Handle HTTP POST requests from Resumable.js
+
    resumable_post = (req, res, next) ->
 
+      # Parse the multipart body
       dice_resumable_multipart.bind(@) req, (err, resumable, fileStream) =>
+         # Error parsing
          if err
             res.writeHead(500)
-            res.end(err)
+            res.end()
             return
          else
+            # This khas to be a resumable POST
             unless resumable
                res.writeHead(501)
-               res.end('Not a resumable.js POST!')
+               res.end()
                return
 
             # See if this file already exists in some form
@@ -158,30 +169,34 @@ if Meteor.isServer
                ID = new Meteor.Collection.ObjectID(resumable.resumableIdentifier)
             catch
                res.writeHead(501)
-               res.end('Bad ID!')
+               res.end()
                return
 
             file = @findOne { _id: ID }
 
+            # File must exist to write to it
             unless file
                res.writeHead(404)
-               res.end('Upload document not found!')
+               res.end()
                return
 
+            # Make sure we have permission
             unless share.check_allow_deny.bind(@) 'update', req.meteorUserId, file, ['length', 'md5']
                res.writeHead(404)
-               res.end("#{req.url} Not found!")
+               res.end()
                return
 
+            # Sanity check the chunk sizes that are critical to reassembling the file from parts
             unless ((file.chunkSize is resumable.resumableChunkSize) and
                     (resumable.resumableCurrentChunkSize is resumable.resumableChunkSize) or
                     ((resumable.resumableChunkNumber is resumable.resumableTotalChunks) and
                      (resumable.resumableCurrentChunkSize < 2*resumable.resumableChunkSize)))
 
                res.writeHead(501)
-               res.end('Invalid chunkSize')
+               res.end()
                return
 
+            # Everything looks good, so write this part
             file.metadata._Resumable = resumable
             writeStream = @upsertStream
                filename: "_Resumable_#{resumable.resumableIdentifier}_#{resumable.resumableChunkNumber}_#{resumable.resumableTotalChunks}"
@@ -189,30 +204,25 @@ if Meteor.isServer
 
             unless writeStream
                res.writeHead(404)
-               res.end('Gone!')
+               res.end()
                return
 
-            try
-               fileStream.pipe(writeStream)
-                  .on 'close', share.bind_env((file) =>
-                     console.log "Piping Close!"
-                     res.writeHead(200)
-                     res.end()
-                     check_order.bind(@)(file))
-                  .on 'error', share.bind_env((err) =>
-                     console.log "Piping Error!", err
-                     res.writeHead(500)
-                     res.end(err))
-            catch err
-               res.writeHead(500)
-               res.end(err)
-               console.error "Caught during pipe", err
-               console.trace()
+            fileStream.pipe(writeStream)
+               .on 'close', share.bind_env((file) =>
+                  res.writeHead(200)
+                  res.end()
+                  # Check to see if all of the parts are now available and can be reassembled
+                  check_order.bind(@)(file))
+               .on 'error', share.bind_env((err) =>
+                  console.error "Piping Error!", err
+                  res.writeHead(500)
+                  res.end())
+
+   # This handles Resumable.js "test GET" requests, that exist to determine if a part is already uploaded
 
    resumable_get = (req, res, next) ->
 
-      console.log "Query: ", req.query
-
+      # Query to see if this entire file is already complete, or if this part is complete in the GridFS collection
       file = @findOne(
          $or: [
             {
@@ -227,21 +237,24 @@ if Meteor.isServer
          ]
       )
 
+      # If not, tell Resumable.js we don't have it yet
       unless file
          res.writeHead(404)
          res.end()
          return
 
-      console.log "Show me the file!", file
-
-      if share.check_allow_deny.bind(@) 'update', req.meteorUserId, file, ['length', 'md5']
-         res.writeHead(200)
+      # Make sure we'll allow the POST that will come subsequently come from this...
+      unless share.check_allow_deny.bind(@) 'update', req.meteorUserId, file, ['length', 'md5']
+         res.writeHead(404)
          res.end()
          return
 
-      res.writeHead(404)
+      # All is good
+      res.writeHead(200)
       res.end()
 
+
+   # Setup the GET and POST HTTP REST paths for Resumable.js in express
    share.setup_resumable = () ->
 	    r = express.Router()
 	    r.route('/_resumable')
