@@ -177,13 +177,3 @@ Tinytest.addAsync('REST API POST/GET/DELETE', function(test, onComplete) {
       });
   });
 });
-
-if (Meteor.isClient) {
-  Tinytest.addAsync('Resumable chunked upload POST API', function(test, onComplete) {
-    var _id = testColl.insert({ filename: 'writefile', contentType: 'text/plain' }, function (err, _id) {
-      if (err) { test.fail(err); }
-      var url = Meteor.absoluteUrl('test/'+_id);
-      onComplete();
-    });
-  });
-}

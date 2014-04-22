@@ -121,7 +121,6 @@ if Meteor.isServer
       # Don't allow users to modify the user docs
       Meteor.users.deny({update: () -> true })
 
-
       # Allow rules for security. Without these, no writes would be allowed by default
       myData.allow
          remove: (userId, file) ->
