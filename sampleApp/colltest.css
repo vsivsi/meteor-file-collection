@@ -1,0 +1,22 @@
+/* CSS declarations go here */
+
+body {
+  background: url('pattern_130.gif');
+}
+
+.panel {
+  position: relative;
+  background: #fff;
+  margin-top: 10px;
+  box-shadow: 0 0 10px rgba(0,0,0,.5);
+}
+
+.content {
+  /*padding: 10px;*/
+}
+
+.loginTemp {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+}
