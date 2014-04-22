@@ -21,7 +21,7 @@ if Meteor.isServer
       console.log "fileId: #{fileId}"
       lock = gridLocks.Lock(fileId, @locks, {}).obtainWriteLock()
       lock.on 'locked', () =>
-         files = @db.collection "#{@base}.files"
+         files = @db.collection "#{@root}.files"
 
          files.find({'metadata._Resumable.resumableIdentifier': file.metadata._Resumable.resumableIdentifier},
                     { sort: { 'metadata._Resumable.resumableChunkNumber': 1 }}).toArray (err, parts) =>
@@ -43,7 +43,7 @@ if Meteor.isServer
 
             # Manipulate the chunks and files collections directly under write lock
             console.log "Start reassembling the file!!!!"
-            chunks = @db.collection "#{@base}.chunks"
+            chunks = @db.collection "#{@root}.chunks"
             totalSize = goodParts[0].metadata._Resumable.resumableTotalSize
             async.eachLimit goodParts, 3,
                (part, cb) =>

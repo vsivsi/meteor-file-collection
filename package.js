@@ -5,8 +5,8 @@
 ***************************************************************************/
 
 Package.describe({
-  name: 'gridfs-collection',
-  summary: 'GridFS based collection'
+  name: 'fileCollection',
+  summary: 'MongoDB GridFS based meteor file collections'
 });
 
 Npm.depends({
@@ -22,14 +22,18 @@ Package.on_use(function(api) {
   api.use('coffeescript', ['server','client']);
   api.use('webapp', 'server');
   api.add_files('gridFS.coffee', ['server','client']);
+  api.add_files('resumable/resumable.js', 'client')
   api.add_files('server_shared.coffee', 'server');
   api.add_files('gridFS_server.coffee', 'server');
   api.add_files('resumable_server.coffee', 'server');
   api.add_files('http_access_server.coffee', 'server');
   api.add_files('resumable_client.coffee', 'client');
   api.add_files('gridFS_client.coffee', 'client');
-  api.export('gridFSCollection');
+  api.export('fileCollection');
 });
 
-// Package.on_test(function(api) {
-// });
+
+Package.on_test(function (api) {
+  api.use(['fileCollection', 'tinytest', 'test-helpers']);
+  api.add_files('file_collection_tests.js', ['server', 'client']);
+});

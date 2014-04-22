@@ -6,16 +6,20 @@
 
 if Meteor.isClient
 
-   class gridFSCollection extends Meteor.Collection
+   class fileCollection extends Meteor.Collection
 
-      constructor: (options) ->
-         unless @ instanceof gridFSCollection
-            return new gridFSCollection(options)
+      constructor: (@root = share.defaultRoot, options = {}) ->
+         unless @ instanceof fileCollection
+            return new fileCollection(root, options)
 
+         if typeof @root is 'object'
+            options = @root
+            @root = share.defaultRoot
+
+         @base = @root
+         @baseURL = options.baseURL ? "/gridfs/#{@root}"
          @chunkSize = options.chunkSize ? share.defaultChunkSize
-         @base = options.base ? 'fs'
-         @baseURL = options.baseURL ? "/gridfs/#{@base}"
-         super @base + '.files'
+         super @root + '.files'
 
          # This call sets up the optional support for resumable.js
          # See the resumable.coffee file for more information
@@ -25,10 +29,10 @@ if Meteor.isClient
       # remove works as-is. No modifications necessary so it currently goes straight to super
 
       upsert: () ->
-         throw new Error "GridFS Collections do not support 'upsert' on client"
+         throw new Error "File Collections do not support 'upsert' on client"
 
       update: () ->
-         throw new Error "GridFS Collections do not support 'update' on client"
+         throw new Error "File Collections do not support 'update' on client"
 
       # Insert only creates an empty (but valid) gridFS file. To put data into it from a client,
       # you need to use an HTTP POST or PUT after the record is inserted. For security reasons,

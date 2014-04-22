@@ -14,18 +14,21 @@ if Meteor.isServer
    dicer = Npm.require 'dicer'
    express = Npm.require 'express'
 
-   class gridFSCollection extends Meteor.Collection
+   class fileCollection extends Meteor.Collection
 
-      constructor: (options = {}) ->
-         unless @ instanceof gridFSCollection
-            return new gridFSCollection(options)
+      constructor: (@root = share.defaultRoot, options = {}) ->
+         unless @ instanceof fileCollection
+            return new fileCollection(@root, options)
+
+         if typeof @root is 'object'
+            options = @root
+            @root = share.defaultRoot
 
          @chunkSize = options.chunkSize ? share.defaultChunkSize
-         @base = options.base ? 'fs'
 
          @db = Meteor._wrapAsync(mongodb.MongoClient.connect)(process.env.MONGO_URL,{})
-         @locks = gridLocks.LockCollection @db, { root: @base, timeOut: 360, lockExpiration: 90 }
-         @gfs = new grid(@db, mongodb, @base)
+         @locks = gridLocks.LockCollection @db, { root: @root, timeOut: 360, lockExpiration: 90 }
+         @gfs = new grid(@db, mongodb, @root)
 
          # Make an index on md5, to support GET requests
          @gfs.files.ensureIndex [['md5', 1]], (err, ret) ->
@@ -34,7 +37,7 @@ if Meteor.isServer
          @gfs.files.ensureIndex [['aliases', 1]], (err, ret) ->
             throw err if err
 
-         @baseURL = options.baseURL ? "/gridfs/#{@base}"
+         @baseURL = options.baseURL ? "/gridfs/#{@root}"
 
          # if there are HTTP options, setup the express HTTP access point(s)
          if options.resumable or options.http
@@ -45,10 +48,11 @@ if Meteor.isServer
          @denys = { insert: [], update: [], remove: [] }
 
          # Call super's constructor
-         super @base + '.files'
+         super @root + '.files'
 
          # Setup specific allow/deny rules for gridFS, and tie-in the application settings
-         gridFSCollection.__super__.allow.bind(@)
+
+         fileCollection.__super__.allow.bind(@)
 
             remove: (userId, file) =>
 
@@ -58,28 +62,6 @@ if Meteor.isServer
                   # This causes the file data itself to be removed from gridFS
                   @remove file
                   return true
-
-               return false
-
-            update: (userId, file, fields) =>
-
-               ## Cowboy updates are not currently allowed from the client. Too much to screw up.
-               ## For example, if you store file ownership info in a sub document under 'metadata'
-               ## it will be complicated to guard against that being changed if you allow other parts
-               ## of the metadata sub doc to be updated. Write specific Meteor methods instead to
-               ## allow reasonable changes to the "metadata" parts of the gridFS file record.
-
-               ## WARNING! Only metadata, filename, aliases and contentType should ever be changed
-               ## directly by a client, e.g. :
-
-               # unless fields.every((x) -> ['metadata', 'aliases', 'filename', 'contentType'].indexOf(x) isnt -1)
-               #    console.log "Update failed"
-               #    return false
-
-               ## call application rules
-               # if share.check_allow_deny.bind(@) 'update', userId, file, fields
-               #    console.log "Update approved"
-               #    return true
 
                return false
 
@@ -104,15 +86,42 @@ if Meteor.isServer
                   metadata: Object
 
                # Enforce a uniform chunkSize
+               console.log "Passed check!"
                unless file.chunkSize is @chunkSize
                   console.error "Invalid chunksize"
                   return false
 
                # call application rules
                if share.check_allow_deny.bind(@) 'insert', userId, file
+                  console.log "Passed app checks!"
                   return true
 
+               console.log "Failed app checks!"
                return false
+
+         fileCollection.__super__.deny.bind(@)
+
+            update: (userId, file, fields) =>
+
+               ## Cowboy updates are not currently allowed from the client. Too much to screw up.
+               ## For example, if you store file ownership info in a sub document under 'metadata'
+               ## it will be complicated to guard against that being changed if you allow other parts
+               ## of the metadata sub doc to be updated. Write specific Meteor methods instead to
+               ## allow reasonable changes to the "metadata" parts of the gridFS file record.
+
+               ## WARNING! Only metadata, filename, aliases and contentType should ever be changed
+               ## directly by a client, e.g. :
+
+               # unless fields.every((x) -> ['metadata', 'aliases', 'filename', 'contentType'].indexOf(x) isnt -1)
+               #    console.log "Update failed"
+               #    return false
+
+               ## call application rules
+               # if share.check_allow_deny.bind(@) 'update', userId, file, fields
+               #    console.log "Update approved"
+               #    return true
+
+               return true
 
       # Register application allow rules
       allow: (allowOptions) ->
@@ -126,41 +135,25 @@ if Meteor.isServer
          file = share.insert_func file, @chunkSize
          super file, callback
 
-      upsertStream: (file, options = {}, callback = undefined) ->
-         callback = share.bind_env callback
-
+      upsertStream: (file, options = {}) ->
          unless file._id
             id = @insert file
             file = @findOne { _id: id }
-
          subFile =
             _id: mongodb.ObjectID("#{file._id}")
             mode: options.mode ? 'w'
-            root: @base
+            root: @root
             metadata: file.metadata ? {}
             timeOut: 30
-
          writeStream = Meteor._wrapAsync(@gfs.createWriteStream.bind(@gfs)) subFile
-
-         writeStream.on 'close', (retFile) ->
-
-         if callback?
-            writeStream.on 'close', (retFile) ->
-               callback(null, retFile._id)
-
          return writeStream
 
-      findStream: (selector, options = {}, callback = undefined) ->
+      findOneStream: (selector, options = {}) ->
          file = @findOne selector, { sort: options.sort, skip: options.skip }
          if file
             readStream = Meteor._wrapAsync(@gfs.createReadStream.bind(@gfs))
-               root: @base
+               root: @root
                _id: mongodb.ObjectID("#{file._id}")
-
-            if callback?
-               readStream.on 'end', (retFile) ->
-                  callback(null, retFile._id)
-
             return readStream
          else
             return null
@@ -169,27 +162,27 @@ if Meteor.isServer
          callback = share.bind_env callback
          if selector?
             @find(selector).forEach (file) =>
-               Meteor._wrapAsync(@gfs.remove.bind(@gfs))({ _id: mongodb.ObjectID("#{file._id}"), root: @base })
+               Meteor._wrapAsync(@gfs.remove.bind(@gfs))({ _id: mongodb.ObjectID("#{file._id}"), root: @root })
             callback and callback null
          else
             console.warn "GridFS Collection does not 'remove' with an empty selector"
             callback null
 
-      importFile: (filePath, options, callback) ->
+      importFile: (filePath, file, callback) ->
          callback = share.bind_env callback
          filePath = path.normalize filePath
-         options = options || {}
-         options.filename = path.basename filePath
+         file ?= {}
+         file.filename ?= path.basename filePath
          readStream = fs.createReadStream filePath
-         writeStream = @upsertStream options, {}, callback
+         writeStream = @upsertStream file
          readStream.pipe(writeStream)
-            .on('finish', callback)
+            .on('close', (d) -> callback(null, d))
             .on('error', callback)
 
-      exportFile: (id, filePath, callback) ->
+      exportFile: (selector, filePath, callback) ->
          callback = share.bind_env callback
          filePath = path.normalize filePath
-         readStream = @findStream { _id: id }
+         readStream = @findOneStream selector
          writeStream = fs.createWriteStream filePath
          readStream.pipe(writeStream)
             .on('finish', callback)

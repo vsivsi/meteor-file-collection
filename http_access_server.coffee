@@ -109,7 +109,7 @@ if Meteor.isServer
          return
 
       # Send the file
-      stream = @findStream { _id: req.gridFS._id }
+      stream = @findOneStream { _id: req.gridFS._id }
       if stream
          res.writeHead 200, headers
          stream.pipe(res)
