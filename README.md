@@ -1,6 +1,6 @@
 # fileCollection
 
-`fileCollection` is a [Meteor.js](https://www.meteor.com/) smart [package](https://atmospherejs.com/package/collectionFS) that cleanly and simply extends Meteor's `Collection` metaphor to dealing with collections of files. If you know how to use Meteor's collections, you already know 90% of what you need to know to begin working with `fileCollection`.
+`fileCollection` is a [Meteor.js](https://www.meteor.com/) smart [package](https://atmospherejs.com/package/collectionFS) that cleanly and simply extends Meteor's `Collection` metaphor for dealing with collections of files. If you know how to use Meteor's Collections, you already know 90% of what you need to begin working with `fileCollection`.
 
 ```js
 files = new fileCollection('myFiles');
@@ -15,8 +15,7 @@ Here's the difference in a nutshell: collectionFS is a Ferrari, and fileCollecti
 Enough words, time for code... The block below implements a server fileCollection with userId owner secured HTTP file upload and download, and sets the client up to provide drag and drop chunked file uploads. The only this missing is the UI templates and a some helper functions. See the `sampleApp` subdirectory for a complete working verison written in [CoffeeScript](http://coffeescript.org/).
 
 ```js
-
-// Create a collection, and enable file upload and download using HTTP
+// Create a file collection, and enable file upload and download using HTTP
 
 files = new fileCollection('myFiles',
   { resumable: true,
@@ -101,7 +100,7 @@ if (Meteor.isClient) {
 
 ### Installation
 
-I've only tested with Meteor v0.8, it might run on Meteor v0.7 as well, but buyer beware!
+I've only tested with Meteor v0.8. It might run on Meteor v0.7 as well. Buyer beware!
 
 Requires [meteorite](https://atmospherejs.com/docs/installing). To add to your project, run:
 
@@ -121,25 +120,25 @@ Now, there are a couple of things to know about the file schema:
 
 1.    Some of those attributes belong to you. Do whatever you want with them.
 2.    Some of those attributes belong to gridFS, and you could **lose data** if you try too hard to mess with them.
-3.    `_id`, `length`, `chunkSize`, `uploadDate` and `md5` should be considered read-only. Changing these directly is a bad idea.
+3.    `_id`, `length`, `chunkSize`, `uploadDate` and `md5` should be considered read-only. Changing these directly is a very bad idea.
 4.    You can do whatever you want with `filename`, `contentType`, `aliases` and `metadata`. Go to town.
 5.    `contentType` should probably be a valid [MIME Type](https://en.wikipedia.org/wiki/MIME_type)
-6.    `filename` is *not* guaranteed unique. So `_id` is a better bet.
+6.    `filename` is *not* guaranteed unique. `_id` is a better bet if you want to be sure what you're looking for.
 
-Sound complicated? It's really not, and `fileCollection` is here to help. First off, when you create a new file, you use `file.insert(...)`, and just populate the attributes you care about and fileCollection does the rest. You are guaranteed to get a valid gridFS file, even if you do this: `id = file.insert();`  Likewise, when you run `update` on the server, it tries hard to check that you aren't clobbering one of the "read-only" attributes with your modifier. And clients aren't allowed to directly `update` at all, although you can selectively give them that power via `Meteor.methods()`.
+Sound complicated? It's really not, and `fileCollection` is here to help. First off, when you create a new file you use `file.insert(...)`, and just populate whatever attributes you care about. fileCollection does the rest. You are guaranteed to get a valid gridFS file, even if you do this: `id = file.insert();`  Likewise, when you run `update` on the server, it tries hard to check that you aren't clobbering one of the "read-only" attributes with your update modifier. And clients aren't allowed to directly `update` at all, although you can selectively give them that power via `Meteor.methods()`.
 
 ### Security
 
-You may have noticed that the gridFS file schema says nothing about file ownership. That's your job. If you sqint at the code block up above, you will see a bare bones `Meteor.userId` based ownership scheme implemented with the attribute `file.metadata.owner`. Obviously, allow/deny rules are needed to enforce and defend that attribute, and fileCollection implements those in *almost* the same way that ordinary Meteor collections do. Here's how they're a little different:
+You may have noticed that the gridFS file schema says nothing about file ownership. That's your job. If you squint at the code block up above, you will see a bare bones `Meteor.userId` based ownership scheme implemented with the attribute `file.metadata.owner`. Obviously, allow/deny rules are needed to enforce and defend that attribute, and fileCollection implements those in *almost* the same way that ordinary Meteor collections do. Here's how they're a little different:
 
-*    A file is always created as a valid zero-length gridFS file using `insert` on the client/server.
+*    A file is always initially created as a valid zero-length gridFS file using `insert` on the client/server.
 *    The `update` allow/deny rules secure writing data to an inserted file from outside via HTTP. This means that an HTTP POST/PUT can not create a new file all by itself, it has to have been inserted first.
-*    `remove` works just as you would expect, and it also secures the HTTP DELETE method.
-*    HTTP REST interface calls can be authenticated to a Meteor userId using a currently valid authentication token.
+*    `remove` works just as you would expect, and it also secures the HTTP DELETE method, when enabled.
+*    All HTTP REST interface calls are disabled by default, and can be authenticated to a Meteor userId using a currently valid authentication token.
 
 ### Limits
 
-There are essentially no hard limits on the number or size of files other than what your hardware will support. Because fileCollection uses robust multiple reader / exclusive writer locking on top of gridFS, essentially any number of readers and writers of shared files may coexist with no risk of data loss.
+There are essentially no hard limits on the number or size of files other than what your hardware will support. Also, at no point in normal operation is a file sized data buffer in memory. All of the file data import/mechanisms are stream based, and so even very active servers should not see a lot of memory dedicated to file transfers. Also, file data is never copied within a collection, such as during/after chunked uploading. File chunk references pointers are moved, but the data itself is not copied, which makes fileCollection particularly efficient when handling multi-gigabyte files. Because fileCollection uses robust multiple reader / exclusive writer locking on top of gridFS, essentially any number of readers and writers of shared files may coexist with no risk of data loss.
 
 ## API
 
