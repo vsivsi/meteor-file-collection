@@ -26,6 +26,7 @@ if Meteor.isClient
       else
          # Autoupdate the token depending on who is logged in
          Deps.autorun () =>
-            Meteor.userId()
-            r.opts.headers['X-Auth-Token'] = Accounts._storedLoginToken() ? ''
+            if Accounts?
+               Meteor.userId()
+               r.opts.headers['X-Auth-Token'] = Accounts._storedLoginToken() ? ''
          @resumable = r

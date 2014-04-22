@@ -163,13 +163,13 @@ if Meteor.isServer
    # Setup all of the application specified paths and file lookups in express
    # Also performs allow/deny permission checks for POST/PUT/DELETE
 
-   build_access_point = (http, route) ->
+   build_access_point = (http) ->
 
       # Loop over the app supplied http paths
       for r in http
 
          # Add an express middleware for each application REST path
-         route[r.method] r.path, do (r) =>
+         @router[r.method] r.path, do (r) =>
 
             (req, res, next) =>
                # params and queries literally named "_id" get converted to ObjectIDs automatically
@@ -214,7 +214,7 @@ if Meteor.isServer
                   next()
 
       # Add all of generic request handling methods to the express route
-      route.route('/*')
+      @router.route('/*')
          .all (req, res, next) ->  # Make sure a file has been selected by some rule
             unless req.gridFS
                res.writeHead(404)
@@ -233,10 +233,10 @@ if Meteor.isServer
    # Performs a meteor userId lookup by hased access token
 
    lookup_userId_by_token = (authToken) ->
-      userDoc = Meteor.users.findOne
+      userDoc = Meteor.users?.findOne
          'services.resume.loginTokens':
             $elemMatch:
-               hashedToken: Accounts._hashLoginToken(authToken)
+               hashedToken: Accounts?._hashLoginToken(authToken)
       return userDoc?._id or null
 
    # Express middleware to convert a Meteor access token provided in an HTTP request

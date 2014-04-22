@@ -176,8 +176,8 @@ if Meteor.isServer
          readStream = fs.createReadStream filePath
          writeStream = @upsertStream file
          readStream.pipe(writeStream)
-            .on('close', (d) -> callback(null, d))
-            .on('error', callback)
+            .on('close', share.bind_env((d) -> callback(null, d)))
+            .on('error', share.bind_env(callback))
 
       exportFile: (selector, filePath, callback) ->
          callback = share.bind_env callback
@@ -185,5 +185,5 @@ if Meteor.isServer
          readStream = @findOneStream selector
          writeStream = fs.createWriteStream filePath
          readStream.pipe(writeStream)
-            .on('finish', callback)
-            .on('error', callback)
+            .on('finish', share.bind_env(callback))
+            .on('error', share.bind_env(callback))
