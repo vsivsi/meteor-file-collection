@@ -13,7 +13,7 @@
 
 <template name="collTest">
   <div class="container panel">
-    <h3>gridFS Collection Test App</h3>
+    <h3>fileCollection Test App</h3>
     <span class="pull-right text-info">UserId: {{userId}} Token: {{loginToken}}</span>
     <div class="loginTemp">
       {{> loginButtons align="right"}}
@@ -70,12 +70,9 @@
         </tr>
       {{else}}
         <tr><td colspan="20" align=center>
-          <span class="text-info">No data</span>
+          <span class="text-info">No files in collection, drag one here to upload</span>
         </td></tr>
       {{/each}}
     </table>
-  </div>
-  <div class="container panel">
-    <button id="file-create" type="button" class="btn btn-primary">Create empty file</button>
   </div>
 </template>

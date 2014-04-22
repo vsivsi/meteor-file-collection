@@ -214,7 +214,6 @@ if Meteor.isServer
             .on('finish', share.bind_env(callback))
             .on('error', share.bind_env(callback))
 
-
 reject_file_modifier = (modifier) ->
 
    forbidden =
