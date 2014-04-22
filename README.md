@@ -4,15 +4,17 @@
 
 ```js
 files = new fileCollection('myFiles');
+
+thatFile = files.findOne({ filename: 'lolcat.gif' });
 ```
 
 Under the hood, file data is stored within the Meteor MongoDB instance using a Mongo technology called [gridFS](http://docs.mongodb.org/manual/reference/gridfs/). Your fileCollections and the underlying gridFS collection remain perfectly in sync because they *are* the same collection, and `fileCollection` is safe for concurrent read/write access to files via (automatic file locking)[https://github.com/vsivsi/gridfs-locks]. `fileCollection` also provides a simple way to enable secure HTTP REST (GET, POST, PUT, DELETE) intefaces to your files, and additionally supports robust and resumable file uploads using the excellent [Resumable.js](http://www.resumablejs.com/) library.
 
-My goal in writing this package was to stay true to the spirit of Meteor and build something that is straightforward and just works. If you're searching for ways to deal with files on Meteor, you've probably also encountered [collectionFS](https://atmospherejs.com/package/collectionFS). If not, you should definitely check it out. It's a great library written by great people, and I even helped out with a rewrite of their [gridFS support](https://atmospherejs.com/package/cfs-gridfs).
+My goal in writing this package was to stay true to the spirit of Meteor and build something that is straightforward and just works. If you're searching for ways to deal with files on Meteor, you've probably also encountered [collectionFS](https://atmospherejs.com/package/collectionFS). If not, you should definitely check it out. It's a great library written by smart people, and I even helped out with a rewrite of their [gridFS support](https://atmospherejs.com/package/cfs-gridfs).
 
-Here's the difference in a nutshell: collectionFS is a Ferrari, and fileCollection is a Fiat. They do approximately the same thing, using some of the same technologies, but have different design philosophies. `fileCollection` is much simpler and less flexible; but if it does what you need you'll probably find it has a lot fewer moving parts and may be quite a bit more efficient. With that said, if you need all of the bells and whistles collectionFS is probably for you.
+Here's the difference in a nutshell: collectionFS is a Ferrari, and fileCollection is a Fiat. They do approximately the same thing, using some of the same technologies, but reflect different design priorities. `fileCollection` is much simpler and less flexible; but if it does what you need you'll probably find it has a lot fewer moving parts and may be quite a bit more efficient. With that said, if you need all of the bells and whistles collectionFS is probably for you.
 
-Enough words, time for code... The block below implements a server fileCollection with userId owner secured HTTP file upload and download, and sets the client up to provide drag and drop chunked file uploads. The only this missing is the UI templates and a some helper functions. See the `sampleApp` subdirectory for a complete working verison written in [CoffeeScript](http://coffeescript.org/).
+Enough words, time for code... The block below implements a fileCollection server with owner secured HTTP file upload and download, and sets up the client to provide drag and drop chunked file uploads. The only this missing is the UI templates and a some helper functions. See the `sampleApp` subdirectory for a complete working verison written in [CoffeeScript](http://coffeescript.org/).
 
 ```js
 // Create a file collection, and enable file upload and download using HTTP
@@ -21,7 +23,7 @@ files = new fileCollection('myFiles',
   { resumable: true,
     http: [
       { method: 'get',
-        path: '/:md5',
+        path: '/:md5',  // this will be at route "/gridfs/myFiles/:md5"
         lookup: function (params, query) {
           return { md5: params.md5 }
       }
