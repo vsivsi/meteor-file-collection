@@ -143,18 +143,24 @@ First off, when you create a new file you use `file.insert(...)` and just popula
 
 Likewise, when you run `update` on the server, it tries really hard to make sure that you aren't clobbering one of the "read-only" attributes with your update modifier. And for safety clients aren't allowed to directly `update` at all, although you can selectively give them that power via `Meteor.methods()`.
 
-### Limits
+### Limits and performance
 
-There are essentially no hard limits on the number or size of files other than what your hardware will support. Also, at no point in normal operation is a file-sized data buffer ever in memory. All of the file data import/mechanisms are [stream based](http://nodejs.org/api/stream.html#stream_stream), so even very active servers should not see a lot of memory dedicated to file transfers. Also, file data is never copied within a collection. During chunked file uploading, file chunk reference pointers are moved, but the data itself is never copied. This makes fileCollection particularly efficient when handling multi-gigabyte files. Because fileCollection uses robust multiple reader / exclusive writer file locking on top of gridFS, essentially any number of readers and writers of shared files may peacefully coexist without risk of file corruption.
+There are essentially no hard limits on the number or size of files other than what your hardware will support.
+
+At no point in normal operation is a file-sized data buffer ever in memory. All of the file data import/export mechanisms are [stream based](http://nodejs.org/api/stream.html#stream_stream), so even very active servers should not see much memory dedicated to file transfers.
+
+File data is never copied within a collection. During chunked file uploading, file chunk reference pointers are moved, but the data itself is never copied. This makes fileCollection particularly efficient when handling multi-gigabyte files.
+
+fileCollection uses robust multiple reader / exclusive writer file locking on top of gridFS, so essentially any number of readers and writers of shared files may peacefully coexist without risk of file corruption.
 
 ### Security
 
-You may have noticed that the gridFS file schema says nothing about file ownership. That's your job. If you squint at the code block up above, you will see a bare bones `Meteor.userId` based ownership scheme implemented with the attribute `file.metadata.owner`. Obviously, allow/deny rules are needed to enforce and defend that attribute, and fileCollection implements those in *almost* the same way that ordinary Meteor collections do. Here's how they're a little different:
+You may have noticed that the gridFS `files` data model says nothing about file ownership. That's your job. If you look again at the example code block above, you will see a bare bones `Meteor.userId` based ownership scheme implemented with the attribute `file.metadata.owner`. As with any Meteor Collection, allow/deny rules are needed to enforce and defend that document attribute, and `fileCollection` implements that in *almost* the same way that ordinary Meteor Collections do. Here's how they're a little different:
 
-*    A file is always initially created as a valid zero-length gridFS file using `insert` on the client/server.
-*    The `update` allow/deny rules secure writing data to an inserted file from outside via HTTP. This means that an HTTP POST/PUT can not create a new file all by itself, it has to have been inserted first.
-*    `remove` works just as you would expect, and it also secures the HTTP DELETE method, when enabled.
-*    All HTTP REST interface calls are disabled by default, and can be authenticated to a Meteor userId using a currently valid authentication token.
+*    A file is always initially created as a valid zero-length gridFS file using `insert` on the client/server. When it takes place on the client, the `insert` allow/deny rules apply.
+*    Clients are always denied from directly updating a file document's attributes. The `update` allow/deny rules secure writing file *data* to a previously inserted file via HTTP methods. This means that an HTTP POST/PUT cannot never create a new file all by itself, it needs to have been inserted first, and only then can data be added to it using HTTP.
+*    The `remove` rules work just as you would expect for client calls, and they also secure the HTTP DELETE method when it's used.
+*    All HTTP REST interfaces are disabled by default, and when enabled can be authenticated to a Meteor `userId` by using a currently valid authentication token.
 
 ## API
 
