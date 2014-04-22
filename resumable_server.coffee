@@ -16,18 +16,15 @@ if Meteor.isServer
    # This function checks to see if all of the parts of a Resumable.js uploaded file are now in the gridFS
    # Collection. If so, it completes the file by moving all of the chunks to the correct file and cleans up
 
-   check_order = (file) ->
+   check_order = (file, callback) ->
       fileId = mongodb.ObjectID("#{file.metadata._Resumable.resumableIdentifier}")
-      console.log "fileId: #{fileId}"
       lock = gridLocks.Lock(fileId, @locks, {}).obtainWriteLock()
       lock.on 'locked', () =>
          files = @db.collection "#{@root}.files"
 
          files.find({'metadata._Resumable.resumableIdentifier': file.metadata._Resumable.resumableIdentifier},
                     { sort: { 'metadata._Resumable.resumableChunkNumber': 1 }}).toArray (err, parts) =>
-            throw err if err
-            console.log "Found #{parts.length} OOO parts"
-
+            return callback(err) if err
             unless parts.length >= 1
                return lock.releaseLock()
 
@@ -38,11 +35,9 @@ if Meteor.isServer
                return el.length is el.metadata?._Resumable.resumableCurrentChunkSize and lastPart is l + 1
 
             unless goodParts.length is goodParts[0].metadata._Resumable.resumableTotalChunks
-               console.log "Found #{goodParts.length} of #{goodParts[0].metadata._Resumable.resumableTotalChunks}, so bailing for now."
                return lock.releaseLock()
 
             # Manipulate the chunks and files collections directly under write lock
-            console.log "Start reassembling the file!!!!"
             chunks = @db.collection "#{@root}.chunks"
             totalSize = goodParts[0].metadata._Resumable.resumableTotalSize
             async.eachLimit goodParts, 3,
@@ -51,38 +46,37 @@ if Meteor.isServer
                   partlock = gridLocks.Lock(partId, @locks, {}).obtainWriteLock()
                   partlock.on 'locked', () ->
                      async.series [
+                           # Move the chunks to the correct file
                            (cb) -> chunks.update { files_id: partId, n: 0 },
                               { $set: { files_id: fileId, n: part.metadata._Resumable.resumableChunkNumber - 1 }}
                               cb
+                           # Delete the temporary chunk file documents
                            (cb) -> files.remove { _id: partId }, cb
                         ],
                         (err, res) =>
-                           throw err if err
+                           return cb(err) if err
                            unless part.metadata._Resumable.resumableChunkNumber is part.metadata._Resumable.resumableTotalChunks
                               partlock.removeLock()
                               cb()
                            else
-                              # check for a hanging chunk
+                              # check for a final hanging gridfs chunk
                               chunks.update { files_id: partId, n: 1 },
                                  { $set: { files_id: fileId, n: part.metadata._Resumable.resumableChunkNumber }}
                                  (err, res) ->
-                                    throw err if err
-                                    console.log "Last bit updated", res
+                                    return cb(err) if err
                                     partlock.removeLock()
                                     cb()
-
-                  partlock.on 'timed-out', () ->  throw "Part Lock timed out"
+                  partlock.on 'timed-out', () -> callback new Error 'Partlock timed out!'
+                  partlock.on 'error', (err) -> callback error
                (err) =>
-                  throw err if err
-
+                  return callback err if err
                   files.update { _id: fileId }, { $set: { length: totalSize }},
                      (err, res) =>
-                        console.log "file updated", err, res
+                        return callback err if err
                         lock.releaseLock()
                         # Now open the file to update the md5 hash...
                         @gfs.createWriteStream { _id: fileId }, (err, stream) ->
-                           throw err if err
-                           console.log "Writing to stream to change md5 sum"
+                           return callback err if err
                            stream.write('')
                            stream.end()
 
@@ -212,7 +206,9 @@ if Meteor.isServer
                   res.writeHead(200)
                   res.end()
                   # Check to see if all of the parts are now available and can be reassembled
-                  check_order.bind(@)(file))
+                  check_order.bind(@)(file, (err) ->
+                     console.error "Error reassembling chunks of resumable.js upload", err
+                     ))
                .on 'error', share.bind_env((err) =>
                   console.error "Piping Error!", err
                   res.writeHead(500)
