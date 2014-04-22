@@ -16,7 +16,7 @@ thatFileStream = files.findOneStream({ filename: 'lolcat.gif' });
 // Write the file data someplace...
 ```
 
-Under the hood, file data is stored entirely within the Meteor MongoDB instance using a Mongo technology called [gridFS](http://docs.mongodb.org/manual/reference/gridfs/). Your fileCollections and the underlying gridFS collection remain perfectly in sync because they *are* the same collection; and `fileCollection` is automatically safe for concurrent read/write access to files via [MongoDB based locking](https://github.com/vsivsi/gridfs-locks). `fileCollection` also provides a simple way to enable secure HTTP REST (GET, POST, PUT, DELETE) intefaces to your files, and additionally supports robust and resumable file uploads using the excellent [Resumable.js](http://www.resumablejs.com/) library.
+Under the hood, file data is stored entirely within the Meteor MongoDB instance using a Mongo technology called [gridFS](http://docs.mongodb.org/manual/reference/gridfs/). Your fileCollections and the underlying gridFS collection remain perfectly in sync because they *are* the same collection; and `fileCollection` is automatically safe for concurrent read/write access to files via [MongoDB based locking](https://github.com/vsivsi/gridfs-locks). `fileCollection` also provides a simple way to enable secure HTTP REST (GET, POST, PUT, DELETE) interfaces to your files, and additionally supports robust and resumable file uploads using the excellent [Resumable.js](http://www.resumablejs.com/) library.
 
 My goal in writing this package was to stay true to the spirit of Meteor and build something that is efficient, secure and just works with a minimum of fuss. If you've been searching for ways to deal with files on Meteor, you've probably also encountered [collectionFS](https://atmospherejs.com/package/collectionFS). If not, you should definitely check it out. It's a great library written by smart people, and I even helped out with a rewrite of their [gridFS support](https://atmospherejs.com/package/cfs-gridfs).
 
@@ -24,7 +24,7 @@ Here's the difference in a nutshell: collectionFS is a Ferrari, and fileCollecti
 
 ### Example
 
-Enough words, time for code... The block below implements a `fileCollection` server with owner secured HTTP file upload and download, and also sets up the client to provide drag and drop chunked file uploads to the collection. The only things missing are the UI templates and some helper functions. See the `sampleApp` subdirectory for a complete working verison written in [CoffeeScript](http://coffeescript.org/).
+Enough words, time for code... The block below implements a `fileCollection` server with owner secured HTTP file upload and download, and also sets up the client to provide drag and drop chunked file uploads to the collection. The only things missing are the UI templates and some helper functions. See the `sampleApp` subdirectory for a complete working version written in [CoffeeScript](http://coffeescript.org/).
 
 ```js
 // Create a file collection, and enable file upload and download using HTTP
@@ -45,7 +45,6 @@ if (Meteor.isServer) {
 
   // Only publish files owned by this userId, and ignore
   // file chunks being used by Resumable.js for current uploads
-
   Meteor.publish('myData',
     function () {
       files.find({ 'metadata._Resumable': { $exists: false },
@@ -84,6 +83,7 @@ if (Meteor.isServer) {
 }
 
 if (Meteor.isClient) {
+
   Meteor.subscribe('myData');
 
   Meteor.startup(function() {
@@ -110,7 +110,7 @@ if (Meteor.isClient) {
 }
 ```
 
-### Installation
+## Installation
 
 I've only tested with Meteor v0.8. It might run on Meteor v0.7 as well. Buyer beware!
 
@@ -120,7 +120,7 @@ Requires [meteorite](https://atmospherejs.com/docs/installing). To add to your p
 
 The package exposes a global object `fileCollection` on both client and server.
 
-To run tests (using Meteor tiny-test) run from within the `package` subdir:
+To run tests (using Meteor tiny-test) run from within your project's `package` subdir:
 
     meteor test-packages ./fileCollection/
 
@@ -128,14 +128,14 @@ To run tests (using Meteor tiny-test) run from within the `package` subdir:
 
 Before going any further, it will pay to take a minute to familiarize yourself with the MongoDB gridFS `files` [data model](http://docs.mongodb.org/manual/reference/gridfs/#the-files-collection). This is the schema used by `fileCollection` because fileCollection *is* gridFS.
 
-Now, there are a couple of things to know about the file schema:
+Now, there are a couple of things to know about the gridFS `files` data model:
 
 1.    Some of those attributes belong to you. Do whatever you want with them.
-2.    Some of those attributes belong to gridFS, and you could **lose data** if you try too hard to mess with them.
-3.    `_id`, `length`, `chunkSize`, `uploadDate` and `md5` should be considered read-only. Changing these directly is a very bad idea.
+2.    Some of those attributes belong to gridFS, and you may **lose data** if you mess around with them.
+3.    `_id`, `length`, `chunkSize`, `uploadDate` and `md5` should be considered read-only.
 4.    You can do whatever you want with `filename`, `contentType`, `aliases` and `metadata`. Go to town.
-5.    `contentType` should probably be a valid [MIME Type](https://en.wikipedia.org/wiki/MIME_type)
-6.    `filename` is *not* guaranteed unique. `_id` is a better bet if you want to be sure what you're looking for.
+5.    `contentType` should be a valid [MIME Type](https://en.wikipedia.org/wiki/MIME_type)
+6.    `filename` is *not* guaranteed unique. `_id` is a better bet if you want to be sure of what you're getting.
 
 Sound complicated? It's really not, and `fileCollection` is here to help. First off, when you create a new file you use `file.insert(...)`, and just populate whatever attributes you care about. fileCollection does the rest. You are guaranteed to get a valid gridFS file, even if you do this: `id = file.insert();`  Likewise, when you run `update` on the server, it tries hard to check that you aren't clobbering one of the "read-only" attributes with your update modifier. And clients aren't allowed to directly `update` at all, although you can selectively give them that power via `Meteor.methods()`.
 
