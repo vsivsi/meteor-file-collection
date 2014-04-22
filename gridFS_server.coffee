@@ -107,7 +107,7 @@ if Meteor.isServer
                ## allow reasonable changes to the "metadata" parts of the gridFS file record.
 
                ## WARNING! Only metadata, filename, aliases and contentType should ever be changed
-               ## directly by a client, e.g. :
+               ## directly by a server or client, e.g. :
 
                # unless fields.every((x) -> ['metadata', 'aliases', 'filename', 'contentType'].indexOf(x) isnt -1)
                #    return false
@@ -129,6 +129,30 @@ if Meteor.isServer
       insert: (file, callback = undefined) ->
          file = share.insert_func file, @chunkSize
          super file, callback
+
+      # Update is dangerous! The checks inside attempt to keep you out of
+      # trouble with gridFS. Clients can't update at all. Be careful!
+      update: (selector, modifier, options = {}, callback = undefined) ->
+         if not callback? and typeof options is 'function'
+            callback = options
+
+         if reject_file_modifier(modifier) and not options.force
+            err = new Error("Modification of gridFS document elements is a very bad idea!")
+            if callback?
+               callback err
+            else
+               throw err
+         else
+            super selector, modifier, options, callback
+
+      upsert: (selector, modifier, options = {}, callback = undefined) ->
+         if not callback? and typeof options is 'function'
+            callback = options
+         err = new Error "File Collections do not support 'upsert'"
+         if callback?
+            callback err
+         else
+            throw new Error "File Collections do not support 'upsert'"
 
       upsertStream: (file, options = {}, callback = undefined) ->
          callback = share.bind_env callback
@@ -166,10 +190,9 @@ if Meteor.isServer
          if selector?
             @find(selector).forEach (file) =>
                Meteor._wrapAsync(@gfs.remove.bind(@gfs))({ _id: mongodb.ObjectID("#{file._id}"), root: @root })
-            callback and callback null
+            callback? and callback null
          else
-            console.warn "GridFS Collection does not 'remove' with an empty selector"
-            callback null
+            callback? and callback new Error "Remove with an empty selector is not supported"
 
       importFile: (filePath, file, callback) ->
          callback = share.bind_env callback
@@ -190,3 +213,35 @@ if Meteor.isServer
          readStream.pipe(writeStream)
             .on('finish', share.bind_env(callback))
             .on('error', share.bind_env(callback))
+
+
+reject_file_modifier = (m) ->
+
+   forbidden =
+      _id: Match.Any
+      length: Match.Any
+      chunkSize: Match.Any
+      md5: Match.Any
+      uploadDate: Match.Any
+
+   required =
+      _id: Match.Any
+      length: Match.Any
+      chunkSize: Match.Any
+      md5: Match.Any
+      uploadDate: Match.Any
+      metadata: Match.Any
+      aliases: Match.Any
+      filename: Match.Any
+      contentType: Match.Any
+
+   return Match.test m,
+      $set: Match.Optional(forbidden)
+      $unset: Match.Optional(required)
+      $inc: Match.Optional(forbidden)
+      $mul: Match.Optional(forbidden)
+      $bit: Match.Optional(forbidden)
+      $min: Match.Optional(forbidden)
+      $max: Match.Optional(forbidden)
+      $rename: Match.Optional(required)
+      $currentDate: Match.Optional(forbidden)

@@ -29,10 +29,10 @@ if Meteor.isClient
       # remove works as-is. No modifications necessary so it currently goes straight to super
 
       upsert: () ->
-         throw new Error "File Collections do not support 'upsert' on client"
+         throw new Error "File Collections do not support 'upsert'"
 
       update: () ->
-         throw new Error "File Collections do not support 'update' on client"
+         throw new Error "File Collections do not support 'update' on client, use method calls instead"
 
       # Insert only creates an empty (but valid) gridFS file. To put data into it from a client,
       # you need to use an HTTP POST or PUT after the record is inserted. For security reasons,
