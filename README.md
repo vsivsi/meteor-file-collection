@@ -5,18 +5,22 @@
 ```js
 files = new fileCollection('myFiles');
 
-// Find a file by name
+// Find file a document by name
 
 thatFile = files.findOne({ filename: 'lolcat.gif' });
 
-// or
+// or get a file's data as a stream
 
 thatFileStream = files.findOneStream({ filename: 'lolcat.gif' });
 
 // Write the file data someplace...
 ```
 
+#### Feature summary
+
 Under the hood, file data is stored entirely within the Meteor MongoDB instance using a Mongo technology called [gridFS](http://docs.mongodb.org/manual/reference/gridfs/). Your fileCollections and the underlying gridFS collection remain perfectly in sync because they *are* the same collection; and `fileCollection` is automatically safe for concurrent read/write access to files via [MongoDB based locking](https://github.com/vsivsi/gridfs-locks). `fileCollection` also provides a simple way to enable secure HTTP REST (GET, POST, PUT, DELETE) interfaces to your files, and additionally supports robust and resumable file uploads using the excellent [Resumable.js](http://www.resumablejs.com/) library.
+
+#### Design philosophy
 
 My goal in writing this package was to stay true to the spirit of Meteor and build something that is efficient, secure and just works with a minimum of fuss. If you've been searching for ways to deal with files on Meteor, you've probably also encountered [collectionFS](https://atmospherejs.com/package/collectionFS). If not, you should definitely check it out. It's a great library written by smart people, and I even helped out with a rewrite of their [gridFS support](https://atmospherejs.com/package/cfs-gridfs).
 
@@ -158,15 +162,19 @@ fileCollection uses robust multiple reader / exclusive writer file locking on to
 You may have noticed that the gridFS `files` data model says nothing about file ownership. That's your job. If you look again at the example code block above, you will see a bare bones `Meteor.userId` based ownership scheme implemented with the attribute `file.metadata.owner`. As with any Meteor Collection, allow/deny rules are needed to enforce and defend that document attribute, and `fileCollection` implements that in *almost* the same way that ordinary Meteor Collections do. Here's how they're a little different:
 
 *    A file is always initially created as a valid zero-length gridFS file using `insert` on the client/server. When it takes place on the client, the `insert` allow/deny rules apply.
-*    Clients are always denied from directly updating a file document's attributes. The `update` allow/deny rules secure writing file *data* to a previously inserted file via HTTP methods. This means that an HTTP POST/PUT cannot never create a new file all by itself, it needs to have been inserted first, and only then can data be added to it using HTTP.
-*    The `remove` rules work just as you would expect for client calls, and they also secure the HTTP DELETE method when it's used.
+*    Clients are always denied from directly updating a file document's attributes. The `update` allow/deny rules secure writing file *data* to a previously inserted file via HTTP methods. This means that an HTTP POST/PUT cannot create a new file by itself. It needs to have been inserted first, and only then can data be added to it using HTTP.
+*    The `remove` allow/deny rules work just as you would expect for client calls, and they also secure the HTTP DELETE method when it's used.
 *    All HTTP REST interfaces are disabled by default, and when enabled can be authenticated to a Meteor `userId` by using a currently valid authentication token.
 
 ## API
 
-The `fileCollection` API is essentially a twist on the Meteor Collection API, with almost all of the same methods and a few file specific ones mixed in. The big loser is `upsert()`, it's gone. If you try to call it, you'll get an error. Ditto for `update()` on the client side.
+The `fileCollection` API is essentially an extension of the [Meteor Collection API](http://docs.meteor.com/#collections), with almost all of the same methods and a few file specific ones mixed in.
+
+The big loser is `upsert()`, it's gone in collectionFS. If you try to call it, you'll get an error. `update()` is also disabled on the client side, but it can be safely used on the server to implement `Meteor.Method()` calls for clients to use.
 
 ### new fileCollection()
+
+
 
 ### file.find()
 
