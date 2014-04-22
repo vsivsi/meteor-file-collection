@@ -215,7 +215,7 @@ if Meteor.isServer
             .on('error', share.bind_env(callback))
 
 
-reject_file_modifier = (m) ->
+reject_file_modifier = (modifier) ->
 
    forbidden =
       _id: Match.Any
@@ -235,7 +235,7 @@ reject_file_modifier = (m) ->
       filename: Match.Any
       contentType: Match.Any
 
-   return Match.test m,
+   return Match.test modifier,
       $set: Match.Optional(forbidden)
       $unset: Match.Optional(required)
       $inc: Match.Optional(forbidden)
