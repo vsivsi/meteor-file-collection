@@ -86,17 +86,14 @@ if Meteor.isServer
                   metadata: Object
 
                # Enforce a uniform chunkSize
-               console.log "Passed check!"
                unless file.chunkSize is @chunkSize
-                  console.error "Invalid chunksize"
+                  console.warn "Invalid chunksize"
                   return false
 
                # call application rules
                if share.check_allow_deny.bind(@) 'insert', userId, file
-                  console.log "Passed app checks!"
                   return true
 
-               console.log "Failed app checks!"
                return false
 
          fileCollection.__super__.deny.bind(@)
@@ -113,12 +110,10 @@ if Meteor.isServer
                ## directly by a client, e.g. :
 
                # unless fields.every((x) -> ['metadata', 'aliases', 'filename', 'contentType'].indexOf(x) isnt -1)
-               #    console.log "Update failed"
                #    return false
 
                ## call application rules
                # if share.check_allow_deny.bind(@) 'update', userId, file, fields
-               #    console.log "Update approved"
                #    return true
 
                return true
@@ -135,7 +130,8 @@ if Meteor.isServer
          file = share.insert_func file, @chunkSize
          super file, callback
 
-      upsertStream: (file, options = {}) ->
+      upsertStream: (file, options = {}, callback = undefined) ->
+         callback = share.bind_env callback
          unless file._id
             id = @insert file
             file = @findOne { _id: id }
@@ -146,14 +142,21 @@ if Meteor.isServer
             metadata: file.metadata ? {}
             timeOut: 30
          writeStream = Meteor._wrapAsync(@gfs.createWriteStream.bind(@gfs)) subFile
+         if callback?
+            writeStream.on 'close', (retFile) ->
+               callback(null, retFile)
          return writeStream
 
-      findOneStream: (selector, options = {}) ->
+      findOneStream: (selector, options = {}, callback = undefined) ->
+         callback = share.bind_env callback
          file = @findOne selector, { sort: options.sort, skip: options.skip }
          if file
             readStream = Meteor._wrapAsync(@gfs.createReadStream.bind(@gfs))
                root: @root
                _id: mongodb.ObjectID("#{file._id}")
+            if callback?
+               readStream.on 'end', (retFile) ->
+                  callback(null, file)
             return readStream
          else
             return null

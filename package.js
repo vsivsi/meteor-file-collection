@@ -6,7 +6,7 @@
 
 Package.describe({
   name: 'fileCollection',
-  summary: 'MongoDB GridFS based meteor file collections'
+  summary: "Files stored in Meteor collections, based on MongoDB's GridFS filestore"
 });
 
 Npm.depends({

@@ -30,7 +30,6 @@ if Meteor.isServer
          p.on 'header', (header) ->
             RE_FILE = /^form-data; name="file"; filename="([^"]+)"/
             for k, v of header
-               console.log "Part header: k: #{k}, v: #{v}"
                if k is 'content-type'
                   ft = v
                if k is 'content-disposition'
@@ -40,7 +39,6 @@ if Meteor.isServer
             callback(null, fileStream, fn, ft)
 
       d.on 'error', (err) ->
-        console.error('Error in Dicer: \n', err)
         callback err
 
       d.on 'finish', () ->
@@ -60,7 +58,7 @@ if Meteor.isServer
       # Parse MIME Multipart request bidy
       dice_multipart req, (err, fileStream, filename, filetype) =>
          if err
-            console.error('Error parsing POST body', err)
+            console.warn('Error parsing POST body', err)
             res.writeHead(500)
             res.end()
             return
