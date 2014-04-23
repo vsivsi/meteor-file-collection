@@ -197,6 +197,61 @@ Here are the options fileCollection does support:
 *    `options.locks` - `<object>`  Locking parameters, the defaults should be fine and you shouldn't need to set this, but see the `gridfs-locks` [`LockCollection` docs](https://github.com/vsivsi/gridfs-locks#lockcollectiondb-options) for more information.
 *    `option.http` - <array of objects>  HTTP interface configuration objects, described below:
 
+Each object in the `option.http` array defines one HTTP request interface on the server, and has these three attributes:
+
+*    `obj.method` - `<string>`  The HTTP request method to define, one of `get`, `post`, `put`, or `delete`.
+*    `obj.path` - `<string>`  An [express.js style](http://expressjs.com/4x/api.html#req.params) route path with parameters.  This path will be added to the path specified by `options.baseURL`.
+*    `obj.lookup` - <function>  A function that is called when an HTTP request matches the `method` and `path`. It is provided with the values of the route parameters and any URL query parameters, and it should return a mongoDB query object which can be used to find a file that matches those parameters.
+
+When arranging http interface definition objects in the array provided to `options.http`, be sure to put more specific paths for a given HTTP method before more general ones. For example: `\hash\:md5` should come before `\:filename\:_id` because `"hash"` could be a filename, and so `\hash\:md5` would never match if it came second.
+
+Note that an authenticated userId is not provided to the `lookup` function. UserId based permissions should be managed using the allow/deny rules described later on.
+
+Here are some example HTTP objects to get you started:
+
+```js
+      // GET file data by md5 sum
+      { method: 'get',
+        path:   '/hash/:md5',
+        lookup: function (params, query) {
+                    return { md5: params.md5 } } }
+
+      // DELETE a file by _id. Note that the URL parameter ":_id" is a special
+      // case, in that it will automatically be converted to a Meteor ObjectID
+      // in the passed params object.
+      { method: 'delete',
+        path:   '/:_id',
+        lookup: function (params, query) {
+                    return { _id: params._id } } }
+
+      // GET a file based on a filename or alias name value
+      { method: 'get',
+        path:   '/name/:name',
+        lookup: function (params, query) {
+          return {$or: [ {filename: params.name },
+                         {aliases: {$in: [ params.name ]}} ]} }}
+
+      // PUT data to a file based on _id and a secret value stored as metadata
+      // where the secret is supplied as a query parameter e.g. ?secret=sfkljs
+      { method: 'put',
+        path:   '/write/:_id',
+        lookup: function (params, query) {
+          return { _id: params._id, "metadata.secret": query.secret} }}
+
+      // GET a file based on a query type and numeric coordinates metadata
+      { method: 'get',
+        path:   '/tile/:z/:x/:y',
+        lookup: function (params, query) {
+          return { "metadata.x": parseInt(params.x),
+                   "metadata.y": parseInt(params.y),
+                   "metadata.z": parseInt(params.z),
+                   contentType: query.type} }}
+
+```
+
+      { method: 'get', path: '/tile/:z/:x/:y', lookup: (params, query) -> { "metadata.x": parseInt(params.x), "metadata.y": parseInt(params.y), "metadata.z": parseInt(params.z), "metadata.type": "tile" } },
+
+
 ### file.find()
 
 ### file.findOne()
