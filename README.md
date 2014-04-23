@@ -1,6 +1,6 @@
 # fileCollection
 
-`fileCollection` is a [Meteor.js](https://www.meteor.com/) [package](https://atmospherejs.com/package/collectionFS) that cleanly extends Meteor's `Collection` metaphor for efficiently dealing with collections of files and their data. File Collections are fully reactive, so if you know how to use Meteor's [Collections](http://docs.meteor.com/#collections), you already know most of what you need to begin working with `fileCollection`.
+`fileCollection` is a [Meteor.js](https://www.meteor.com/) [package](https://atmospherejs.com/package/collectionFS) that cleanly extends Meteor's `Collection` metaphor for efficiently dealing with collections of files and their data. File Collections are fully reactive, so if you know how to use Meteor [Collections](http://docs.meteor.com/#collections), you already know most of what you need to begin working with `fileCollection`.
 
 ```js
 files = new fileCollection('myFiles');
@@ -212,7 +212,7 @@ When arranging http interface definition objects in the array provided to `optio
 
 Note that an authenticated userId is not provided to the `lookup` function. UserId based permissions should be managed using the allow/deny rules described later on.
 
-Here are some example HTTP objects to get you started:
+Here are some example HTTP interface definition objects to get you started:
 
 ```js
 // GET file data by md5 sum
@@ -251,6 +251,44 @@ Here are some example HTTP objects to get you started:
              "metadata.y": parseInt(params.y), // (execept _id) are strings
              "metadata.z": parseInt(params.z),
              contentType: query.type} }}
+```
+
+Authentication of HTTP requests is performed using Meteor login tokens. When Meteor [Accounts](http://docs.meteor.com/#accounts_api) are used in an application, a logged in client can see its current token using `Accounts._storedLoginToken()`. Tokens are passed in HTTP requests using either the HTTP header `X-Auth-Token: [token]` or in a specific URL query parameter `?X-Auth-Token=[token]`. If the token matches a valid logged in user, then that userId will be provided to the any allow/deny rules that are called to give permission to that action. Currently there is no built-in support for writing access rules for HTTP GET requests that use a provided authentication token. This could easily be done, but would require creating a new type of allow/deny rule to cover this case.
+
+For clients that aren't humans logged-in using browsers, it is possible to authenticate with Meteor using the DDP protocol and obtain a token that way. See the [npm DDP package](https://www.npmjs.org/package/ddp) for an example of an external library capable of logging into Meteor using DDP (similar libraries also exist for other languages such as Python).
+
+HTTP PUT requests write the data from the request body directly into the file. By contrast, HTTP POST requests assume that the body is formatted as MIME multipart/form-data (as an old-school browser form based file upload would generate), and the data written to the file is taken from the part named `"file"`.  Below are example [cURL](`https://en.wikipedia.org/wiki/CURL#cURL`) commands that successfully invoke each of the four HTTP methods.
+
+URLs used to GET file data within a browser can be configured to automatically trigger a File SaveAs... download by using the `?download=true` query in the request URL.
+
+```sh
+
+# This assumes a baseURL of '/gridfs/fs' and method definitions with a path
+# of '/:_id' for each method, for example:
+
+# { method: 'delete',
+#   path:   '/:_id',
+#   lookup: function (params, query) {
+#             return { _id: params._id } } }
+
+# The file with _id = 38a14c8fef2d6cef53c70792 must exist for these to succeed.
+# The auth token should match a logged-in userId
+
+# GET the file data
+curl -X GET 'http://127.0.0.1:3000/gridfs/fs/38a14c8fef2d6cef53c70792' \
+     -H 'X-Auth-Token: zrtrotHrDzwA4nC5'
+
+# POST with file in multipart/form-data
+curl -X POST 'http://127.0.0.1:3000/gridfs/fs/38a14c8fef2d6cef53c70792' \
+     -F 'file=@"lolcat.gif";type=image/gif' -H 'X-Auth-Token: zrtrotHrDzwA4nC5'
+
+# PUT with file in request body
+curl -X PUT 'http://127.0.0.1:3000/gridfs/fs/38a14c8fef2d6cef53c70792' \
+     -T "lolcat.gif" -H 'Content-Type: image/gif' -H 'X-Auth-Token: zrtrotHrDzwA4nC5'
+
+# DELETE the file
+curl -X DELETE 'http://127.0.0.1:3000/gridfs/fs/7868f3df8425ae68a572b334' \
+     -H 'X-Auth-Token: zrtrotHrDzwA4nC5'
 ```
 
 Below are the methods defined for the returned `fileCollection`
