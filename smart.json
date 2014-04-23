@@ -3,7 +3,7 @@
   "description": "A package that cleanly and simply extends Meteor's Collection metaphor for efficiently dealing with files and their data.",
   "homepage": "https://github.com/vsivsi/meteor-file-collection",
   "author": "Vaughn Iverson (https://github.com/vsivsi)",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "git": "https://github.com/vsivsi/meteor-file-collection.git",
   "packages" : {}
 }
