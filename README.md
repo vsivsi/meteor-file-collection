@@ -287,7 +287,7 @@ curl -X PUT 'http://127.0.0.1:3000/gridfs/fs/38a14c8fef2d6cef53c70792' \
      -T "lolcat.gif" -H 'Content-Type: image/gif' -H 'X-Auth-Token: zrtrotHrDzwA4nC5'
 
 # DELETE the file
-curl -X DELETE 'http://127.0.0.1:3000/gridfs/fs/7868f3df8425ae68a572b334' \
+curl -X DELETE 'http://127.0.0.1:3000/gridfs/fs/38a14c8fef2d6cef53c70792' \
      -H 'X-Auth-Token: zrtrotHrDzwA4nC5'
 ```
 
