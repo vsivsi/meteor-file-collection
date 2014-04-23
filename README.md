@@ -297,14 +297,25 @@ Since `file.update()` only runs on the server, it is *not* subjected to the `'up
 
 `file.deny(options)` is the same as [Meteor's `Collection.deny()`](http://docs.meteor.com/#deny), except that the Meteor Collection `fetch` and `transform` options are not supported in `fileCollection`. The `update` rule only applies to HTTP PUT/POST requests to modify file data, and will only see changes to the `length` and `md5` `filedNames` for that reason. Because MongoDB updates are not involved, no `modifier` is provided to the `update` function.
 
-### file.upsertStream(file, [options], [callback])
-#### Server only
-
 ### file.findOneStream(selector, [options], [callback])
 #### Server only
 
-### file.importFile(filePath, file, callback)
+`file.findOneStream()` is like `file.findOne()` except instead of returning the `files` document for the found file, it returns a [Readable stream](http://nodejs.org/api/stream.html#stream_class_stream_readable) for the found file's data.
+
+The only available options are `options.sort` and `options.skip` which have the same behavior as they do for Meteor's [`Collection.findOne()`](http://docs.meteor.com/#findone).
+
+The returned stream is a gridfs-locking-stream `readStream`, which has some [special methods and events it emits](https://github.com/vsivsi/gridfs-locking-stream#locking-options). You probably won't need to use these, but the stream will emit `'expires-soon'` and `'expired'` events if its read lock is getting too old, and it has three methods that can be used to control locking:
+*     `stream.heldLock()` - Returns the gridfs-locks [`Lock` object](https://github.com/vsivsi/gridfs-locks#lock) held by the stream
+*     `stream.renewLock([callback])` - Renews the held lock for another expiration interval
+*     `stream.releaseLock([callback])` - Releases the held lock if you are done with the stream.
+
+This last call, `stream.releaseLock()` may be useful if you use `file.findOneStream()` and then do not read the file to the end (which would cause the lock to release automatically).  In this case, calling `stream.releaseLock()` is nice because it frees the lock before the expiration time is up. This would probably only matter for applications with lots of writers and readers contending for the same files, but it's good to know it exists.
+
+### file.upsertStream(file, [options], [callback])
 #### Server only
 
 ### file.exportFile(selector, filePath, callback)
+#### Server only
+
+### file.importFile(filePath, file, callback)
 #### Server only
