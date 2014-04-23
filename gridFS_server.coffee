@@ -167,9 +167,12 @@ if Meteor.isServer
             file = @findOne { _id: id }
          subFile =
             _id: mongodb.ObjectID("#{file._id}")
+            filename: file.filename ? ''
             mode: options.mode ? 'w'
             root: @root
             metadata: file.metadata ? {}
+            aliases: file.aliases ? []
+            content_type: file.contentType ? 'application/octet-stream'
             timeOut: 30
          writeStream = Meteor._wrapAsync(@gfs.createWriteStream.bind(@gfs)) subFile
          if callback?
