@@ -28,11 +28,16 @@ if Meteor.isServer
 
          @db = Meteor._wrapAsync(mongodb.MongoClient.connect)(process.env.MONGO_URL,{})
 
-         @locks = gridLocks.LockCollection @db,
-            root: @root
+         @lockOptions =
             timeOut: options.locks?.timeOut ? 360
             lockExpiration: options.locks?.lockExpiration ? 90
             pollingInterval: options.locks?.pollingInterval ? 5
+
+         @locks = gridLocks.LockCollection @db,
+            root: @root
+            timeOut: @lockOptions.timeOut
+            lockExpiration: @lockOptions.lockExpiration
+            pollingInterval: @lockOptions.pollingInterval
 
          @gfs = new grid(@db, mongodb, @root)
 
@@ -161,6 +166,8 @@ if Meteor.isServer
             throw new Error "File Collections do not support 'upsert'"
 
       upsertStream: (file, options = {}, callback = undefined) ->
+         unless options.mode is 'w' or options.mode is 'w+'
+            options.mode = 'w'
          callback = share.bind_env callback
          unless file._id
             id = @insert file
@@ -173,7 +180,9 @@ if Meteor.isServer
             metadata: file.metadata ? {}
             aliases: file.aliases ? []
             content_type: file.contentType ? 'application/octet-stream'
-            timeOut: 30
+            timeOut: @lockOptions.timeOut
+            lockExpiration: @lockOptions.lockExpiration
+            pollingInterval: @lockOptions.pollingInterval
          writeStream = Meteor._wrapAsync(@gfs.createWriteStream.bind(@gfs)) subFile
          if callback?
             writeStream.on 'close', (retFile) ->
@@ -187,6 +196,9 @@ if Meteor.isServer
             readStream = Meteor._wrapAsync(@gfs.createReadStream.bind(@gfs))
                root: @root
                _id: mongodb.ObjectID("#{file._id}")
+               timeOut: @lockOptions.timeOut
+               lockExpiration: @lockOptions.lockExpiration
+               pollingInterval: @lockOptions.pollingInterval
             if callback?
                readStream.on 'end', (retFile) ->
                   callback(null, file)
