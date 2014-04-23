@@ -7,7 +7,7 @@
 share.defaultChunkSize = 2*1024*1024
 share.defaultRoot = 'fs'
 
-share.insert_func = (file, chunkSize) ->
+share.insert_func = (file = {}, chunkSize) ->
    try
       id = new Meteor.Collection.ObjectID("#{file._id}")
    catch

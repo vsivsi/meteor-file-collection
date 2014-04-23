@@ -78,10 +78,10 @@ if Meteor.isServer
                   _id: Meteor.Collection.ObjectID
                   length: Match.Where (x) ->
                      check x, Match.Integer
-                     x >= 0
+                     x is 0
                   md5: Match.Where (x) ->
-                     check x, String
-                     x.length is 32
+                     check x, Match.String
+                     x is 'd41d8cd98f00b204e9800998ecf8427e'
                   uploadDate: Date
                   chunkSize: Match.Where (x) ->
                      check x, Match.Integer
@@ -132,7 +132,7 @@ if Meteor.isServer
       deny: (denyOptions) ->
          @denys[type].push(func) for type, func of denyOptions when type of @denys
 
-      insert: (file, callback = undefined) ->
+      insert: (file = {}, callback = undefined) ->
          file = share.insert_func file, @chunkSize
          super file, callback
 
@@ -195,8 +195,8 @@ if Meteor.isServer
          callback = share.bind_env callback
          if selector?
             @find(selector).forEach (file) =>
-               Meteor._wrapAsync(@gfs.remove.bind(@gfs))({ _id: mongodb.ObjectID("#{file._id}"), root: @root })
-            callback? and callback null
+               ret = Meteor._wrapAsync(@gfs.remove.bind(@gfs))({ _id: mongodb.ObjectID("#{file._id}"), root: @root })
+            callback? and callback null, ret
          else
             callback? and callback new Error "Remove with an empty selector is not supported"
 
@@ -222,25 +222,27 @@ if Meteor.isServer
 
 reject_file_modifier = (modifier) ->
 
-   forbidden =
-      _id: Match.Any
-      length: Match.Any
-      chunkSize: Match.Any
-      md5: Match.Any
-      uploadDate: Match.Any
+   forbidden = Match.ObjectIncluding(
+      _id: Match.Optional(Match.Any)
+      length: Match.Optional(Match.Any)
+      chunkSize: Match.Optional(Match.Any)
+      md5: Match.Optional(Match.Any)
+      uploadDate: Match.Optional(Match.Any)
+   )
 
-   required =
-      _id: Match.Any
-      length: Match.Any
-      chunkSize: Match.Any
-      md5: Match.Any
-      uploadDate: Match.Any
-      metadata: Match.Any
-      aliases: Match.Any
-      filename: Match.Any
-      contentType: Match.Any
+   required = Match.ObjectIncluding(
+      _id: Match.Optional(Match.Any)
+      length: Match.Optional(Match.Any)
+      chunkSize: Match.Optional(Match.Any)
+      md5: Match.Optional(Match.Any)
+      uploadDate: Match.Optional(Match.Any)
+      metadata: Match.Optional(Match.Any)
+      aliases: Match.Optional(Match.Any)
+      filename: Match.Optional(Match.Any)
+      contentType: Match.Optional(Match.Any)
+   )
 
-   return Match.test modifier,
+   return Match.test modifier, Match.ObjectIncluding(
       $set: Match.Optional(forbidden)
       $unset: Match.Optional(required)
       $inc: Match.Optional(forbidden)
@@ -250,3 +252,4 @@ reject_file_modifier = (modifier) ->
       $max: Match.Optional(forbidden)
       $rename: Match.Optional(required)
       $currentDate: Match.Optional(forbidden)
+   )
