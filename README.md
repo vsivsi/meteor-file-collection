@@ -176,7 +176,7 @@ The `fileCollection` API is essentially an extension of the [Meteor Collection A
 
 The big loser is `upsert()`, it's gone in `fileCollection`. If you try to call it, you'll get an error. `update()` is also disabled on the client side, but it can be safely used on the server to implement `Meteor.Method()` calls for clients to use.
 
-### new fileCollection([name], [options])
+### file = new fileCollection([name], [options])
 #### Server and Client
 
 The same `fileCollection` call should be made on both the client and server.
@@ -256,20 +256,36 @@ Below are the methods defined for the returned `fileCollection`
 
 `file.resumable` is a ready to use instance of `Resumable`. See the [Resumable.js documentation](http://www.resumablejs.com/) for more details.
 
-### file.find()
+### file.find(selector, [options])
 #### Server and Client
 
-### file.findOne()
+`file.find()` is identical to [Meteor's `Collection.find()`](http://docs.meteor.com/#find)
+
+### file.findOne(selector, [options])
 #### Server and Client
 
-### file.insert()
+`file.findOne()` is identical to [Meteor's `Collection.findOne()`](http://docs.meteor.com/#findone)
+
+### file.insert([file], [callback])
 #### Server and Client
 
-### file.remove()
+`file.insert()` is the same as [Meteor's `Collection.insert()`](http://docs.meteor.com/#insert), except that the document is forced to be a [gridFS `files` document](http://docs.mongodb.org/manual/reference/gridfs/#the-files-collection). All attributes not supplied get default values, non-gridFS attributes are silently dropped. Inserts from the client that do not conform to the gridFS data model will automatically be denied. Client inserts will additionally be subjected to any `'insert'` allow/deny rules (which default to deny all inserts).
+
+### file.remove(selector, [callback])
 #### Server and Client
 
-### file.update()
+`file.remove()` is nearly the same as [Meteor's `Collection.remove()`](http://docs.meteor.com/#remove), except that in addition to removing the file document, it also remove the file data chunks and locks from the gridFS store. For safety, undefined and empty selectors (`undeinfed`, `null` or `{}`) are all rejected. Client calls are subjected to any `'remove'`  allow/deny rules (which default to deny all removes).
+
+### file.update(selector, modifier, [options], [callback])
 #### Server only
+
+`file.update()` is nearly the same as [Meteor's `Collection.update()`](http://docs.meteor.com/#update), except that it is a server only method, and it will return an error if:
+
+*     any of the gridFS "read-only" attributes would be modified
+*     any gridFS document level attributes would be removed
+*     non-gridFS attributes would be added
+
+Since `file.update()` only runs on the server, it is *not* subjected to the `'update'` allow/deny rules.
 
 ### file.allow()
 #### Server only
