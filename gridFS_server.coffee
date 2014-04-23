@@ -81,16 +81,16 @@ if Meteor.isServer
                # Make darn sure we're creating a valid gridFS .files document
                check file,
                   _id: Meteor.Collection.ObjectID
-                  length: Match.Where (x) ->
+                  length: Match.Where (x) =>
                      check x, Match.Integer
                      x is 0
-                  md5: Match.Where (x) ->
-                     check x, Match.String
+                  md5: Match.Where (x) =>
+                     check x, String
                      x is 'd41d8cd98f00b204e9800998ecf8427e'
                   uploadDate: Date
-                  chunkSize: Match.Where (x) ->
+                  chunkSize: Match.Where (x) =>
                      check x, Match.Integer
-                     x > 0
+                     x is @chunkSize
                   filename: String
                   contentType: String
                   aliases: [ String ]
