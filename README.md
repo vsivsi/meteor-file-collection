@@ -176,7 +176,8 @@ The `fileCollection` API is essentially an extension of the [Meteor Collection A
 
 The big loser is `upsert()`, it's gone in `fileCollection`. If you try to call it, you'll get an error. `update()` is also disabled on the client side, but it can be safely used on the server to implement `Meteor.Method()` calls for clients to use.
 
-### new fileCollection([name], [options])    Server and Client
+### new fileCollection([name], [options])
+#### Server and Client
 
 The same `fileCollection` call should be made on both the client and server.
 
@@ -250,28 +251,40 @@ Here are some example HTTP objects to get you started:
 
 Below are the methods defined for the returned `fileCollection`
 
-### file.resumable   Client only, when `options.resumable == true`
+### file.resumable
+#### Client only, when `options.resumable == true`
 
 `file.resumable` is a ready to use instance of `Resumable`. See the [Resumable.js documentation](http://www.resumablejs.com/) for more details.
 
-### file.find()   Server and Client
+### file.find()
+#### Server and Client
 
-### file.findOne()   Server and Client
+### file.findOne()
+#### Server and Client
 
-### file.insert()   Server and Client
+### file.insert()
+#### Server and Client
 
-### file.remove()   Server and Client
+### file.remove()
+#### Server and Client
 
-### file.update()   Server only
+### file.update()
+#### Server only
 
-### file.allow()   Server only
+### file.allow()
+#### Server only
 
-### file.deny()   Server only
+### file.deny()
+#### Server only
 
-### file.upsertStream()   Server only
+### file.upsertStream()
+#### Server only
 
-### file.findOneStream()   Server only
+### file.findOneStream()
+#### Server only
 
-### file.importFile()   Server only
+### file.importFile()
+#### Server only
 
-### file.exportFile()   Server only
+### file.exportFile()
+#### Server only
