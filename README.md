@@ -172,13 +172,30 @@ You may have noticed that the gridFS `files` data model says nothing about file 
 
 ## API
 
-The `fileCollection` API is essentially an extension of the [Meteor Collection API](http://docs.meteor.com/#collections), with almost all of the same methods and a few file specific ones mixed in.
+The `fileCollection` API is essentially an extension of the [Meteor Collection API](http://docs.meteor.com/#collections), with almost all of the same methods and a few new file specific ones mixed in.
 
-The big loser is `upsert()`, it's gone in collectionFS. If you try to call it, you'll get an error. `update()` is also disabled on the client side, but it can be safely used on the server to implement `Meteor.Method()` calls for clients to use.
+The big loser is `upsert()`, it's gone in `fileCollection`. If you try to call it, you'll get an error. `update()` is also disabled on the client side, but it can be safely used on the server to implement `Meteor.Method()` calls for clients to use.
 
-### new fileCollection()
+### new fileCollection([name], [options])
 
+The same `fileCollection` call should be made on both the client and server.
 
+`name` is the root name of the underlying MongoDB gridFS collection. If omitted, it defaults to `'fs'`, the default gridFS collection name. Internally, three collections are used for each `fileCollection` instance:
+
+*     `[name].files` - This is the collection you actually see when using `fileCollection`
+*     `[name].chunks` - This collection contains the actual file data chunks. It is managed automatically.
+*     `[name].locks` - This collection is used by `gridfs-locks` to make concurrent reading/writing safe.
+
+`fileCollection` is a subclass of `Meteor.Collection`, however it doesn't support the same `[options]`.
+Meteor Collections support `connection`, `idGeneration` and `transform` options. Currently, `fileCollection` only supports the default Meteor server connection, although this may change in the future. All `_id` values used by `fileCollection` are MongoDB style IDs. The Meteor Collection transform functionality is unsupported in `fileCollection`.
+
+Here are the options fileCollection does support:
+
+*    `options.resumable` - `<boolean>`  When `true`, exposes the [Resumable.js API](http://www.resumablejs.com/) on the client and the matching resumable HTTP support on the server.
+*    `options.chunkSize` - `<integer>`  Sets the gridFS and Resumable.js chunkSize in bytes. Values of 1 MB or greater are probably best with a maximum of 8 MB. Partial chunks are not padded, so there is no storage space benefit to using smaller chunk sizes.
+*    `options.baseURL` - `<string>`  Sets the the base route for all HTTP interfaces defined on this collection. Default value is `/gridfs/[name]`
+*    `options.locks` - `<object>`  Locking parameters, the defaults should be fine and you shouldn't need to set this, but see the `gridfs-locks` [`LockCollection` docs](https://github.com/vsivsi/gridfs-locks#lockcollectiondb-options) for more information.
+*    `option.http` - <array of objects>  HTTP interface configuration objects, described below:
 
 ### file.find()
 
