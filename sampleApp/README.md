@@ -4,4 +4,4 @@ This demo app uses fileCollection's built-in support for [Resumable.js](http://w
 
 To set-up, make sure you have [meteorite](https://atmospherejs.com/docs/installing) installed.
 
-Then just run `mrt` in this directory. Once that is done, you simply run `meteor` and point your browser at `http://localhost:3000/`.
+Then just run `mrt` in this directory and then once the app server is running, point your browser at `http://localhost:3000/`.

@@ -13,8 +13,9 @@ function bind_env(func) {
   }
 }
 
+var defaultColl = new fileCollection();
+
 Tinytest.add('fileCollection default constructor', function(test) {
-  var defaultColl = new fileCollection();
   test.instanceOf(defaultColl, fileCollection, "fileCollection constructor failed");
   test.equal(defaultColl.root, 'fs', "default root isn't 'fs'");
   test.equal(defaultColl.chunkSize, 2*1024*1024, "bad default chunksize");

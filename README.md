@@ -132,9 +132,24 @@ Requires [meteorite](https://atmospherejs.com/docs/installing). To add to your p
 
 The package exposes a global object `fileCollection` on both client and server.
 
-To run tests (using Meteor tiny-test) run from within your project's `package` subdirectory:
+If you'd like to try out the sample app, you can clone the repo from github:
 
-    meteor test-packages ./fileCollection/
+```
+git clone --recursive https://github.com/vsivsi/meteor-file-collection.git fileCollection
+```
+
+Then go to the `sampleApp` subdirectory and run meteorite to launch:
+
+```
+cd fileCollection/sampleApp/
+mrt
+```
+
+You should now be able to point your browser to `http://localhost:3000/` and play with the sample app.
+
+To run tests (using Meteor tiny-test) run from within the `fileCollection` subdirectory:
+
+    meteor test-packages ./
 
 ## Use
 
