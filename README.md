@@ -151,6 +151,8 @@ To run tests (using Meteor tiny-test) run from within the `fileCollection` subdi
 
     meteor test-packages ./
 
+Load `http://localhost:3000/` and the tests should run in your browser and on the server.
+
 ## Use
 
 Before proceeding, take a minute to familiarize yourself with the [MongoDB gridFS `files` data model](http://docs.mongodb.org/manual/reference/gridfs/#the-files-collection). This is the schema used by `fileCollection` because fileCollection *is* gridFS.
