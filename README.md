@@ -128,7 +128,7 @@ Requires [meteorite](https://atmospherejs.com/docs/installing). To add to your p
 
 The package exposes a global object `fileCollection` on both client and server.
 
-To run tests (using Meteor tiny-test) run from within your project's `package` subdir:
+To run tests (using Meteor tiny-test) run from within your project's `package` subdirectory:
 
     meteor test-packages ./fileCollection/
 
@@ -159,7 +159,7 @@ At no point in normal operation is a file-sized data buffer ever in memory. All 
 
 File data is never copied within a collection. During chunked file uploading, file chunk references are changed, but the data itself is never copied. This makes fileCollection particularly efficient when handling multi-gigabyte files.
 
-`fileCollection` uses robust multiple reader / exclusive writer file locking on top of gridFS, so essentially any number of readers and writers of shared files may peacefully coexist without risk of file corruption. Note that if you have other applications reading/writing directly to a gridFS collection (e.g. a node.js program, not using Meteor/fileCollection), it will need to use the [`gridfs-locks`](https://www.npmjs.org/package/gridfs-locks) or [`gridfs-locking-stream`](https://www.npmjs.org/package/gridfs-locking-stream) npm packages to safely interoperate with `fileCollection`.
+`fileCollection` uses robust multiple reader / exclusive writer file locking on top of gridFS, so essentially any number of readers and writers of shared files may peacefully coexist without risk of file corruption. Note that if you have other applications reading/writing directly to a gridFS collection (e.g. a node.js program, not using Meteor/fileCollection), it will need to use the [`gridfs-locks`](https://www.npmjs.org/package/gridfs-locks) or [`gridfs-locking-stream`](https://www.npmjs.org/package/gridfs-locking-stream) npm packages to safely inter-operate with `fileCollection`.
 
 ### Security
 
@@ -177,7 +177,7 @@ The `fileCollection` API is essentially an extension of the [Meteor Collection A
 The big loser is `upsert()`, it's gone in `fileCollection`. If you try to call it, you'll get an error. `update()` is also disabled on the client side, but it can be safely used on the server to implement `Meteor.Method()` calls for clients to use.
 
 ### fc = new fileCollection([name], [options])
-#### Create a new `fileColletion` - Server and Client
+#### Create a new `fileCollection` - Server and Client
 
 The same `fileCollection` call should be made on both the client and server.
 
@@ -274,7 +274,7 @@ Below are the methods defined for the returned `fileCollection`
 ### fc.remove(selector, [callback])
 #### Remove a file and all of its data. - Server and Client
 
-`fc.remove()` is nearly the same as [Meteor's `Collection.remove()`](http://docs.meteor.com/#remove), except that in addition to removing the file document, it also remove the file data chunks and locks from the gridFS store. For safety, undefined and empty selectors (`undeinfed`, `null` or `{}`) are all rejected. Client calls are subjected to any `'remove'`  allow/deny rules (which default to deny all removes).
+`fc.remove()` is nearly the same as [Meteor's `Collection.remove()`](http://docs.meteor.com/#remove), except that in addition to removing the file document, it also remove the file data chunks and locks from the gridFS store. For safety, undefined and empty selectors (`undefined`, `null` or `{}`) are all rejected. Client calls are subjected to any `'remove'`  allow/deny rules (which default to deny all removes).
 
 ### fc.update(selector, modifier, [options], [callback])
 #### Update application controlled gridFS file attributes. - Server only
