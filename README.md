@@ -176,7 +176,7 @@ The `fileCollection` API is essentially an extension of the [Meteor Collection A
 
 The big loser is `upsert()`, it's gone in `fileCollection`. If you try to call it, you'll get an error. `update()` is also disabled on the client side, but it can be safely used on the server to implement `Meteor.Method()` calls for clients to use.
 
-### new fileCollection([name], [options])
+### new fileCollection([name], [options])    Server and Client
 
 The same `fileCollection` call should be made on both the client and server.
 
@@ -201,75 +201,77 @@ Each object in the `option.http` array defines one HTTP request interface on the
 
 *    `obj.method` - `<string>`  The HTTP request method to define, one of `get`, `post`, `put`, or `delete`.
 *    `obj.path` - `<string>`  An [express.js style](http://expressjs.com/4x/api.html#req.params) route path with parameters.  This path will be added to the path specified by `options.baseURL`.
-*    `obj.lookup` - <function>  A function that is called when an HTTP request matches the `method` and `path`. It is provided with the values of the route parameters and any URL query parameters, and it should return a mongoDB query object which can be used to find a file that matches those parameters.
+*    `obj.lookup` - `<function>`  A function that is called when an HTTP request matches the `method` and `path`. It is provided with the values of the route parameters and any URL query parameters, and it should return a mongoDB query object which can be used to find a file that matches those parameters.
 
-When arranging http interface definition objects in the array provided to `options.http`, be sure to put more specific paths for a given HTTP method before more general ones. For example: `\hash\:md5` should come before `\:filename\:_id` because `"hash"` could be a filename, and so `\hash\:md5` would never match if it came second.
+When arranging http interface definition objects in the array provided to `options.http`, be sure to put more specific paths for a given HTTP method before more general ones. For example: `\hash\:md5` should come before `\:filename\:_id` because `"hash"` would match to filename, and so `\hash\:md5` would never match if it came second. Obviously this is a contrived example to demonstrate that order is significant.
 
 Note that an authenticated userId is not provided to the `lookup` function. UserId based permissions should be managed using the allow/deny rules described later on.
 
 Here are some example HTTP objects to get you started:
 
 ```js
-      // GET file data by md5 sum
-      { method: 'get',
-        path:   '/hash/:md5',
-        lookup: function (params, query) {
-                    return { md5: params.md5 } } }
+// GET file data by md5 sum
+{ method: 'get',
+  path:   '/hash/:md5',
+  lookup: function (params, query) {
+              return { md5: params.md5 } } }
 
-      // DELETE a file by _id. Note that the URL parameter ":_id" is a special
-      // case, in that it will automatically be converted to a Meteor ObjectID
-      // in the passed params object.
-      { method: 'delete',
-        path:   '/:_id',
-        lookup: function (params, query) {
-                    return { _id: params._id } } }
+// DELETE a file by _id. Note that the URL parameter ":_id" is a special
+// case, in that it will automatically be converted to a Meteor ObjectID
+// in the passed params object.
+{ method: 'delete',
+  path:   '/:_id',
+  lookup: function (params, query) {
+              return { _id: params._id } } }
 
-      // GET a file based on a filename or alias name value
-      { method: 'get',
-        path:   '/name/:name',
-        lookup: function (params, query) {
-          return {$or: [ {filename: params.name },
-                         {aliases: {$in: [ params.name ]}} ]} }}
+// GET a file based on a filename or alias name value
+{ method: 'get',
+  path:   '/name/:name',
+  lookup: function (params, query) {
+    return {$or: [ {filename: params.name },
+                   {aliases: {$in: [ params.name ]}} ]} }}
 
-      // PUT data to a file based on _id and a secret value stored as metadata
-      // where the secret is supplied as a query parameter e.g. ?secret=sfkljs
-      { method: 'put',
-        path:   '/write/:_id',
-        lookup: function (params, query) {
-          return { _id: params._id, "metadata.secret": query.secret} }}
+// PUT data to a file based on _id and a secret value stored as metadata
+// where the secret is supplied as a query parameter e.g. ?secret=sfkljs
+{ method: 'put',
+  path:   '/write/:_id',
+  lookup: function (params, query) {
+    return { _id: params._id, "metadata.secret": query.secret} }}
 
-      // GET a file based on a query type and numeric coordinates metadata
-      { method: 'get',
-        path:   '/tile/:z/:x/:y',
-        lookup: function (params, query) {
-          return { "metadata.x": parseInt(params.x),
-                   "metadata.y": parseInt(params.y),
-                   "metadata.z": parseInt(params.z),
-                   contentType: query.type} }}
-
+// GET a file based on a query type and numeric coordinates metadata
+{ method: 'get',
+  path:   '/tile/:z/:x/:y',
+  lookup: function (params, query) {
+    return { "metadata.x": parseInt(params.x), // Note that all params
+             "metadata.y": parseInt(params.y), // (execept _id) are strings
+             "metadata.z": parseInt(params.z),
+             contentType: query.type} }}
 ```
 
-      { method: 'get', path: '/tile/:z/:x/:y', lookup: (params, query) -> { "metadata.x": parseInt(params.x), "metadata.y": parseInt(params.y), "metadata.z": parseInt(params.z), "metadata.type": "tile" } },
+Below are the methods defined for the returned `fileCollection`
 
+### file.resumable   Client only, when `options.resumable == true`
 
-### file.find()
+`file.resumable` is a ready to use instance of `Resumable`. See the [Resumable.js documentation](http://www.resumablejs.com/) for more details.
 
-### file.findOne()
+### file.find()   Server and Client
 
-### file.insert()
+### file.findOne()   Server and Client
 
-### file.update()
+### file.insert()   Server and Client
 
-### file.remove()
+### file.remove()   Server and Client
 
-### file.allow()
+### file.update()   Server only
 
-### file.deny()
+### file.allow()   Server only
 
-### file.upsertStream()
+### file.deny()   Server only
 
-### file.findOneStream()
+### file.upsertStream()   Server only
 
-### file.importFile()
+### file.findOneStream()   Server only
 
-### file.exportFile()
+### file.importFile()   Server only
+
+### file.exportFile()   Server only
