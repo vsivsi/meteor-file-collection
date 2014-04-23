@@ -27,7 +27,13 @@ if Meteor.isServer
          @chunkSize = options.chunkSize ? share.defaultChunkSize
 
          @db = Meteor._wrapAsync(mongodb.MongoClient.connect)(process.env.MONGO_URL,{})
-         @locks = gridLocks.LockCollection @db, { root: @root, timeOut: 360, lockExpiration: 90 }
+
+         @locks = gridLocks.LockCollection @db,
+            root: @root
+            timeOut: options.locks?.timeOut ? 360
+            lockExpiration: options.locks?.lockExpiration ? 90
+            pollingInterval: options.locks?.pollingInterval ? 5
+
          @gfs = new grid(@db, mongodb, @root)
 
          # Make an index on md5, to support GET requests
