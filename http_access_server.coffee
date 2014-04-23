@@ -64,11 +64,8 @@ if Meteor.isServer
             return
 
          # Handle filename or filetype data when included
-         if filename or filetype
-            set = {}
-            set.contentType = filetype if filetype
-            set.filename = filename if filename
-            @update { _id: req.gridFS._id }, { $set: set }
+         req.gridFS.contentType = filetype if filetype
+         req.gridFS.filename = filename if filename
 
          # Write the file data.  No chunks here, this is the whole thing
          stream = @upsertStream req.gridFS
@@ -130,7 +127,7 @@ if Meteor.isServer
 
       # Handle content type if it's present
       if req.headers['content-type']
-         @update { _id: req.gridFS._id }, { $set: { contentType: req.headers['content-type'] }}
+         req.gridFS.contentType = req.headers['content-type']
 
       # Write the file
       stream = @upsertStream req.gridFS

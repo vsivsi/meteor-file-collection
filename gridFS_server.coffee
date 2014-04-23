@@ -146,11 +146,19 @@ if Meteor.isServer
       update: (selector, modifier, options = {}, callback = undefined) ->
          if not callback? and typeof options is 'function'
             callback = options
+            options = {}
+
+         if options.upsert?
+            err = new Error("Update does not support the upsert option")
+            if callback?
+               return callback err
+            else
+               throw err
 
          if reject_file_modifier(modifier) and not options.force
-            err = new Error("Modification of gridFS document elements is a very bad idea!")
+            err = new Error("Modifying gridFS read-only document elements is a very bad idea!")
             if callback?
-               callback err
+               return callback err
             else
                throw err
          else
@@ -237,34 +245,36 @@ if Meteor.isServer
 
 reject_file_modifier = (modifier) ->
 
-   forbidden = Match.ObjectIncluding(
-      _id: Match.Optional(Match.Any)
-      length: Match.Optional(Match.Any)
-      chunkSize: Match.Optional(Match.Any)
-      md5: Match.Optional(Match.Any)
-      uploadDate: Match.Optional(Match.Any)
+   forbidden = Match.OneOf(
+      Match.ObjectIncluding({ _id:        Match.Any })
+      Match.ObjectIncluding({ length:     Match.Any })
+      Match.ObjectIncluding({ chunkSize:  Match.Any })
+      Match.ObjectIncluding({ md5:        Match.Any })
+      Match.ObjectIncluding({ uploadDate: Match.Any })
    )
 
-   required = Match.ObjectIncluding(
-      _id: Match.Optional(Match.Any)
-      length: Match.Optional(Match.Any)
-      chunkSize: Match.Optional(Match.Any)
-      md5: Match.Optional(Match.Any)
-      uploadDate: Match.Optional(Match.Any)
-      metadata: Match.Optional(Match.Any)
-      aliases: Match.Optional(Match.Any)
-      filename: Match.Optional(Match.Any)
-      contentType: Match.Optional(Match.Any)
+   required = Match.OneOf(
+      Match.ObjectIncluding({ _id:         Match.Any })
+      Match.ObjectIncluding({ length:      Match.Any })
+      Match.ObjectIncluding({ chunkSize:   Match.Any })
+      Match.ObjectIncluding({ md5:         Match.Any })
+      Match.ObjectIncluding({ uploadDate:  Match.Any })
+      Match.ObjectIncluding({ metadata:    Match.Any })
+      Match.ObjectIncluding({ aliases:     Match.Any })
+      Match.ObjectIncluding({ filename:    Match.Any })
+      Match.ObjectIncluding({ contentType: Match.Any })
    )
 
-   return Match.test modifier, Match.ObjectIncluding(
-      $set: Match.Optional(forbidden)
-      $unset: Match.Optional(required)
-      $inc: Match.Optional(forbidden)
-      $mul: Match.Optional(forbidden)
-      $bit: Match.Optional(forbidden)
-      $min: Match.Optional(forbidden)
-      $max: Match.Optional(forbidden)
-      $rename: Match.Optional(required)
-      $currentDate: Match.Optional(forbidden)
+   console.log "In modifier check", modifier
+
+   return Match.test modifier, Match.OneOf(
+      Match.ObjectIncluding({ $set: forbidden })
+      Match.ObjectIncluding({ $unset: required})
+      Match.ObjectIncluding({ $inc: forbidden})
+      Match.ObjectIncluding({ $mul: forbidden})
+      Match.ObjectIncluding({ $bit: forbidden})
+      Match.ObjectIncluding({ $min: forbidden})
+      Match.ObjectIncluding({ $max: forbidden})
+      Match.ObjectIncluding({ $rename: required})
+      Match.ObjectIncluding({ $currentDate: forbidden})
    )
