@@ -297,14 +297,14 @@ Since `file.update()` only runs on the server, it is *not* subjected to the `'up
 
 `file.deny(options)` is the same as [Meteor's `Collection.deny()`](http://docs.meteor.com/#deny), except that the Meteor Collection `fetch` and `transform` options are not supported in `fileCollection`. The `update` rule only applies to HTTP PUT/POST requests to modify file data, and will only see changes to the `length` and `md5` `filedNames` for that reason. Because MongoDB updates are not involved, no `modifier` is provided to the `update` function.
 
-### file.upsertStream()
+### file.upsertStream(file, [options], [callback])
 #### Server only
 
-### file.findOneStream()
+### file.findOneStream(selector, [options], [callback])
 #### Server only
 
-### file.importFile()
+### file.importFile(filePath, file, callback)
 #### Server only
 
-### file.exportFile()
+### file.exportFile(selector, filePath, callback)
 #### Server only
