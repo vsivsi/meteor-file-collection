@@ -1,6 +1,6 @@
 # fileCollection
 
-`fileCollection` is a [Meteor.js](https://www.meteor.com/) smart [package](https://atmospherejs.com/package/collectionFS) that cleanly extends Meteor's `Collection` metaphor for efficiently dealing with collections of files and their data. If you know how to use Meteor's [Collections](http://docs.meteor.com/#collections), you already know 90% of what you need to begin working with `fileCollection`.
+`fileCollection` is a [Meteor.js](https://www.meteor.com/) [package](https://atmospherejs.com/package/collectionFS) that cleanly extends Meteor's `Collection` metaphor for efficiently dealing with collections of files and their data. File Collections are fully reactive, so if you know how to use Meteor's [Collections](http://docs.meteor.com/#collections), you already know most of what you need to begin working with `fileCollection`.
 
 ```js
 files = new fileCollection('myFiles');
@@ -336,13 +336,13 @@ When the write stream has closed, the `callback` is called as `callback(error, f
 ### fc.exportFile(selector, filePath, callback)
 #### Export a `fileCollection` file to the local fileSystem. - Server only
 
-`fc.exportFile()` is a convenience function that [pipes](http://nodejs.org/api/stream.html#stream_readable_pipe_destination_options) the readable stream produced by `fc.findOneStream()` into a local [file system writable stream](http://nodejs.org/api/fs.html#fs_fs_createwritestream_path_options).
+`fc.exportFile()` is a convenience method that [pipes](http://nodejs.org/api/stream.html#stream_readable_pipe_destination_options) the readable stream produced by `fc.findOneStream()` into a local [file system writable stream](http://nodejs.org/api/fs.html#fs_fs_createwritestream_path_options).
 
 The `selector` parameter works as it does with `fc.findOneStream()`. The `filePath` is the String directory path and filename in the local filesystem to write the file data to. The value of the `filename` attribute in the found gridFS file document is ignored. The callback is mandatory and will be called with a single parameter that will be either an `Error` object or `null` depending on the success of the operation.
 
 ### fc.importFile(filePath, file, callback)
 #### Import a local filesystem file into a `fileCollection` file. - Server only
 
-`fc.importFile()` is a convenience function that [pipes](http://nodejs.org/api/stream.html#stream_readable_pipe_destination_options) a local [file system readable stream](http://nodejs.org/api/fs.html#fs_fs_createreadstream_path_options) into the writable stream produced by a call to `fc.upsertStream()`.
+`fc.importFile()` is a convenience method that [pipes](http://nodejs.org/api/stream.html#stream_readable_pipe_destination_options) a local [file system readable stream](http://nodejs.org/api/fs.html#fs_fs_createreadstream_path_options) into the writable stream produced by a call to `fc.upsertStream()`.
 
 The `file` parameter works as it does with `fc.upsertStream()`. The `filePath` is the String directory path and filename in the local filesystem of the file to open and copy into the gridFS file. The callback is mandatory and will be called with the same callback signature as `fc.upsertStream()`.
