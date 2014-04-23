@@ -44,7 +44,7 @@ files = new fileCollection('myFiles',
       { method: 'get',
         path: '/:md5',  // this will be at route "/gridfs/myFiles/:md5"
         lookup: function (params, query) {  // uses express style url params
-          return { md5: params.md5 }   // a mongo query mapping url to myFiles
+          return { md5: params.md5 };   // a mongo query mapping url to myFiles
       }
     ]
   }
@@ -56,8 +56,8 @@ if (Meteor.isServer) {
   // file chunks being used by Resumable.js for current uploads
   Meteor.publish('myData',
     function () {
-      files.find({ 'metadata._Resumable': { $exists: false },
-                   'metadata.owner': this.userId })
+      return files.find({ 'metadata._Resumable': { $exists: false },
+                   'metadata.owner': this.userId });
     }
   );
 
@@ -84,7 +84,7 @@ if (Meteor.isServer) {
     },
     insert: function (userId, file) {
       // Assign the proper owner when a file is created
-      file.metadata = file.metadata or {};
+      file.metadata = file.metadata || {};
       file.metadata.owner = userId;
       return true;
     }
