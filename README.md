@@ -38,14 +38,13 @@ The block below implements a `fileCollection` on server, including support for o
 
 ```js
 // Create a file collection, and enable file upload and download using HTTP
-
 files = new fileCollection('myFiles',
-  { resumable: true,
+  { resumable: true,   // Enable built-in resumable.js upload support
     http: [
       { method: 'get',
         path: '/:md5',  // this will be at route "/gridfs/myFiles/:md5"
-        lookup: function (params, query) {
-          return { md5: params.md5 }
+        lookup: function (params, query) {  // uses express style url params
+          return { md5: params.md5 }   // a mongo query mapping url to myFiles
       }
     ]
   }
@@ -102,16 +101,15 @@ if (Meteor.isClient) {
 
     // When a file is added via drag and drop
     myData.resumable.on('fileAdded', function (file) {
+
       // Create a new file in the file collection to upload
       files.insert({
         _id: file.uniqueIdentifier,  // This is the ID resumable will use
         filename: file.fileName,
         contentType: file.file.type
         },
-        function (err, _id) {
-          if (err) {
-            return console.error("File creation failed!", err);
-          }
+        function (err, _id) {  // Callback to .insert
+          if (err) { return console.error("File creation failed!", err); }
           // Once the file exists on the server, start uploading
           myData.resumable.upload();
         });
@@ -136,22 +134,22 @@ To run tests (using Meteor tiny-test) run from within your project's `package` s
 
 ## Use
 
-Before going any further, it will pay to take a minute to familiarize yourself with the [MongoDB gridFS `files` data model](http://docs.mongodb.org/manual/reference/gridfs/#the-files-collection). This is the schema used by `fileCollection` because fileCollection *is* gridFS.
+Before proceeding, take a minute to familiarize yourself with the [MongoDB gridFS `files` data model](http://docs.mongodb.org/manual/reference/gridfs/#the-files-collection). This is the schema used by `fileCollection` because fileCollection *is* gridFS.
 
 Now that you've seen the data model, here are a few things to keep in mind about it:
 
-1.    Some of the attributes belong to gridFS, and you may **lose data** if you mess around with these:
-2.    `_id`, `length`, `chunkSize`, `uploadDate` and `md5` should be considered read-only.
-3.    Some the attributes belong to you. You can do whatever you want with them.
-4.    `filename`, `contentType`, `aliases` and `metadata` are yours. Go to town.
-5.    `contentType` should probably be a valid [MIME Type](https://en.wikipedia.org/wiki/MIME_type)
-6.    `filename` is *not* guaranteed unique. `_id` is a better bet if you want to be sure of what you're getting.
+*    Some of the attributes belong to gridFS, and you may **lose data** if you mess around with these:
+*    `_id`, `length`, `chunkSize`, `uploadDate` and `md5` should be considered read-only.
+*    Some the attributes belong to you. You can do whatever you want with them.
+*    `filename`, `contentType`, `aliases` and `metadata` are yours. Go to town.
+*    `contentType` should probably be a valid [MIME Type](https://en.wikipedia.org/wiki/MIME_type)
+*    `filename` is *not* guaranteed unique. `_id` is a better bet if you want to be sure of what you're getting.
 
 Sound complicated? It really isn't and `fileCollection` is here to help.
 
 First off, when you create a new file you use `file.insert(...)` and just populate whatever attributes you care about. Then `fileCollection` does the rest. You are guaranteed to get a valid gridFS file, even if you just do this: `id = file.insert();`
 
-Likewise, when you run `update` on the server, it tries really hard to make sure that you aren't clobbering one of the "read-only" attributes with your update modifier. And for safety clients aren't allowed to directly `update` at all, although you can selectively give them that power via `Meteor.methods()`.
+Likewise, when you run `file.update(...)` on the server, `fileCollection` tries really hard to make sure that you aren't clobbering one of the "read-only" attributes with your update modifier. For safety, clients are never allowed to directly `update`, although you can selectively give them that power via `Meteor.methods()`.
 
 ### Limits and performance
 
@@ -159,9 +157,9 @@ There are essentially no hard limits on the number or size of files other than w
 
 At no point in normal operation is a file-sized data buffer ever in memory. All of the file data import/export mechanisms are [stream based](http://nodejs.org/api/stream.html#stream_stream), so even very active servers should not see much memory dedicated to file transfers.
 
-File data is never copied within a collection. During chunked file uploading, file chunk reference pointers are moved, but the data itself is never copied. This makes fileCollection particularly efficient when handling multi-gigabyte files.
+File data is never copied within a collection. During chunked file uploading, file chunk references are changed, but the data itself is never copied. This makes fileCollection particularly efficient when handling multi-gigabyte files.
 
-fileCollection uses robust multiple reader / exclusive writer file locking on top of gridFS, so essentially any number of readers and writers of shared files may peacefully coexist without risk of file corruption. Note that if you have other applications reading/writing directly to a gridFS collection (e.g. a node.js program, not using Meteor/fileCollection), it will need to use the [`gridfs-locks`](https://www.npmjs.org/package/gridfs-locks) or [`gridfs-locking-stream`](https://www.npmjs.org/package/gridfs-locking-stream) npm packages to safely interoperate with `fileCollection`.
+`fileCollection` uses robust multiple reader / exclusive writer file locking on top of gridFS, so essentially any number of readers and writers of shared files may peacefully coexist without risk of file corruption. Note that if you have other applications reading/writing directly to a gridFS collection (e.g. a node.js program, not using Meteor/fileCollection), it will need to use the [`gridfs-locks`](https://www.npmjs.org/package/gridfs-locks) or [`gridfs-locking-stream`](https://www.npmjs.org/package/gridfs-locking-stream) npm packages to safely interoperate with `fileCollection`.
 
 ### Security
 
@@ -170,7 +168,7 @@ You may have noticed that the gridFS `files` data model says nothing about file 
 *    A file is always initially created as a valid zero-length gridFS file using `insert` on the client/server. When it takes place on the client, the `insert` allow/deny rules apply.
 *    Clients are always denied from directly updating a file document's attributes. The `update` allow/deny rules secure writing file *data* to a previously inserted file via HTTP methods. This means that an HTTP POST/PUT cannot create a new file by itself. It needs to have been inserted first, and only then can data be added to it using HTTP.
 *    The `remove` allow/deny rules work just as you would expect for client calls, and they also secure the HTTP DELETE method when it's used.
-*    All HTTP REST interfaces are disabled by default, and when enabled can be authenticated to a Meteor `userId` by using a currently valid authentication token.
+*    All HTTP methods are disabled by default. When enabled, they can be authenticated to a Meteor `userId` by using a currently valid authentication token passed either in the HTTP request header or as an URL query parameter.
 
 ## API
 
