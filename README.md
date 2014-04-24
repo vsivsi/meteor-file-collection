@@ -116,7 +116,8 @@ if (Meteor.isClient) {
           if (err) { return console.error("File creation failed!", err); }
           // Once the file exists on the server, start uploading
           myData.resumable.upload();
-        });
+        }
+      );
     });
   });
 }
@@ -332,7 +333,7 @@ curl -X DELETE 'http://127.0.0.1:3000/gridfs/fs/38a14c8fef2d6cef53c70792' \
      -H 'X-Auth-Token: zrtrotHrDzwA4nC5'
 ```
 
-Below are the methods defined for the returned `fileCollection`
+Below are the methods defined on the returned `fileCollection`
 
 ### fc.resumable
 #### Resumable.js API object - Client only
@@ -352,9 +353,8 @@ myData.resumable.on('fileAdded', function (file) {
 #### Find any number of files - Server and Client
 
 ```js
-// Count the number of likely lolcats in collection
+// Count the number of likely lolcats in collection, this is reactive
 lols = fc.find({ 'contentType': 'image/gif'}).count();
-});
 ```
 
 `fc.find()` is identical to [Meteor's `Collection.find()`](http://docs.meteor.com/#find)
@@ -362,10 +362,27 @@ lols = fc.find({ 'contentType': 'image/gif'}).count();
 ### fc.findOne(selector, [options])
 #### Find a single file. - Server and Client
 
+```js
+// Grab the file document for a known lolcat
+// This is not the file data, see fc.findOneStream() for that!
+myLol = fc.findOne({ 'filename': 'lolcat.gif'});
+```
+
 `fc.findOne()` is identical to [Meteor's `Collection.findOne()`](http://docs.meteor.com/#findone)
 
 ### fc.insert([file], [callback])
 #### Insert a new zero-length file. - Server and Client
+
+```js
+// Create a new zero-length file in the collection
+_id = fc.insert({
+  filename: 'nyancat.flv',
+  contentType: 'video/x-flv'
+  metadata: { owner: 'posterity' }
+  }
+  // Callback here, if you really care...
+);
+```
 
 `fc.insert()` is the same as [Meteor's `Collection.insert()`](http://docs.meteor.com/#insert), except that the document is forced to be a [gridFS `files` document](http://docs.mongodb.org/manual/reference/gridfs/#the-files-collection). All attributes not supplied get default values, non-gridFS attributes are silently dropped. Inserts from the client that do not conform to the gridFS data model will automatically be denied. Client inserts will additionally be subjected to any `'insert'` allow/deny rules (which default to deny all inserts).
 
