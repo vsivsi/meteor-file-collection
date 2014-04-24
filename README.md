@@ -406,7 +406,7 @@ fc.remove(
 #### Update application controlled gridFS file attributes. - Server only
 
 ```js
-// Make it go away, data and all
+// Update some attributes we own
 fc.update(
   { filename: 'keyboardcat.mp4' },
   {
@@ -503,10 +503,10 @@ When the write stream has closed, the `callback` is called as `callback(error, f
 ```js
 // Write a file to wherever it belongs in the filesystem
 fc.exportFile({ 'filename': 'nyancat.flv'},
-                '/dev/null',
-                function(err) {
-                  // Deal with it
-                });
+              '/dev/null',
+              function(err) {
+                // Deal with it
+              });
 ```
 
 `fc.exportFile()` is a convenience method that [pipes](http://nodejs.org/api/stream.html#stream_readable_pipe_destination_options) the readable stream produced by `fc.findOneStream()` into a local [file system writable stream](http://nodejs.org/api/fs.html#fs_fs_createwritestream_path_options).
