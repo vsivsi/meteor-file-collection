@@ -135,7 +135,9 @@ The package exposes a global object `fileCollection` on both client and server.
 If you'd like to try out the sample app, you can clone the repo from github:
 
 ```
-git clone --recursive https://github.com/vsivsi/meteor-file-collection.git fileCollection
+git clone --recursive \
+    https://github.com/vsivsi/meteor-file-collection.git \
+    fileCollection
 ```
 
 Then go to the `sampleApp` subdirectory and run meteorite to launch:
@@ -301,7 +303,8 @@ curl -X POST 'http://127.0.0.1:3000/gridfs/fs/38a14c8fef2d6cef53c70792' \
 
 # PUT with file in request body
 curl -X PUT 'http://127.0.0.1:3000/gridfs/fs/38a14c8fef2d6cef53c70792' \
-     -T "lolcat.gif" -H 'Content-Type: image/gif' -H 'X-Auth-Token: zrtrotHrDzwA4nC5'
+     -H 'Content-Type: image/gif' -H 'X-Auth-Token: zrtrotHrDzwA4nC5' \
+     -T "lolcat.gif"
 
 # DELETE the file
 curl -X DELETE 'http://127.0.0.1:3000/gridfs/fs/38a14c8fef2d6cef53c70792' \
