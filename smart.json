@@ -3,7 +3,7 @@
   "description": "Extends Collection to efficiently store file data within Meteor, including built-in HTTP up/download support",
   "homepage": "https://github.com/vsivsi/meteor-file-collection",
   "author": "Vaughn Iverson (https://github.com/vsivsi)",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "git": "https://github.com/vsivsi/meteor-file-collection.git",
   "packages" : {}
 }

@@ -375,10 +375,13 @@ myLol = fc.findOne({ 'filename': 'lolcat.gif'});
 
 ```js
 // Create a new zero-length file in the collection
+// All fields are optional and will get defaults if omitted
 _id = fc.insert({
+  _id: new Meteor.Collection.ObjectID(),
   filename: 'nyancat.flv',
-  contentType: 'video/x-flv'
-  metadata: { owner: 'posterity' }
+  contentType: 'video/x-flv',
+  metadata: { owner: 'posterity' },
+  aliases: [ ]
   }
   // Callback here, if you really care...
 );
@@ -389,10 +392,31 @@ _id = fc.insert({
 ### fc.remove(selector, [callback])
 #### Remove a file and all of its data. - Server and Client
 
+```js
+// Make it go away, data and all
+fc.remove(
+  { filename: 'nyancat.flv' }
+  // Callback here, if you want to be absolultely sure it's really gone...
+);
+```
+
 `fc.remove()` is nearly the same as [Meteor's `Collection.remove()`](http://docs.meteor.com/#remove), except that in addition to removing the file document, it also remove the file data chunks and locks from the gridFS store. For safety, undefined and empty selectors (`undefined`, `null` or `{}`) are all rejected. Client calls are subjected to any `'remove'`  allow/deny rules (which default to deny all removes).
 
 ### fc.update(selector, modifier, [options], [callback])
 #### Update application controlled gridFS file attributes. - Server only
+
+```js
+// Make it go away, data and all
+fc.update(
+  { filename: 'keyboardcat.mp4' },
+  {
+    $set: { 'metadata.comment': 'Play them off...' } },
+    $push: { aliases: 'Fatso.mp4' }
+  }
+  // Optional options here
+  // Optional callback here
+);
+```
 
 `fc.update()` is nearly the same as [Meteor's `Collection.update()`](http://docs.meteor.com/#update), except that it is a server only method, and it will return an error if:
 
@@ -405,15 +429,32 @@ Since `fc.update()` only runs on the server, it is *not* subjected to the `'upda
 ### fc.allow(options)
 #### Allow client insert and remove, and HTTP data updates, subject to your limitations. - Server only
 
+```js
+fc.allow({
+  insert: function (userId, file) { return true; }  // Anyone can insert, yay!
+});
+```
+
 `fc.allow(options)` is the same as [Meteor's `Collection.allow()`](http://docs.meteor.com/#allow), except that the Meteor Collection `fetch` and `transform` options are not supported in `fileCollection`. The `update` rule only applies to HTTP PUT/POST requests to modify file data, and will only see changes to the `length` and `md5` `fieldNames` for that reason. Because MongoDB updates are not involved, no `modifier` is provided to the `update` function.
 
 ### fc.deny(options)
 #### Override allow rules. - Server only
 
+```js
+fc.deny({
+  remove: function (userId, file) { return true; }  // Nobody can remove, boo!
+});
+```
+
 `fc.deny(options)` is the same as [Meteor's `Collection.deny()`](http://docs.meteor.com/#deny), except that the Meteor Collection `fetch` and `transform` options are not supported in `fileCollection`. The `update` rule only applies to HTTP PUT/POST requests to modify file data, and will only see changes to the `length` and `md5` `fieldNames` for that reason. Because MongoDB updates are not involved, no `modifier` is provided to the `update` function.
 
 ### fc.findOneStream(selector, [options], [callback])
 #### Find a fileCollection file and return a readable stream for its data. - Server only
+
+```js
+// Get a readable data stream for a known lolcat
+lolStream = fc.findOneStream({ 'filename': 'lolcat.gif'});
+```
 
 `fc.findOneStream()` is like `fc.findOne()` except instead of returning the `files` document for the found file, it returns a [Readable stream](http://nodejs.org/api/stream.html#stream_class_stream_readable) for the found file's data.
 
@@ -430,6 +471,14 @@ When the stream has ended, the `callback` is called with the gridFS file documen
 
 ### fc.upsertStream(file, [options], [callback])
 #### Create/update a fileCollection file and return a writable stream to its data. - Server only
+
+```js
+// Get a writeable data stream to re-store all that is right and good
+nyanStream = fc.upsertStream({ filename: 'nyancat.flv',
+                               contentType: 'video/x-flv',
+                               metadata: { caption: 'Not again!'}
+                             });
+```
 
 `fc.upsertStream()` is a little bit like Meteor's `Collection.upsert()` only really not... If the `file` parameter contains an `_id` field, then the call will work on the file with that `_id`. If a file with that `_id` doesn't exist, or if no `_id` is provided, then a new file is `insert`ed into the fileCollection. Any application owned gridFS attributes (`filename`, `contentType`, `aliases`, `metadata`) that are present in the `file` parameter will be used for the file, whether it is being inserted, or updated.
 
@@ -451,12 +500,33 @@ When the write stream has closed, the `callback` is called as `callback(error, f
 ### fc.exportFile(selector, filePath, callback)
 #### Export a `fileCollection` file to the local fileSystem. - Server only
 
+```js
+// Write a file to wherever it belongs in the filesystem
+fc.exportFile({ 'filename': 'nyancat.flv'},
+                '/dev/null',
+                function(err) {
+                  // Deal with it
+                });
+```
+
 `fc.exportFile()` is a convenience method that [pipes](http://nodejs.org/api/stream.html#stream_readable_pipe_destination_options) the readable stream produced by `fc.findOneStream()` into a local [file system writable stream](http://nodejs.org/api/fs.html#fs_fs_createwritestream_path_options).
 
 The `selector` parameter works as it does with `fc.findOneStream()`. The `filePath` is the String directory path and filename in the local filesystem to write the file data to. The value of the `filename` attribute in the found gridFS file document is ignored. The callback is mandatory and will be called with a single parameter that will be either an `Error` object or `null` depending on the success of the operation.
 
 ### fc.importFile(filePath, file, callback)
 #### Import a local filesystem file into a `fileCollection` file. - Server only
+
+```js
+// Write a file to wherever it belongs in the filesystem
+fc.importFile('/funtimes/lolcat_183.gif',
+              { filename: 'lolcat_183.gif',
+                contentType: 'image/gif'
+              },
+              function(err, file) {
+                // Deal with it
+                // Or file contains all of the details.
+              });
+```
 
 `fc.importFile()` is a convenience method that [pipes](http://nodejs.org/api/stream.html#stream_readable_pipe_destination_options) a local [file system readable stream](http://nodejs.org/api/fs.html#fs_fs_createreadstream_path_options) into the writable stream produced by a call to `fc.upsertStream()`.
 
