@@ -202,7 +202,26 @@ The big loser is `upsert()`, it's gone in `fileCollection`. If you try to call i
 ### fc = new fileCollection([name], [options])
 #### Create a new `fileCollection` - Server and Client
 
-The same `fileCollection` call should be made on both the client and server.
+```js
+
+// create a new fileCollection with all default values
+
+fc = new fileCollection('fs',  // base name of collection
+  { resumable: false,          // Disable resumable.js upload support
+    chunkSize: 2*1024*1024,    // Use 2MB chunks for gridFS and resumable
+    baseUrl: '\gridfs\fs',     // Default base URL for all HTTP methods
+    locks: {                   // Parameters for gridfs-locks
+      timeOut: 360,            // Seconds to wait for an unavailable lock
+      pollingInterval: 5,      // Seconds to wait between lock attempts
+      lockExpiration: 90       // Seconds until a lock expires
+    }
+    http: []    // HTTP method definitions, none by default
+    ]
+  }
+);
+```
+
+**Note:** The same `fileCollection` call should be made on both the client and server.
 
 `name` is the root name of the underlying MongoDB gridFS collection. If omitted, it defaults to `'fs'`, the default gridFS collection name. Internally, three collections are used for each `fileCollection` instance:
 
@@ -220,6 +239,8 @@ Here are the options fileCollection does support:
 *    `options.baseURL` - `<string>`  Sets the the base route for all HTTP interfaces defined on this collection. Default value is `/gridfs/[name]`
 *    `options.locks` - `<object>`  Locking parameters, the defaults should be fine and you shouldn't need to set this, but see the `gridfs-locks` [`LockCollection` docs](https://github.com/vsivsi/gridfs-locks#lockcollectiondb-options) for more information.
 *    `option.http` - <array of objects>  HTTP interface configuration objects, described below:
+
+#### Configuring HTTP methods
 
 Each object in the `option.http` array defines one HTTP request interface on the server, and has these three attributes:
 
@@ -316,10 +337,25 @@ Below are the methods defined for the returned `fileCollection`
 ### fc.resumable
 #### Resumable.js API object - Client only
 
+```js
+fc.resumable.assignDrop($(".fileDrop"));  // Assign a file drop target
+
+// When a file is dropped on the target (or added some other way)
+myData.resumable.on('fileAdded', function (file) {
+  // file contains a resumable,js file object, do something with it...
+}
+```
+
 `fc.resumable` is a ready to use, preconfigured `Resumable` object that is available when a `fileCollection` is created with `options.resumable == true`. `fc.resumable` contains the results of calling `new Resumable([options])` where all of the options have been specified by `fileCollection` to work with its server side support. See the [Resumable.js documentation](http://www.resumablejs.com/) for more details on how to use it.
 
 ### fc.find(selector, [options])
 #### Find any number of files - Server and Client
+
+```js
+// Count the number of likely lolcats in collection
+lols = fc.find({ 'contentType': 'image/gif'}).count();
+});
+```
 
 `fc.find()` is identical to [Meteor's `Collection.find()`](http://docs.meteor.com/#find)
 
