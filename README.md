@@ -30,7 +30,7 @@ Here's the difference in a nutshell: collectionFS is a Ferrari, and fileCollecti
 
 They do approximately the same thing using some of the same technologies, but reflect different design priorities. `fileCollection` is much simpler and somewhat less flexible; but if it meets your needs you'll find it has a lot fewer moving parts and may be significantly more efficient to work with and use.
 
-If you're trying to quickly prototype an idea or you know that you just need a straighforward way of dealing with files, you should definitely try `fileCollection`.
+If you're trying to quickly prototype an idea or you know that you just need a straightforward way of dealing with files, you should definitely try `fileCollection`.
 
 However, if you find your project needs all of the bells and whistles that collectionFS offers, then you'll have your answer.
 
