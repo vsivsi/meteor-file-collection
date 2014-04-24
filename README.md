@@ -316,7 +316,7 @@ Below are the methods defined for the returned `fileCollection`
 ### fc.resumable
 #### Resumable.js API object - Client only
 
-`fc.resumable` is a ready to use instance of `Resumable` that is available when the `fileCollection` was created with `options.resumable == true`. See the [Resumable.js documentation](http://www.resumablejs.com/) for more details.
+`fc.resumable` is a ready to use, preconfigured `Resumable` object that is available when a `fileCollection` is created with `options.resumable == true`. `fc.resumable` contains the results of calling `new Resumable([options])` where all of the options have been specified by `fileCollection` to work with its server side support. See the [Resumable.js documentation](http://www.resumablejs.com/) for more details on how to use it.
 
 ### fc.find(selector, [options])
 #### Find any number of files - Server and Client
