@@ -16,11 +16,11 @@ thatFileStream = files.findOneStream({ filename: 'lolcat.gif' });
 // Write the file data someplace...
 ```
 
-#### Feature summary
+### Feature summary
 
 Under the hood, file data is stored entirely within the Meteor MongoDB instance using a Mongo technology called [gridFS](http://docs.mongodb.org/manual/reference/gridfs/). Your fileCollections and the underlying gridFS collection remain perfectly in sync because they *are* the same collection; and `fileCollection` is automatically safe for concurrent read/write access to files via [MongoDB based locking](https://github.com/vsivsi/gridfs-locks). `fileCollection` also provides a simple way to enable secure HTTP (GET, POST, PUT, DELETE) interfaces to your files, and additionally has built-in support for robust and resumable file uploads using the excellent [Resumable.js](http://www.resumablejs.com/) library.
 
-#### Design philosophy
+### Design philosophy
 
 My goal in writing this package was to stay true to the spirit of Meteor and build something that can be made efficient, secure and to "just work" with a minimum of fuss.
 
@@ -34,7 +34,7 @@ If you're trying to quickly prototype an idea or you know that you just need a s
 
 However, if you find your project needs all of the bells and whistles that collectionFS offers, then you'll have your answer.
 
-### Example
+## Example
 
 Enough words, time for some more code...
 
@@ -162,9 +162,9 @@ Before proceeding, take a minute to familiarize yourself with the [MongoDB gridF
 
 Now that you've seen the data model, here are a few things to keep in mind about it:
 
-*    Some of the attributes belong to gridFS, and you may **lose data** if you mess around with these:
-*    `_id`, `length`, `chunkSize`, `uploadDate` and `md5` should be considered read-only.
-*    Some the attributes belong to you. You can do whatever you want with them.
+*    Some of the attributes belong to gridFS, and you may **lose data** if you mess around with these.
+*    For the above reason, `_id`, `length`, `chunkSize`, `uploadDate` and `md5` are read-only.
+*    Some of the attributes belong to you. Your application can do whatever you want with them.
 *    `filename`, `contentType`, `aliases` and `metadata` are yours. Go to town.
 *    `contentType` should probably be a valid [MIME Type](https://en.wikipedia.org/wiki/MIME_type)
 *    `filename` is *not* guaranteed unique. `_id` is a better bet if you want to be sure of what you're getting.
