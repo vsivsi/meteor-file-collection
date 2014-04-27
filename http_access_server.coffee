@@ -55,7 +55,7 @@ if Meteor.isServer
 
    post = (req, res, next) ->
 
-      # Parse MIME Multipart request bidy
+      # Parse MIME Multipart request body
       dice_multipart req, (err, fileStream, filename, filetype) =>
          if err
             console.warn('Error parsing POST body', err)

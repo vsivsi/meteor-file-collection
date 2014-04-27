@@ -1,9 +1,9 @@
 {
   "name": "fileCollection",
-  "description": "Meteor Collections that easily and efficiently store files, including built-in HTTP up/download support",
+  "description": "Collections that efficiently store files using MongoDB GridFS, with built-in HTTP down/upload support",
   "homepage": "https://github.com/vsivsi/meteor-file-collection",
   "author": "Vaughn Iverson (https://github.com/vsivsi)",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "git": "https://github.com/vsivsi/meteor-file-collection.git",
   "packages" : {}
 }
