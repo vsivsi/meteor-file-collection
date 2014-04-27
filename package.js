@@ -11,11 +11,11 @@ Package.describe({
 
 Npm.depends({
   mongodb: '1.4.0',
-  'gridfs-locking-stream': '0.1.4',
-  'gridfs-locks': '1.1.1',
+  'gridfs-locking-stream': '0.1.6',
+  'gridfs-locks': '1.1.2',
   dicer: '0.2.3',
   async: '0.7.0',
-  express: '4.0.0'
+  express: '4.1.0'
 });
 
 Package.on_use(function(api) {
