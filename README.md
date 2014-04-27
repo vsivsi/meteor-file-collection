@@ -158,12 +158,27 @@ Load `http://localhost:3000/` and the tests should run in your browser and on th
 
 ## Use
 
-Before proceeding, take a minute to familiarize yourself with the [MongoDB gridFS `files` data model](http://docs.mongodb.org/manual/reference/gridfs/#the-files-collection). This is the schema used by `fileCollection` because fileCollection *is* gridFS.
+Below you'll find the [MongoDB gridFS `files` data model](http://docs.mongodb.org/manual/reference/gridfs/#the-files-collection). This is also the schema used by `fileCollection` because fileCollection *is* gridFS.
 
-Now that you've seen the data model, here are a few things to keep in mind about it:
+```js
+{
+  "_id" : <ObjectId>,
+  "length" : <number>,
+  "chunkSize" : <number>
+  "uploadDate" : <Date>
+  "md5" : <string>
+
+  "filename" : <string>,
+  "contentType" : <string>,
+  "aliases" : <array of strings>,
+  "metadata" : <object>
+}
+```
+
+Here are a few things to keep in mind about the gridFS file data model:
 
 *    Some of the attributes belong to gridFS, and you may **lose data** if you mess around with these.
-*    For the above reason, `_id`, `length`, `chunkSize`, `uploadDate` and `md5` are read-only.
+*    For this reason, `_id`, `length`, `chunkSize`, `uploadDate` and `md5` are read-only in fileCollection.
 *    Some of the attributes belong to you. Your application can do whatever you want with them.
 *    `filename`, `contentType`, `aliases` and `metadata` are yours. Go to town.
 *    `contentType` should probably be a valid [MIME Type](https://en.wikipedia.org/wiki/MIME_type)
