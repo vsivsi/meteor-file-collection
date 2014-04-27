@@ -1,4 +1,8 @@
-#$# Revision history
+## Revision history
+
+### 0.1.7
+
+*    Bumped package versions to fix more mongodb 2.4.x backwards compatility issues
 
 ### 0.1.6
 
