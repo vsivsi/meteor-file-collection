@@ -199,7 +199,10 @@ if Meteor.isServer
 
       findOneStream: (selector, options = {}, callback = undefined) ->
          callback = share.bind_env callback
-         file = @findOne selector, { sort: options.sort, skip: options.skip }
+         opts = {}
+         opts.sort = options.sort if options.sort?
+         opts.sort = options.skip if options.skip?
+         file = @findOne selector, opts
          if file
             readStream = Meteor._wrapAsync(@gfs.createReadStream.bind(@gfs))
                root: @root
