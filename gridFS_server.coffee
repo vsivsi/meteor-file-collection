@@ -59,7 +59,7 @@ if Meteor.isServer
          @denys = { insert: [], update: [], remove: [] }
 
          # Call super's constructor
-         super @root + '.files'
+         super @root + '.files', { idGeneration: 'MONGO' }
 
          # Setup specific allow/deny rules for gridFS, and tie-in the application settings
 
@@ -79,6 +79,7 @@ if Meteor.isServer
             insert: (userId, file) =>
 
                # Make darn sure we're creating a valid gridFS .files document
+
                check file,
                   _id: Meteor.Collection.ObjectID
                   length: Match.Where (x) =>

@@ -19,7 +19,7 @@ if Meteor.isClient
          @base = @root
          @baseURL = options.baseURL ? "/gridfs/#{@root}"
          @chunkSize = options.chunkSize ? share.defaultChunkSize
-         super @root + '.files'
+         super @root + '.files', { idGeneration: 'MONGO' }
 
          # This call sets up the optional support for resumable.js
          # See the resumable.coffee file for more information
