@@ -1,5 +1,11 @@
 ## Revision history
 
+### 0.1.8
+
+*    Updates for Meteor v0.8.1.1
+*    Documentation improvements
+*    Updated npm package versions
+
 ### 0.1.7
 
 *    Bumped package versions to fix more mongodb 2.4.x backwards compatility issues
