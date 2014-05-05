@@ -252,7 +252,7 @@ Here are the options fileCollection does support:
 
 *    `options.resumable` - `<boolean>`  When `true`, exposes the [Resumable.js API](http://www.resumablejs.com/) on the client and the matching resumable HTTP support on the server.
 *    `options.chunkSize` - `<integer>`  Sets the gridFS and Resumable.js chunkSize in bytes. Values of 1 MB or greater are probably best with a maximum of 8 MB. Partial chunks are not padded, so there is no storage space benefit to using smaller chunk sizes.
-*    `options.baseURL` - `<string>`  Sets the the base route for all HTTP interfaces defined on this collection. Default value is `/gridfs/[name]`
+*    `options.baseURL` - `<string>`  Sets the base route for all HTTP interfaces defined on this collection. Default value is `/gridfs/[name]`
 *    `options.locks` - `<object>`  Locking parameters, the defaults should be fine and you shouldn't need to set this, but see the `gridfs-locks` [`LockCollection` docs](https://github.com/vsivsi/gridfs-locks#lockcollectiondb-options) for more information.
 *    `option.http` - <array of objects>  HTTP interface configuration objects, described below:
 
