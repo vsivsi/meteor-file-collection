@@ -1,5 +1,9 @@
 ## Revision history
 
+### 0.1.10
+
+*    Fixed resumable.js upload crash
+
 ### 0.1.9
 
 *    Fix missing filenames in resumable.js uploads caused by changes in mongodb 1.4.3
