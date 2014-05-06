@@ -178,20 +178,26 @@ if Meteor.isServer
          unless options.mode is 'w' or options.mode is 'w+'
             options.mode = 'w'
          callback = share.bind_env callback
-         unless file._id
-            id = @insert file
-            file = @findOne { _id: id }
-         subFile =
-            _id: mongodb.ObjectID("#{file._id}")
-            filename: file.filename ? ''
-            mode: options.mode ? 'w'
-            root: @root
-            metadata: file.metadata ? {}
-            aliases: file.aliases ? []
-            content_type: file.contentType ? 'application/octet-stream'
-            timeOut: @lockOptions.timeOut
-            lockExpiration: @lockOptions.lockExpiration
-            pollingInterval: @lockOptions.pollingInterval
+
+         # Make sure that we have an ID and it's valid
+         if file._id
+            subFile = @findOne {_id: file._id}
+         unless file._id and subFile
+            file._id = @insert file
+            subFile = @findOne {_id: file._id}
+
+         # Reformat the ID for a mongodb call
+         subFile._id = mongodb.ObjectID("#{subFile._id}")
+         subFile.mode = options.mode ? 'w'
+         subFile.root = @root
+         subFile.filename = file.filename if file.filename?
+         subFile.metadata = file.metadata if file.metadata?
+         subFile.aliases = file.aliases if file.aliases?
+         subFile.content_type = file.contentType if file.contentType?
+         subFile.timeOut = @lockOptions.timeOut
+         subFile.lockExpiration = @lockOptions.lockExpiration
+         subFile.pollingInterval = @lockOptions.pollingInterval
+
          writeStream = Meteor._wrapAsync(@gfs.createWriteStream.bind(@gfs)) subFile
          if callback?
             writeStream.on 'close', (retFile) ->

@@ -1,5 +1,10 @@
 ## Revision history
 
+### 0.1.9
+
+*    Fix missing filenames in resumable.js uploads caused by changes in mongodb 1.4.3
+*    upsertStream now correctly updates gridFS attributes when provided
+
 ### 0.1.8
 
 *    Updates for Meteor v0.8.1.1

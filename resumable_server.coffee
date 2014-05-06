@@ -75,7 +75,7 @@ if Meteor.isServer
                         return callback err if err
                         lock.releaseLock()
                         # Now open the file to update the md5 hash...
-                        @gfs.createWriteStream { _id: fileId }, (err, stream) ->
+                        @gfs.createWriteStream { _id: fileId, filename: file.metadata_Resumable.resumableFilename }, (err, stream) ->
                            return callback err if err
                            stream.write('')
                            stream.end()
