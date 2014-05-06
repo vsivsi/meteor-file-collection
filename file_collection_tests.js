@@ -13,6 +13,20 @@ function bind_env(func) {
   }
 }
 
+var subWrapper = function (func, sub) {
+  return function(test, onComplete) {
+    if (Meteor.isClient) {
+      Deps.autorun(function () {
+        if (sub.ready()) {
+          func(test, onComplete);
+        }
+      });
+    } else {
+      func(test, onComplete);
+    }
+  };
+};
+
 var defaultColl = new fileCollection();
 
 Tinytest.add('fileCollection default constructor', function(test) {
@@ -34,13 +48,12 @@ var testColl = new fileCollection("test", {
   ]
 });
 
-if (Meteor.isClient) {
-  Tinytest.add('Client has Resumable', function(test) {
-    test.instanceOf(testColl.resumable, Resumable, "Resumable object not found");
-  });
-}
-
 if (Meteor.isServer) {
+
+  Meteor.publish('everything', function () { return testColl.find({}); });
+
+  var sub = null
+
   testColl.allow({
     insert: function () { return true; },
     update: function () { return true; },
@@ -51,6 +64,7 @@ if (Meteor.isServer) {
     update: function () { return false; },
     remove: function () { return false; }
   });
+
   Tinytest.add('set allow/deny on fileCollection', function(test) {
     test.equal(testColl.allows.insert[0](), true);
     test.equal(testColl.allows.remove[0](), true);
@@ -62,6 +76,15 @@ if (Meteor.isServer) {
 
   Tinytest.add('check server REST API', function (test) {
     test.equal(typeof testColl.router, 'function');
+  });
+}
+
+if (Meteor.isClient) {
+
+  var sub = Meteor.subscribe('everything');
+
+  Tinytest.add('Client has Resumable', function(test) {
+    test.instanceOf(testColl.resumable, Resumable, "Resumable object not found");
   });
 }
 
@@ -89,6 +112,29 @@ Tinytest.add('fileCollection insert and findOne', function(test) {
   test.equal(file.contentType, 'application/octet-stream')
 });
 
+Tinytest.addAsync('fileCollection insert and findOne in callback', subWrapper(function(test, onComplete) {
+  var _id = testColl.insert({}, function (err, retid) {
+    if (err) { test.fail(err); }
+    test.isNotNull(_id, "No _id returned by insert");
+    test.isNotNull(retid, "No _id returned by insert callback");
+    test.instanceOf(_id, Meteor.Collection.ObjectID, "_id is wrong type");
+    test.instanceOf(retid, Meteor.Collection.ObjectID, "retid is wrong type");
+    test.equal(_id, retid, "different ids returned in return and callback");
+    var file = testColl.findOne({_id : retid});
+    test.isNotNull(file, "Invalid file returned by findOne");
+    test.equal(typeof file, "object");
+    test.equal(file.length, 0);
+    test.equal(file.md5, 'd41d8cd98f00b204e9800998ecf8427e');
+    test.instanceOf(file.uploadDate, Date);
+    test.equal(file.chunkSize, 1024*1024);
+    test.equal(file.filename, '');
+    test.equal(typeof file.metadata, "object");
+    test.instanceOf(file.aliases, Array);
+    test.equal(file.contentType, 'application/octet-stream');
+    onComplete();
+  });
+}, sub));
+
 Tinytest.add('fileCollection insert and find with options', function(test) {
   var _id = testColl.insert({ filename: 'testfile', metadata: { x: 1 }, aliases: ["foo"], contentType: 'text/plain' });
   test.isNotNull(_id, "No _id returned by insert");
@@ -97,7 +143,7 @@ Tinytest.add('fileCollection insert and find with options', function(test) {
   test.isNotNull(file, "Invalid file returned by findOne");
   test.equal(typeof file, "object");
   test.equal(file.length, 0);
-  test.equal(file.md5, 'd41d8cd98f00b204e9800998ecf8427e')
+  test.equal(file.md5, 'd41d8cd98f00b204e9800998ecf8427e');
   test.instanceOf(file.uploadDate, Date);
   test.equal(file.chunkSize, 1024*1024);
   test.equal(file.filename, 'testfile');
@@ -105,8 +151,33 @@ Tinytest.add('fileCollection insert and find with options', function(test) {
   test.equal(file.metadata.x, 1);
   test.instanceOf(file.aliases, Array);
   test.equal(file.aliases[0], 'foo');
-  test.equal(file.contentType, 'text/plain')
+  test.equal(file.contentType, 'text/plain');
 });
+
+Tinytest.addAsync('fileCollection insert and find with options in callback', subWrapper(function(test, onComplete) {
+  var _id = testColl.insert({ filename: 'testfile', metadata: { x: 1 }, aliases: ["foo"], contentType: 'text/plain' }, function(err, retid) {
+    if (err) { test.fail(err); }
+    test.isNotNull(_id, "No _id returned by insert");
+    test.isNotNull(retid, "No _id returned by insert callback");
+    test.instanceOf(_id, Meteor.Collection.ObjectID, "_id is wrong type");
+    test.instanceOf(retid, Meteor.Collection.ObjectID, "retid is wrong type");
+    test.equal(_id, retid, "different ids returned in return and callback");
+    var file = testColl.findOne({_id : retid});
+    test.isNotNull(file, "Invalid file returned by findOne");
+    test.equal(typeof file, "object");
+    test.equal(file.length, 0);
+    test.equal(file.md5, 'd41d8cd98f00b204e9800998ecf8427e');
+    test.instanceOf(file.uploadDate, Date);
+    test.equal(file.chunkSize, 1024*1024);
+    test.equal(file.filename, 'testfile');
+    test.equal(typeof file.metadata, "object");
+    test.equal(file.metadata.x, 1);
+    test.instanceOf(file.aliases, Array);
+    test.equal(file.aliases[0], 'foo');
+    test.equal(file.contentType, 'text/plain');
+    onComplete();
+  });
+}, sub));
 
 if (Meteor.isServer) {
 
