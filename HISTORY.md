@@ -1,5 +1,9 @@
 ## Revision history
 
+### 0.1.12
+
+*    Fixed sample code in README.md. Thanks to @rcy
+
 ### 0.1.10
 
 *    Fixed resumable.js upload crash
