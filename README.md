@@ -42,13 +42,14 @@ The block below implements a `fileCollection` on server, including support for o
 
 ```js
 // Create a file collection, and enable file upload and download using HTTP
-files = new fileCollection('myFiles',
+Files = new fileCollection('myFiles',
   { resumable: true,   // Enable built-in resumable.js upload support
     http: [
       { method: 'get',
         path: '/:md5',  // this will be at route "/gridfs/myFiles/:md5"
         lookup: function (params, query) {  // uses express style url params
-          return { md5: params.md5 };   // a mongo query mapping url to myFiles
+          return { md5: params.md5 };       // a mongo query mapping url to myFiles
+        }
       }
     ]
   }
@@ -60,14 +61,14 @@ if (Meteor.isServer) {
   // file chunks being used by Resumable.js for current uploads
   Meteor.publish('myData',
     function () {
-      return files.find({ 'metadata._Resumable': { $exists: false },
+      return Files.find({ 'metadata._Resumable': { $exists: false },
                    'metadata.owner': this.userId });
     }
   );
 
   // Allow rules for security. Should look familiar!
   // Without these, no file writes would be allowed
-  files.allow({
+  Files.allow({
     remove: function (userId, file) {
       // Only owners can delete
       if (userId !== file.metadata.owner) {
@@ -101,13 +102,16 @@ if (Meteor.isClient) {
 
   Meteor.startup(function() {
     // This assigns a file upload drop zone to some DOM node
-    files.resumable.assignDrop($(".fileDrop"));
+    Files.resumable.assignDrop($(".fileDrop"));
+
+    // This assigns a browse action to a DOM node
+    Files.resumable.assignBrowse($(".fileBrowse"));
 
     // When a file is added via drag and drop
-    myData.resumable.on('fileAdded', function (file) {
+    Files.resumable.on('fileAdded', function (file) {
 
       // Create a new file in the file collection to upload
-      files.insert({
+      Files.insert({
         _id: file.uniqueIdentifier,  // This is the ID resumable will use
         filename: file.fileName,
         contentType: file.file.type
@@ -115,7 +119,7 @@ if (Meteor.isClient) {
         function (err, _id) {  // Callback to .insert
           if (err) { return console.error("File creation failed!", err); }
           // Once the file exists on the server, start uploading
-          myData.resumable.upload();
+          Files.resumable.upload();
         }
       );
     });
