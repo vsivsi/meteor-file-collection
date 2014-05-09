@@ -3,15 +3,15 @@
 `fileCollection` is a [Meteor.js](https://www.meteor.com/) [package](https://atmospherejs.com/package/collectionFS) that cleanly extends Meteor's `Collection` metaphor for efficiently dealing with collections of files and their data. File Collections are fully reactive, so if you know how to use Meteor [Collections](http://docs.meteor.com/#collections), you already know most of what you need to begin working with `fileCollection`.
 
 ```js
-files = new fileCollection('myFiles');
+Files = new fileCollection('myFiles');
 
 // Find a file document by name
 
-thatFile = files.findOne({ filename: 'lolcat.gif' });
+thatFile = Files.findOne({ filename: 'lolcat.gif' });
 
 // or get a file's data as a stream
 
-thatFileStream = files.findOneStream({ filename: 'lolcat.gif' });
+thatFileStream = Files.findOneStream({ filename: 'lolcat.gif' });
 
 // Write the file data someplace...
 ```
@@ -236,7 +236,6 @@ fc = new fileCollection('fs',  // base name of collection
       lockExpiration: 90       // Seconds until a lock expires
     }
     http: []    // HTTP method definitions, none by default
-    ]
   }
 );
 ```
