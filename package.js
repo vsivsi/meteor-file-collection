@@ -10,12 +10,12 @@ Package.describe({
 });
 
 Npm.depends({
-  mongodb: '1.4.3',
-  'gridfs-locking-stream': '0.1.7',
-  'gridfs-locks': '1.2.0',
+  mongodb: '1.4.4',
+  'gridfs-locking-stream': '0.2.1',
+  'gridfs-locks': '1.2.1',
   dicer: '0.2.3',
   async: '0.8.0',
-  express: '4.1.1'
+  express: '4.2.0'
 });
 
 Package.on_use(function(api) {
