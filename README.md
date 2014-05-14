@@ -18,7 +18,7 @@ thatFileStream = Files.findOneStream({ filename: 'lolcat.gif' });
 
 ### Feature summary
 
-Under the hood, file data is stored entirely within the Meteor MongoDB instance using a Mongo technology called [gridFS](http://docs.mongodb.org/manual/reference/gridfs/). Your fileCollections and the underlying gridFS collection remain perfectly in sync because they *are* the same collection; and `fileCollection` is automatically safe for concurrent read/write access to files via [MongoDB based locking](https://github.com/vsivsi/gridfs-locks). `fileCollection` also provides a simple way to enable secure HTTP (GET, POST, PUT, DELETE) interfaces to your files, and additionally has built-in support for robust and resumable file uploads using the excellent [Resumable.js](http://www.resumablejs.com/) library.
+Under the hood, file data is stored entirely within the Meteor MongoDB instance using a Mongo technology called [gridFS](http://docs.mongodb.org/manual/reference/gridfs/). Your fileCollection and the underlying gridFS collection remain perfectly in sync because they *are* the same collection; and `fileCollection` is automatically safe for concurrent read/write access to files via [MongoDB based locking](https://github.com/vsivsi/gridfs-locks). `fileCollection` also provides a simple way to enable secure HTTP (GET, POST, PUT, DELETE) interfaces to your files, and additionally has built-in support for robust and resumable file uploads using the excellent [Resumable.js](http://www.resumablejs.com/) library.
 
 ### Design philosophy
 
@@ -229,7 +229,7 @@ The big loser is `upsert()`, it's gone in `fileCollection`. If you try to call i
 fc = new fileCollection('fs',  // base name of collection
   { resumable: false,          // Disable resumable.js upload support
     chunkSize: 2*1024*1024,    // Use 2MB chunks for gridFS and resumable
-    baseUrl: '\gridfs\fs',     // Default base URL for all HTTP methods
+    baseURL: '\gridfs\fs',     // Default base URL for all HTTP methods
     locks: {                   // Parameters for gridfs-locks
       timeOut: 360,            // Seconds to wait for an unavailable lock
       pollingInterval: 5,      // Seconds to wait between lock attempts
