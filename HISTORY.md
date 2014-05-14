@@ -1,5 +1,9 @@
 ## Revision history
 
+### 0.1.13
+
+*    Updated versions of mongodb, gridfs-locks, gridfs-locking-stream and express
+
 ### 0.1.12
 
 *    Fixed typos in documentation. Thanks to @dawjdh
