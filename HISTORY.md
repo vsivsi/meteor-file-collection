@@ -1,5 +1,9 @@
 ## Revision history
 
+### 0.1.12
+
+*    Fixed typos in documentation. Thanks to @dawjdh
+
 ### 0.1.11
 
 *    Fixed sample code in README.md. Thanks to @rcy
