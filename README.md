@@ -190,9 +190,9 @@ Here are a few things to keep in mind about the gridFS file data model:
 
 Sound complicated? It really isn't and `fileCollection` is here to help.
 
-First off, when you create a new file you use `file.insert(...)` and just populate whatever attributes you care about. Then `fileCollection` does the rest. You are guaranteed to get a valid gridFS file, even if you just do this: `id = file.insert();`
+First off, when you create a new file you use `Files.insert(...)` and just populate whatever attributes you care about. Then `fileCollection` does the rest. You are guaranteed to get a valid gridFS file, even if you just do this: `id = Files.insert();`
 
-Likewise, when you run `file.update(...)` on the server, `fileCollection` tries really hard to make sure that you aren't clobbering one of the "read-only" attributes with your update modifier. For safety, clients are never allowed to directly `update`, although you can selectively give them that power via `Meteor.methods()`.
+Likewise, when you run `Files.update(...)` on the server, `fileCollection` tries really hard to make sure that you aren't clobbering one of the "read-only" attributes with your update modifier. For safety, clients are never allowed to directly `update`, although you can selectively give them that power via `Meteor.methods()`.
 
 ### Limits and performance
 

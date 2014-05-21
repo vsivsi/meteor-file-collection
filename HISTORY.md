@@ -3,6 +3,7 @@
 ### 0.1.13
 
 *    Updated versions of mongodb, gridfs-locks, gridfs-locking-stream and express
+*    Documentation improvements
 
 ### 0.1.12
 
