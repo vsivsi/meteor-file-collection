@@ -15,7 +15,7 @@ Npm.depends({
   'gridfs-locks': '1.2.1',
   dicer: '0.2.3',
   async: '0.9.0',
-  express: '4.3.0'
+  express: '4.3.2'
 });
 
 Package.on_use(function(api) {
