@@ -1,0 +1,69 @@
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+	<title>Upload test</title>
+	<meta name="description" content="">
+	<meta name="viewport" content="width=device-width">
+</head>
+<body>
+<div>
+{{> collTest}}
+</div>
+</body>
+
+<template name="collTest">
+  <div class="container panel">
+    <h3>fileCollection Test App</h3>
+    <span class="pull-right text-info">UserId: {{userId}} Token: {{loginToken}}</span>
+    <div class="loginTemp">
+      {{> loginButtons align="right"}}
+    </div>
+  </div>
+  <div class="container panel">
+    <table class="table table-bordered table-striped">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>ID</th>
+          <th>Owner</th>
+          <th>Size</th>
+          <th>Type</th>
+          <th>Checksum</th>
+          <th>Preview</th>
+        </tr>
+      </thead>
+      {{#each dataEntries}}
+        <tr>
+          <td>
+            <a href="{{link}}?download=true">{{filename}}</a>
+            <button type="button" class="close del-file" aria-hidden="true">&times;</button>
+          </td>
+          <td>{{id}}</td>
+          <td>
+          	{{#if owner}}
+          		{{owner}}
+          	{{else}}
+          		<span class="text-muted">No owner</span>
+          	{{/if}}
+          </td>
+          <td>{{length}}</td>
+          <td>{{contentType}}</td>
+          <td>{{md5}}</td>
+          <td>
+            {{#if isImage}}
+                <a href="{{link}}"><img class="img-thumbnail" alt="[ preview of {{filename}} will display here ]" src="{{link}}?x-auth-token={{loginToken}}" width="150"></a>
+            {{else}}
+               <span class="text-muted">No preview</span>
+            {{/if}}
+          </td>
+        </tr>
+      {{else}}
+        <tr><td colspan="20" align=center>
+          <span class="text-info">No files in collection, drag one here to upload</span>
+        </td></tr>
+      {{/each}}
+    </table>
+  </div>
+  <div id="fileDrop" class="container panel dropzone">
+  </div>
+</template>
