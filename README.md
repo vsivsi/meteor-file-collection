@@ -418,7 +418,7 @@ fc.remove(
 );
 ```
 
-`fc.remove()` is nearly the same as [Meteor's `Collection.remove()`](http://docs.meteor.com/#remove), except that in addition to removing the file document, it also remove the file data chunks and locks from the gridFS store. For safety, undefined and empty selectors (`undefined`, `null` or `{}`) are all rejected. Client calls are subjected to any `'remove'`  allow/deny rules (which default to deny all removes).
+`fc.remove()` is nearly the same as [Meteor's `Collection.remove()`](http://docs.meteor.com/#remove), except that in addition to removing the file document, it also removes the file data chunks and locks from the gridFS store. For safety, undefined and empty selectors (`undefined`, `null` or `{}`) are all rejected. Client calls are subjected to any `'remove'`  allow/deny rules (which default to deny all removes).
 
 ### fc.update(selector, modifier, [options], [callback])
 #### Update application controlled gridFS file attributes. - Server only
