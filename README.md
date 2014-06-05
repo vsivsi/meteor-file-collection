@@ -460,7 +460,7 @@ fc.allow({
 });
 ```
 
-`fc.allow(options)` is the same as [Meteor's `Collection.allow()`](http://docs.meteor.com/#allow), except that the Meteor Collection `fetch` and `transform` options are not supported in `fileCollection`. The `update` rule only applies to HTTP PUT/POST requests to modify file data, and will only see changes to the `length` and `md5` fields (in the `fieldnames` parameter) for that reason. Because MongoDB updates are not involved, no `modifier` is provided to the `update` function.
+`fc.allow(options)` is the same as [Meteor's `Collection.allow()`](http://docs.meteor.com/#allow), except that the Meteor Collection `fetch` and `transform` options are not supported in `fileCollection`. The `update` rule only applies to HTTP PUT/POST requests to modify file data, and will only see changes to the `length` and `md5` fields (in the `fieldnames` parameter) for that reason. Because MongoDB updates are not directly involved, no `modifier` is provided to the `update` function. The `remove` rule also applies to HTTP DELETE requests if they are enabled.
 
 ### fc.deny(options)
 #### Override allow rules. - Server only
@@ -471,7 +471,7 @@ fc.deny({
 });
 ```
 
-`fc.deny(options)` is the same as [Meteor's `Collection.deny()`](http://docs.meteor.com/#deny), except that the Meteor Collection `fetch` and `transform` options are not supported in `fileCollection`. The `update` rule only applies to HTTP PUT/POST requests to modify file data, and will only see changes to the `length` and `md5` fields (in the `fieldnames` parameter) for that reason. Because MongoDB updates are not involved, no `modifier` is provided to the `update` function.
+`fc.deny(options)` is the same as [Meteor's `Collection.deny()`](http://docs.meteor.com/#deny), except that the Meteor Collection `fetch` and `transform` options are not supported in `fileCollection`. See `fc.allow()` above for more deatils.
 
 ### fc.findOneStream(selector, [options], [callback])
 #### Find a fileCollection file and return a readable stream for its data. - Server only
