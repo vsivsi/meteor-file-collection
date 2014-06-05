@@ -367,6 +367,8 @@ myData.resumable.on('fileAdded', function (file) {
 
 `fc.resumable` is a ready to use, preconfigured `Resumable` object that is available when a `fileCollection` is created with `options.resumable == true`. `fc.resumable` contains the results of calling `new Resumable([options])` where all of the options have been specified by `fileCollection` to work with its server side support. See the [Resumable.js documentation](http://www.resumablejs.com/) for more details on how to use it.
 
+NOTE: when using Resumable.js to perform file uploads, it is normal to see 404 errors in the client console. This is a side-effect of Resumable.js feature called `testChunks` which is fully supported by fileCollection. You can read more about this here: https://github.com/vsivsi/meteor-file-collection/issues/5
+
 ### fc.find(selector, [options])
 #### Find any number of files - Server and Client
 
