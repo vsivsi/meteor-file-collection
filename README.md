@@ -372,7 +372,7 @@ myData.resumable.on('fileAdded', function (file) {
 Failed to load resource: the server responded with a status of 404 (Not Found)
 http://localhost:3000/gridfs/fs/_resumable?resumableChunkNumber=1&  ...
 ```
-This is a side-effect of Resumable.js feature called `testChunks` which is fully supported by fileCollection. You can read more about this in [this issue on GitHub](https://github.com/vsivsi/meteor-file-collection/issues/5).
+This is a side-effect of Resumable.js feature called `testChunks` which is fully supported by fileCollection. You can read more about it in [this issue on GitHub](https://github.com/vsivsi/meteor-file-collection/issues/5).
 
 ### fc.find(selector, [options])
 #### Find any number of files - Server and Client
