@@ -314,7 +314,7 @@ Here are some example HTTP interface definition objects to get you started:
 
 Authentication of HTTP requests is performed using Meteor login tokens. When Meteor [Accounts](http://docs.meteor.com/#accounts_api) are used in an application, a logged in client can see its current token using `Accounts._storedLoginToken()`. Tokens are passed in HTTP requests using either the HTTP header `X-Auth-Token: [token]` or in a specific URL query parameter `?X-Auth-Token=[token]`. If the token matches a valid logged in user, then that userId will be provided to any allow/deny rules that are called for permission for an action. Currently there is no built-in support for writing access rules for HTTP GET requests using authentication tokens. This could easily be done, but would require creating a new type of allow/deny rule to cover this case.
 
-For clients that aren't humans logged-in using browsers, it is possible to authenticate with Meteor using the DDP protocol and programmatically obtain a token. See the [npm DDP package](https://www.npmjs.org/package/ddp) for an example of an external library capable of logging into Meteor using DDP (similar libraries also exist for other languages such as Python).
+For clients that aren't humans logged-in using browsers, it is possible to authenticate with Meteor using the DDP protocol and programmatically obtain a token. See the [npm ddp-login package](https://www.npmjs.org/package/ddp-login) for a library capable of logging into Meteor using the DDP protocol (similar libraries also exist for other languages such as Python).
 
 URLs used to HTTP GET file data within a browser can be configured to automatically trigger a "File SaveAs..." download by using the `?download=true` query in the request URL.
 
