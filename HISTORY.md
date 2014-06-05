@@ -1,5 +1,10 @@
 ## Revision history
 
+### 0.1.14
+
+*    Improved documentation. Thanks to @@renarl for suggestion
+*    Updated express version.
+
 ### 0.1.13
 
 *    Updated versions of resumable, async, mongodb, gridfs-locks, gridfs-locking-stream and express
