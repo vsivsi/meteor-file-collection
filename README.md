@@ -48,7 +48,7 @@ Files = new fileCollection('myFiles',
       { method: 'get',
         path: '/:md5',  // this will be at route "/gridfs/myFiles/:md5"
         lookup: function (params, query) {  // uses express style url params
-          return { md5: params.md5 };       // a mongo query mapping url to myFiles
+          return { md5: params.md5 };       // a query mapping url to myFiles
         }
       }
     ]
