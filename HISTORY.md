@@ -2,7 +2,7 @@
 
 ### 0.1.14
 
-*    Improved documentation. Thanks to @@renarl for suggestion
+*    Improved documentation. Thanks to @renarl for suggestion.
 *    Updated express version.
 
 ### 0.1.13
