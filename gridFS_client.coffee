@@ -6,11 +6,11 @@
 
 if Meteor.isClient
 
-   class fileCollection extends Meteor.Collection
+   class FileCollection extends Meteor.Collection
 
       constructor: (@root = share.defaultRoot, options = {}) ->
-         unless @ instanceof fileCollection
-            return new fileCollection(root, options)
+         unless @ instanceof FileCollection
+            return new FileCollection(root, options)
 
          if typeof @root is 'object'
             options = @root
@@ -43,3 +43,14 @@ if Meteor.isClient
          # gets built from whatever is provided
          file = share.insert_func file, @chunkSize
          super file, callback
+
+   # Encapsulating class for deprecation warning
+   class fileCollection extends FileCollection
+      constructor: (r = share.defaultRoot, o = {}) ->
+         console.warn '******************************************************'
+         console.warn '** The "fileCollection" global object is deprecated'
+         console.warn '** It will be removed in v0.2.0'
+         console.warn '**'
+         console.warn '** Use "FileCollection" instead (with capital "F")'
+         console.warn '******************************************************'
+         super r, o

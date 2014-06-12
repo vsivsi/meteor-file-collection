@@ -29,6 +29,7 @@ Package.on_use(function(api) {
   api.add_files('http_access_server.coffee', 'server');
   api.add_files('resumable_client.coffee', 'client');
   api.add_files('gridFS_client.coffee', 'client');
+  api.export('FileCollection');
   api.export('fileCollection');
 });
 
