@@ -1,5 +1,9 @@
 ## Revision history
 
+### 0.1.17
+
+*    Fixed another issue when calling deprecated fileCollection object without new.
+
 ### 0.1.16
 
 *    Fixed issue when calling deprecated fileCollection object without new.
