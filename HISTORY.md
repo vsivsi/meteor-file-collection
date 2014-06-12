@@ -1,5 +1,10 @@
 ## Revision history
 
+### 0.1.15
+
+*    Added FileCollection export
+*    Updated docs to use FileCollection and note that fileCollection is deprecated and will be removed in 0.2.0
+
 ### 0.1.14
 
 *    Improved documentation. Thanks to @renarl for suggestion.

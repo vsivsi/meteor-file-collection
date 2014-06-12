@@ -14,11 +14,11 @@ if Meteor.isServer
    dicer = Npm.require 'dicer'
    express = Npm.require 'express'
 
-   class fileCollection extends Meteor.Collection
+   class FileCollection extends Meteor.Collection
 
       constructor: (@root = share.defaultRoot, options = {}) ->
-         unless @ instanceof fileCollection
-            return new fileCollection(@root, options)
+         unless @ instanceof FileCollection
+            return new FileCollection(@root, options)
 
          if typeof @root is 'object'
             options = @root
@@ -63,7 +63,7 @@ if Meteor.isServer
 
          # Setup specific allow/deny rules for gridFS, and tie-in the application settings
 
-         fileCollection.__super__.allow.bind(@)
+         FileCollection.__super__.allow.bind(@)
 
             remove: (userId, file) =>
 
@@ -108,7 +108,7 @@ if Meteor.isServer
 
                return false
 
-         fileCollection.__super__.deny.bind(@)
+         FileCollection.__super__.deny.bind(@)
 
             update: (userId, file, fields) =>
 
@@ -253,38 +253,49 @@ if Meteor.isServer
             .on('finish', share.bind_env(callback))
             .on('error', share.bind_env(callback))
 
-reject_file_modifier = (modifier) ->
+   reject_file_modifier = (modifier) ->
 
-   forbidden = Match.OneOf(
-      Match.ObjectIncluding({ _id:        Match.Any })
-      Match.ObjectIncluding({ length:     Match.Any })
-      Match.ObjectIncluding({ chunkSize:  Match.Any })
-      Match.ObjectIncluding({ md5:        Match.Any })
-      Match.ObjectIncluding({ uploadDate: Match.Any })
-   )
+      forbidden = Match.OneOf(
+         Match.ObjectIncluding({ _id:        Match.Any })
+         Match.ObjectIncluding({ length:     Match.Any })
+         Match.ObjectIncluding({ chunkSize:  Match.Any })
+         Match.ObjectIncluding({ md5:        Match.Any })
+         Match.ObjectIncluding({ uploadDate: Match.Any })
+      )
 
-   required = Match.OneOf(
-      Match.ObjectIncluding({ _id:         Match.Any })
-      Match.ObjectIncluding({ length:      Match.Any })
-      Match.ObjectIncluding({ chunkSize:   Match.Any })
-      Match.ObjectIncluding({ md5:         Match.Any })
-      Match.ObjectIncluding({ uploadDate:  Match.Any })
-      Match.ObjectIncluding({ metadata:    Match.Any })
-      Match.ObjectIncluding({ aliases:     Match.Any })
-      Match.ObjectIncluding({ filename:    Match.Any })
-      Match.ObjectIncluding({ contentType: Match.Any })
-   )
+      required = Match.OneOf(
+         Match.ObjectIncluding({ _id:         Match.Any })
+         Match.ObjectIncluding({ length:      Match.Any })
+         Match.ObjectIncluding({ chunkSize:   Match.Any })
+         Match.ObjectIncluding({ md5:         Match.Any })
+         Match.ObjectIncluding({ uploadDate:  Match.Any })
+         Match.ObjectIncluding({ metadata:    Match.Any })
+         Match.ObjectIncluding({ aliases:     Match.Any })
+         Match.ObjectIncluding({ filename:    Match.Any })
+         Match.ObjectIncluding({ contentType: Match.Any })
+      )
 
-   console.log "In modifier check", modifier
+      console.log "In modifier check", modifier
 
-   return Match.test modifier, Match.OneOf(
-      Match.ObjectIncluding({ $set: forbidden })
-      Match.ObjectIncluding({ $unset: required})
-      Match.ObjectIncluding({ $inc: forbidden})
-      Match.ObjectIncluding({ $mul: forbidden})
-      Match.ObjectIncluding({ $bit: forbidden})
-      Match.ObjectIncluding({ $min: forbidden})
-      Match.ObjectIncluding({ $max: forbidden})
-      Match.ObjectIncluding({ $rename: required})
-      Match.ObjectIncluding({ $currentDate: forbidden})
-   )
+      return Match.test modifier, Match.OneOf(
+         Match.ObjectIncluding({ $set: forbidden })
+         Match.ObjectIncluding({ $unset: required})
+         Match.ObjectIncluding({ $inc: forbidden})
+         Match.ObjectIncluding({ $mul: forbidden})
+         Match.ObjectIncluding({ $bit: forbidden})
+         Match.ObjectIncluding({ $min: forbidden})
+         Match.ObjectIncluding({ $max: forbidden})
+         Match.ObjectIncluding({ $rename: required})
+         Match.ObjectIncluding({ $currentDate: forbidden})
+      )
+
+   # Encapsulating class for deprecation warning
+   class fileCollection extends FileCollection
+      constructor: (r = share.defaultRoot, o = {}) ->
+         console.warn '******************************************************'
+         console.warn '** The "fileCollection" global object is deprecated'
+         console.warn '** It will be removed in v0.2.0'
+         console.warn '**'
+         console.warn '** Use "FileCollection" instead (with capital "F")'
+         console.warn '******************************************************'
+         super r, o
