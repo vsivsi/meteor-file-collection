@@ -27,16 +27,16 @@ var subWrapper = function (func, sub) {
   };
 };
 
-var defaultColl = new fileCollection();
+var defaultColl = new FileCollection();
 
-Tinytest.add('fileCollection default constructor', function(test) {
-  test.instanceOf(defaultColl, fileCollection, "fileCollection constructor failed");
+Tinytest.add('FileCollection default constructor', function(test) {
+  test.instanceOf(defaultColl, FileCollection, "FileCollection constructor failed");
   test.equal(defaultColl.root, 'fs', "default root isn't 'fs'");
   test.equal(defaultColl.chunkSize, 2*1024*1024, "bad default chunksize");
   test.equal(defaultColl.baseURL, "/gridfs/fs", "bad default base URL");
 });
 
-var testColl = new fileCollection("test", {
+var testColl = new FileCollection("test", {
   baseURL: "/test",
   chunkSize: 1024*1024,
   resumable: true,
@@ -65,7 +65,7 @@ if (Meteor.isServer) {
     remove: function () { return false; }
   });
 
-  Tinytest.add('set allow/deny on fileCollection', function(test) {
+  Tinytest.add('set allow/deny on FileCollection', function(test) {
     test.equal(testColl.allows.insert[0](), true);
     test.equal(testColl.allows.remove[0](), true);
     test.equal(testColl.allows.update[0](), true);
@@ -88,14 +88,14 @@ if (Meteor.isClient) {
   });
 }
 
-Tinytest.add('fileCollection constructor with options', function(test) {
-  test.instanceOf(testColl, fileCollection, "fileCollection constructor failed");
+Tinytest.add('FileCollection constructor with options', function(test) {
+  test.instanceOf(testColl, FileCollection, "FileCollection constructor failed");
   test.equal(testColl.root, 'test', "root collection not properly set");
   test.equal(testColl.chunkSize, 1024*1024, "chunkSize not set properly");
   test.equal(testColl.baseURL, "/test", "base URL not set properly");
 });
 
-Tinytest.add('fileCollection insert and findOne', function(test) {
+Tinytest.add('FileCollection insert and findOne', function(test) {
   var _id = testColl.insert({});
   test.isNotNull(_id, "No _id returned by insert");
   test.instanceOf(_id, Meteor.Collection.ObjectID);
@@ -112,7 +112,7 @@ Tinytest.add('fileCollection insert and findOne', function(test) {
   test.equal(file.contentType, 'application/octet-stream')
 });
 
-Tinytest.addAsync('fileCollection insert and findOne in callback', subWrapper(function(test, onComplete) {
+Tinytest.addAsync('FileCollection insert and findOne in callback', subWrapper(function(test, onComplete) {
   var _id = testColl.insert({}, function (err, retid) {
     if (err) { test.fail(err); }
     test.isNotNull(_id, "No _id returned by insert");
@@ -135,7 +135,7 @@ Tinytest.addAsync('fileCollection insert and findOne in callback', subWrapper(fu
   });
 }, sub));
 
-Tinytest.add('fileCollection insert and find with options', function(test) {
+Tinytest.add('FileCollection insert and find with options', function(test) {
   var _id = testColl.insert({ filename: 'testfile', metadata: { x: 1 }, aliases: ["foo"], contentType: 'text/plain' });
   test.isNotNull(_id, "No _id returned by insert");
   test.instanceOf(_id, Meteor.Collection.ObjectID);
@@ -154,7 +154,7 @@ Tinytest.add('fileCollection insert and find with options', function(test) {
   test.equal(file.contentType, 'text/plain');
 });
 
-Tinytest.addAsync('fileCollection insert and find with options in callback', subWrapper(function(test, onComplete) {
+Tinytest.addAsync('FileCollection insert and find with options in callback', subWrapper(function(test, onComplete) {
   var _id = testColl.insert({ filename: 'testfile', metadata: { x: 1 }, aliases: ["foo"], contentType: 'text/plain' }, function(err, retid) {
     if (err) { test.fail(err); }
     test.isNotNull(_id, "No _id returned by insert");
@@ -194,7 +194,7 @@ if (Meteor.isServer) {
           test.equal(chunk.toString(), '1234567890','Incorrect data read back from stream');
         }));
         readstream.on('end', bind_env(function () {
-          var testfile = "/tmp/fileCollection." + file._id + ".test"
+          var testfile = "/tmp/FileCollection." + file._id + ".test"
           testColl.exportFile(file, testfile, bind_env(function (err, doc) {
             if (err) { test.fail(err); }
             testColl.importFile(testfile, {}, bind_env(function (err, doc) {
