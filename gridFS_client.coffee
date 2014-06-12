@@ -47,6 +47,8 @@ if Meteor.isClient
    # Encapsulating class for deprecation warning
    class fileCollection extends FileCollection
       constructor: (r = share.defaultRoot, o = {}) ->
+         unless @ instanceof fileCollection
+            return new fileCollection(root, options)
          console.warn '******************************************************'
          console.warn '** The "fileCollection" global object is deprecated'
          console.warn '** It will be removed in v0.2.0'
