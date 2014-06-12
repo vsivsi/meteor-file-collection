@@ -4,6 +4,8 @@
 
 *    Added FileCollection export
 *    Updated docs to use FileCollection and note that fileCollection is deprecated and will be removed in 0.2.0
+*    Added deprecation warning to console.warn for fileCollection use
+*    Bumped express version
 
 ### 0.1.14
 
