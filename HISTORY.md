@@ -1,5 +1,9 @@
 ## Revision history
 
+### 0.1.18
+
+*    Allow/Deny rules are now called in the same order as in Meteor (deny rules go first).
+
 ### 0.1.17
 
 *    Fixed another issue when calling deprecated fileCollection object without new.
