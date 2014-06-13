@@ -63,23 +63,11 @@ if Meteor.isServer
 
          # Setup specific allow/deny rules for gridFS, and tie-in the application settings
 
-         FileCollection.__super__.allow.bind(@)
-
-            remove: (userId, file) =>
-
-               # call application rules
-               if share.check_allow_deny.bind(@) 'remove', userId, file
-
-                  # This causes the file data itself to be removed from gridFS
-                  @remove file
-                  return true
-
-               return false
+         FileCollection.__super__.deny.bind(@)
 
             insert: (userId, file) =>
 
                # Make darn sure we're creating a valid gridFS .files document
-
                check file,
                   _id: Meteor.Collection.ObjectID
                   length: Match.Where (x) =>
@@ -87,7 +75,7 @@ if Meteor.isServer
                      x is 0
                   md5: Match.Where (x) =>
                      check x, String
-                     x is 'd41d8cd98f00b204e9800998ecf8427e'
+                     x is 'd41d8cd98f00b204e9800998ecf8427e' # The md5 of an empty file
                   uploadDate: Date
                   chunkSize: Match.Where (x) =>
                      check x, Match.Integer
@@ -100,33 +88,28 @@ if Meteor.isServer
                # Enforce a uniform chunkSize
                unless file.chunkSize is @chunkSize
                   console.warn "Invalid chunksize"
-                  return false
+                  return true
 
                # call application rules
                if share.check_allow_deny.bind(@) 'insert', userId, file
-                  return true
+                  return false
 
-               return false
-
-         FileCollection.__super__.deny.bind(@)
+               return true
 
             update: (userId, file, fields) =>
-
                ## Cowboy updates are not currently allowed from the client. Too much to screw up.
                ## For example, if you store file ownership info in a sub document under 'metadata'
                ## it will be complicated to guard against that being changed if you allow other parts
                ## of the metadata sub doc to be updated. Write specific Meteor methods instead to
                ## allow reasonable changes to the "metadata" parts of the gridFS file record.
+               return true
 
-               ## WARNING! Only metadata, filename, aliases and contentType should ever be changed
-               ## directly by a server or client, e.g. :
-
-               # unless fields.every((x) -> ['metadata', 'aliases', 'filename', 'contentType'].indexOf(x) isnt -1)
-               #    return false
-
-               ## call application rules
-               # if share.check_allow_deny.bind(@) 'update', userId, file, fields
-               #    return true
+            remove: (userId, file) =>
+               # call application rules
+               if share.check_allow_deny.bind(@) 'remove', userId, file
+                  # This causes the file data itself to be removed from gridFS
+                  @remove file
+                  return false
 
                return true
 
@@ -144,6 +127,9 @@ if Meteor.isServer
 
       # Update is dangerous! The checks inside attempt to keep you out of
       # trouble with gridFS. Clients can't update at all. Be careful!
+      # Only metadata, filename, aliases and contentType should ever be changed
+      # directly by a server.
+
       update: (selector, modifier, options = {}, callback = undefined) ->
          if not callback? and typeof options is 'function'
             callback = options
