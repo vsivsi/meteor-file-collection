@@ -10,7 +10,7 @@ if Meteor.isServer
 
       checkRules = (rules) ->
          res = false
-         for func in @rules[type] when not res
+         for func in rules[type] when not res
             res = func(userId, file, fields)
          return res
 
