@@ -63,6 +63,12 @@ if Meteor.isServer
 
          # Setup specific allow/deny rules for gridFS, and tie-in the application settings
 
+         FileCollection.__super__.allow.bind(@)
+            # Because allow rules are not guaranteed to run,
+            # all checking is done in the deny rules below
+            insert: (userId, file) => true
+            remove: (userId, file) => true
+
          FileCollection.__super__.deny.bind(@)
 
             insert: (userId, file) =>

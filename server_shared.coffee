@@ -14,7 +14,8 @@ if Meteor.isServer
             res = func(userId, file, fields)
          return res
 
-      return not checkRules(@denys) and checkRules(@allows)
+      result = not checkRules(@denys) and checkRules(@allows)
+      return result
 
    share.bind_env = (func) ->
       if func?
