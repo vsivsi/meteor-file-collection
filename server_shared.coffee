@@ -7,16 +7,14 @@
 if Meteor.isServer
 
    share.check_allow_deny = (type, userId, file, fields) ->
-      # console.log "In Client '#{type}' allow: #{file.filename}"
-      allowResult = false
-      for allowFunc in @allows[type]
-         allowResult = allowResult or allowFunc(userId, file, fields)
-      denyResult = false
-      for denyFunc in @denys[type]
-         denyResult = denyResult or denyFunc(userId, file, fields)
-      result = allowResult and not denyResult
-      # console.log "Permission: #{if result then "granted" else "denied"} Allow: #{allowResult} Deny: #{denyResult}"
-      return result
+
+      checkRules = (rules) ->
+         res = false
+         for func in @rules[type] when not res
+            res = func(userId, file, fields)
+         return res
+
+      return not checkRules(@denys) and checkRules(@allows)
 
    share.bind_env = (func) ->
       if func?
