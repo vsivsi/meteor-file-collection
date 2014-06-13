@@ -13,7 +13,7 @@ function bind_env(func) {
   }
 }
 
-var subWrapper = function (func, sub) {
+var subWrapper = function (sub, func) {
   return function(test, onComplete) {
     if (Meteor.isClient) {
       Deps.autorun(function () {
@@ -48,9 +48,14 @@ var testColl = new FileCollection("test", {
   ]
 });
 
+var noAllowColl = new FileCollection("noAllowColl");
+var denyColl = new FileCollection("denyColl");
+
 if (Meteor.isServer) {
 
   Meteor.publish('everything', function () { return testColl.find({}); });
+  Meteor.publish('noAllowCollPub', function () { return noAllowColl.find({}); });
+  Meteor.publish('denyCollPub', function () { return denyColl.find({}); });
 
   var sub = null
 
@@ -63,6 +68,16 @@ if (Meteor.isServer) {
     insert: function () { return false; },
     update: function () { return false; },
     remove: function () { return false; }
+  });
+  noAllowColl.allow({
+    insert: function () { return false; },
+    update: function () { return false; },
+    remove: function () { return false; }
+  });
+  denyColl.deny({
+    insert: function () { return true; },
+    update: function () { return true; },
+    remove: function () { return true; }
   });
 
   Tinytest.add('set allow/deny on FileCollection', function(test) {
@@ -112,7 +127,7 @@ Tinytest.add('FileCollection insert and findOne', function(test) {
   test.equal(file.contentType, 'application/octet-stream')
 });
 
-Tinytest.addAsync('FileCollection insert and findOne in callback', subWrapper(function(test, onComplete) {
+Tinytest.addAsync('FileCollection insert and findOne in callback', subWrapper(sub, function(test, onComplete) {
   var _id = testColl.insert({}, function (err, retid) {
     if (err) { test.fail(err); }
     test.isNotNull(_id, "No _id returned by insert");
@@ -133,7 +148,7 @@ Tinytest.addAsync('FileCollection insert and findOne in callback', subWrapper(fu
     test.equal(file.contentType, 'application/octet-stream');
     onComplete();
   });
-}, sub));
+}));
 
 Tinytest.add('FileCollection insert and find with options', function(test) {
   var _id = testColl.insert({ filename: 'testfile', metadata: { x: 1 }, aliases: ["foo"], contentType: 'text/plain' });
@@ -154,7 +169,7 @@ Tinytest.add('FileCollection insert and find with options', function(test) {
   test.equal(file.contentType, 'text/plain');
 });
 
-Tinytest.addAsync('FileCollection insert and find with options in callback', subWrapper(function(test, onComplete) {
+Tinytest.addAsync('FileCollection insert and find with options in callback', subWrapper(sub, function(test, onComplete) {
   var _id = testColl.insert({ filename: 'testfile', metadata: { x: 1 }, aliases: ["foo"], contentType: 'text/plain' }, function(err, retid) {
     if (err) { test.fail(err); }
     test.isNotNull(_id, "No _id returned by insert");
@@ -177,7 +192,7 @@ Tinytest.addAsync('FileCollection insert and find with options in callback', sub
     test.equal(file.contentType, 'text/plain');
     onComplete();
   });
-}, sub));
+}));
 
 if (Meteor.isServer) {
 
@@ -249,3 +264,33 @@ Tinytest.addAsync('REST API POST/GET/DELETE', function(test, onComplete) {
       });
   });
 });
+
+
+if (Meteor.isClient) {
+  var noAllowSub = Meteor.subscribe('noAllowCollPub');
+  var denySub = Meteor.subscribe('denyCollPub');
+
+  Tinytest.add('Reject insert without true allow rule', subWrapper(noAllowSub, function(test, onComplete) {
+    var _id = noAllowColl.insert({}, function (err, retid) {
+      if (err) {
+        test.equal(err.error, 403);
+        onComplete();
+      } else {
+        test.fail(new Error("Insert without allow succeeded."));
+      }
+    });
+  }));
+
+  Tinytest.add('Reject insert with true deny rule', subWrapper(denySub, function(test, onComplete) {
+    var _id = denyColl.insert({}, function (err, retid) {
+      if (err) {
+        test.equal(err.error, 403);
+        onComplete();
+      } else {
+        test.fail(new Error("Insert with deny succeeded."));
+      }
+    });
+  }));
+}
+
+
