@@ -34,6 +34,6 @@ Package.on_use(function(api) {
 });
 
 Package.on_test(function (api) {
-  api.use(['fileCollection', 'tinytest', 'test-helpers', 'http']);
-  api.add_files('file_collection_tests.js', ['server', 'client']);
+  api.use(['fileCollection', 'coffeescript', 'tinytest', 'test-helpers', 'http']);
+  api.add_files('file_collection_tests.coffee', ['server', 'client']);
 });
