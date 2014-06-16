@@ -1,5 +1,10 @@
 ## Revision history
 
+### 0.1.19
+
+*   Acceptance tests are now written in Coffeescript.
+*   Documentation improvements
+
 ### 0.1.18
 
 *    Allow/Deny rules are now called in the same order as in Meteor (deny rules go first).
