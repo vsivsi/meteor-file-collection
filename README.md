@@ -325,6 +325,12 @@ Here are some example HTTP interface definition objects to get you started:
 
 Authentication of HTTP requests is performed using Meteor login tokens. When Meteor [Accounts](http://docs.meteor.com/#accounts_api) are used in an application, a logged in client can see its current token using `Accounts._storedLoginToken()`. Tokens are passed in HTTP requests using either the HTTP header `X-Auth-Token: [token]` or in a specific URL query parameter `?X-Auth-Token=[token]`. If the token matches a valid logged in user, then that userId will be provided to any allow/deny rules that are called for permission for an action.
 
+**WARNING** When using authentication tokens in URL queries, be careful not to expose these URLs to users!
+```
+http://localhost:3000/gridfs/fs/19f716e5ab1758?x-auth-token=T_IB33OJnzwjfgX6JMVosr1dG1h870LnQ2vshCh_Mpd
+```
+For example: the image URL shown above contains all of the information necessary for a 3rd party to impersonate the authenticated user on the server for the lifetime of the authentication token (which can be months depending on server configuration!) It is very dangerous to generate user visible URLs that contain the `x-auth-token` query parameter. If the user shares this URL on the Internet, they will inadvertently be handing the keys to their account to the world. It is much safer to use `x-auth-token` as an HTTP header, and to use special URLs that require no authentication to enable user sharing of links.
+
 For clients that aren't humans logged-in using browsers, it is possible to authenticate with Meteor using the DDP protocol and programmatically obtain a token. See the [ddp-login](https://www.npmjs.org/package/ddp-login) npm package for a node.js library and command-line utility capable of logging into Meteor (similar libraries also exist for other languages such as Python).
 
 URLs used to HTTP GET file data within a browser can be configured to automatically trigger a "File SaveAs..." download by using the `?download=true` query in the request URL. Similarly, if the `?filename=[filename.ext]` query is used, a "File SaveAs..." download will be invoked, but using the specified filename as the defaul, rather than the GridFS `filename` as is the case with `?download=true`.

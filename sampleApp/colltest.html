@@ -63,7 +63,7 @@
           <td>{{md5}}</td>
           <td>
             {{#if isImage}}
-                <a href="{{link}}"><img class="img-thumbnail" alt="[ preview of {{filename}} will display here ]" src="{{link}}?x-auth-token={{loginToken}}" width="150"></a>
+                <a href="{{link}}?x-auth-token={{loginToken}}"><img class="img-thumbnail" alt="[ preview of {{filename}} will display here ]" src="{{link}}?x-auth-token={{loginToken}}" width="150"></a>
             {{else}}
                <span class="text-muted">No preview</span>
             {{/if}}
