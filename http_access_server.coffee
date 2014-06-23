@@ -93,9 +93,10 @@ if Meteor.isServer
          'Content-Length': req.gridFS.length
          'Last-Modified': req.gridFS.uploadDate.toUTCString()
 
-      # Trigger download in browser
-      if req.query.download
-         headers['Content-Disposition'] = "attachment; filename=\"#{req.gridFS.filename}\""
+      # Trigger download in browser, optionally specify filename.
+      if req.query.download or req.query.filename
+         filename = req.query.filename ? req.gridFS.filename
+         headers['Content-Disposition'] = "attachment; filename=\"#{filename}\""
 
       # HEADs don't have a body
       if req.method is 'HEAD'
@@ -166,6 +167,8 @@ if Meteor.isServer
          # Add an express middleware for each application REST path
          @router[r.method] r.path, do (r) =>
 
+            getDep = true
+
             (req, res, next) =>
                # params and queries literally named "_id" get converted to ObjectIDs automatically
                req.params._id = new Meteor.Collection.ObjectID("#{req.params._id}") if req.params?._id?
@@ -189,16 +192,31 @@ if Meteor.isServer
                   # Make sure that the requested method is permitted for this file in the allow/deny rules
                   switch req.method
                      when 'HEAD', 'GET'
-                        next()
-                        return
+                        unless @allows.retrieve.length is 0 and @denys.retrieve.length is 0 or
+                               share.check_allow_deny.bind(@) 'retrieve', req.meteorUserId, req.gridFS
+                           res.writeHead(403)
+                           res.end()
+                           return
+                        else if @allows.retrieve.length is 0 and @denys.retrieve.length is 0 and getDep
+                           console.warn '***********************************************************************'
+                           console.warn '** HTTP GET to a fileCollection without one or more "retrieve"'
+                           console.warn '** "allow/deny rules is deprecated.'
+                           console.warn '**'
+                           console.warn '** As of v0.2.0 all fileCollections implementing HTTP GET will need to'
+                           console.warn '** implement at least one "retrieve" allow rule that returns "true".'
+                           console.warn '**'
+                           console.warn '** See:'
+                           console.warn '** https://github.com/vsivsi/meteor-file-collection/#fcallowoptions'
+                           console.warn '***********************************************************************'
+                           getDep = false
                      when 'POST', 'PUT'
                         unless share.check_allow_deny.bind(@) 'update', req.meteorUserId, req.gridFS
-                           res.writeHead(404)
+                           res.writeHead(403)
                            res.end()
                            return
                      when 'DELETE'
                         unless share.check_allow_deny.bind(@) 'remove', req.meteorUserId, req.gridFS
-                           res.writeHead(404)
+                           res.writeHead(403)
                            res.end()
                            return
                      else
