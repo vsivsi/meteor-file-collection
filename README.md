@@ -333,7 +333,7 @@ For example: the image URL shown above contains all of the information necessary
 
 For clients that aren't humans logged-in using browsers, it is possible to authenticate with Meteor using the DDP protocol and programmatically obtain a token. See the [ddp-login](https://www.npmjs.org/package/ddp-login) npm package for a node.js library and command-line utility capable of logging into Meteor (similar libraries also exist for other languages such as Python).
 
-URLs used to HTTP GET file data within a browser can be configured to automatically trigger a "File SaveAs..." download by using the `?download=true` query in the request URL. Similarly, if the `?filename=[filename.ext]` query is used, a "File SaveAs..." download will be invoked, but using the specified filename as the defaul, rather than the GridFS `filename` as is the case with `?download=true`.
+URLs used to HTTP GET file data within a browser can be configured to automatically trigger a "File SaveAs..." download by using the `?download=true` query in the request URL. Similarly, if the `?filename=[filename.ext]` query is used, a "File SaveAs..." download will be invoked, but using the specified filename as the default, rather than the GridFS `filename` as is the case with `?download=true`.
 
 HTTP PUT requests write the data from the request body directly into the file. By contrast, HTTP POST requests assume that the body is formatted as MIME multipart/form-data (as an old-school browser form based file upload would generate), and the data written to the file is taken from the part named `"file"`.  Below are example [cURL](`https://en.wikipedia.org/wiki/CURL#cURL`) commands that successfully invoke each of the four possible HTTP methods.
 
