@@ -192,25 +192,25 @@ if Meteor.isServer
                   # Make sure that the requested method is permitted for this file in the allow/deny rules
                   switch req.method
                      when 'HEAD', 'GET'
-                        unless @allows.retrieve.length is 0 and @denys.retrieve.length is 0 or
-                               share.check_allow_deny.bind(@) 'retrieve', req.meteorUserId, req.gridFS
+                        unless @allows.read.length is 0 and @denys.read.length is 0 or
+                               share.check_allow_deny.bind(@) 'read', req.meteorUserId, req.gridFS
                            res.writeHead(403)
                            res.end()
                            return
-                        else if @allows.retrieve.length is 0 and @denys.retrieve.length is 0 and getDep
+                        else if @allows.read.length is 0 and @denys.read.length is 0 and getDep
                            console.warn '***********************************************************************'
-                           console.warn '** HTTP GET to a fileCollection without one or more "retrieve"'
+                           console.warn '** HTTP GET to a fileCollection without one or more "read"'
                            console.warn '** "allow/deny rules is deprecated.'
                            console.warn '**'
                            console.warn '** As of v0.2.0 all fileCollections implementing HTTP GET will need to'
-                           console.warn '** implement at least one "retrieve" allow rule that returns "true".'
+                           console.warn '** implement at least one "read" allow rule that returns "true".'
                            console.warn '**'
                            console.warn '** See:'
                            console.warn '** https://github.com/vsivsi/meteor-file-collection/#fcallowoptions'
                            console.warn '***********************************************************************'
                            getDep = false
                      when 'POST', 'PUT'
-                        unless share.check_allow_deny.bind(@) 'update', req.meteorUserId, req.gridFS
+                        unless share.check_allow_deny.bind(@) 'write', req.meteorUserId, req.gridFS
                            res.writeHead(403)
                            res.end()
                            return
