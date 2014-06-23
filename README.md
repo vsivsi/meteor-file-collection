@@ -325,7 +325,7 @@ Here are some example HTTP interface definition objects to get you started:
 
 Authentication of HTTP requests is performed using Meteor login tokens. When Meteor [Accounts](http://docs.meteor.com/#accounts_api) are used in an application, a logged in client can see its current token using `Accounts._storedLoginToken()`. Tokens are passed in HTTP requests using either the HTTP header `X-Auth-Token: [token]` or in a specific URL query parameter `?X-Auth-Token=[token]`. If the token matches a valid logged in user, then that userId will be provided to any allow/deny rules that are called for permission for an action.
 
-**WARNING** Extreme caution is needed When using authentication tokens in URL queries or severe security risks may be incurred!
+####**WARNING** Extreme caution is needed When using authentication tokens in URL queries or severe security risks may be incurred!
 ```
 http://localhost:3000/gridfs/fs/19f716e5ab1758?x-auth-token=T_IB33OJnzwjfgX6JMVosr1dG1h870LnQ2vshCh_Mpd
 ```
