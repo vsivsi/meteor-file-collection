@@ -124,26 +124,25 @@ if Meteor.isServer
 
       # Allow rules for security. Without these, no writes would be allowed by default
       myData.allow
-         remove: (userId, file) ->
-            # Only owners can delete
-            if file.metadata?._auth?.owner and userId isnt file.metadata._auth.owner
-               return false
-            true
-         update: (userId, file, fields) -> # This is for the HTTP REST interfaces PUT/POST
-            # All client file metadata updates are denied, implement Methods for that...
-            # Only owners can upload a file
-            if file.metadata?._auth?.owner and userId isnt file.metadata._auth.owner
-               return false
-            true
          insert: (userId, file) ->
             # Assign the proper owner when a file is created
             file.metadata = file.metadata ? {}
             file.metadata._auth =
                owner: userId
             true
-         retrieve: (userId, file) ->
+         remove: (userId, file) ->
+            # Only owners can delete
+            if file.metadata?._auth?.owner and userId isnt file.metadata._auth.owner
+               return false
+            true
+         read: (userId, file) ->
             # Only owners can GET file data
             if file.metadata?._auth?.owner and userId isnt file.metadata._auth.owner
                return false
             true
-
+         write: (userId, file, fields) -> # This is for the HTTP REST interfaces PUT/POST
+            # All client file metadata updates are denied, implement Methods for that...
+            # Only owners can upload a file
+            if file.metadata?._auth?.owner and userId isnt file.metadata._auth.owner
+               return false
+            true

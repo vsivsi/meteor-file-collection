@@ -69,13 +69,11 @@ if (Meteor.isServer) {
   // Allow rules for security. Should look familiar!
   // Without these, no file writes would be allowed
   myFiles.allow({
-    retrieve: function (userId, file) {
-      // Only owners can retrieve a file via HTTP GET/HEAD
-      if (userId !== file.metadata.owner) {
-        return false;
-      } else {
-        return true;
-      }
+    insert: function (userId, file) {
+      // Assign the proper owner when a file is created
+      file.metadata = file.metadata || {};
+      file.metadata.owner = userId;
+      return true;
     },
     remove: function (userId, file) {
       // Only owners can delete
@@ -85,21 +83,22 @@ if (Meteor.isServer) {
         return true;
       }
     },
-    // Client file document updates are all denied, implement Methods for that
-    // This rule secures the HTTP REST interfaces' PUT/POST
-    update: function (userId, file, fields) {
-      // Only owners can upload file data
+    read: function (userId, file) {
+      // Only owners can retrieve a file via HTTP GET/HEAD
       if (userId !== file.metadata.owner) {
         return false;
       } else {
         return true;
       }
     },
-    insert: function (userId, file) {
-      // Assign the proper owner when a file is created
-      file.metadata = file.metadata || {};
-      file.metadata.owner = userId;
-      return true;
+    // This rule secures the HTTP REST interfaces' PUT/POST
+    write: function (userId, file, fields) {
+      // Only owners can upload file data
+      if (userId !== file.metadata.owner) {
+        return false;
+      } else {
+        return true;
+      }
     }
   });
 }
@@ -217,9 +216,10 @@ fileCollection uses robust multiple reader / exclusive writer file locking on to
 You may have noticed that the gridFS `files` data model says nothing about file ownership. That's your job. If you look again at the example code block above, you will see a bare bones `Meteor.userId` based ownership scheme implemented with the attribute `file.metadata.owner`. As with any Meteor Collection, allow/deny rules are needed to enforce and defend that document attribute, and fileCollection implements that in *almost* the same way that ordinary Meteor Collections do. Here's how they're a little different:
 
 *    A file is always initially created as a valid zero-length gridFS file using `insert` on the client/server. When it takes place on the client, the `insert` allow/deny rules apply.
-*    Clients are always denied from directly updating a file document's attributes. The `update` allow/deny rules secure writing file *data* to a previously inserted file via HTTP methods. This means that an HTTP POST/PUT cannot create a new file by itself. It needs to have been inserted first, and only then can data be added to it using HTTP.
 *    The `remove` allow/deny rules work just as you would expect for client calls, and they also secure the HTTP DELETE method when it's used.
-*    The `retrieve` allow/deny rules secure access to file data requested via HTTP GET. These rules have no effect on client `file()` or `findOne()` methods; these operations are secured by `Meteor.publish()` as with any meteor collection.
+*    The `read` allow/deny rules secure access to file data requested via HTTP GET. These rules have no effect on client `file()` or `findOne()` methods; these operations are secured by `Meteor.publish()` as with any meteor collection.
+*    The `write` allow/deny rules secure writing file *data* to a previously inserted file via HTTP methods. This means that an HTTP POST/PUT cannot create a new file by itself. It needs to have been inserted first, and only then can data be added to it using HTTP.
+*    There are no `update` allow/deny rules because clients are always prohibited from directly updating a file document's attributes.
 *    All HTTP methods are disabled by default. When enabled, they can be authenticated to a Meteor `userId` by using a currently valid authentication token passed either in the HTTP request header or as an URL query parameter.
 
 ## API
@@ -460,16 +460,24 @@ fc.update(
 *     any gridFS document level attributes would be removed
 *     non-gridFS attributes would be added
 
-Since `fc.update()` only runs on the server, it is *not* subjected to the `'update'` allow/deny rules.
+Since `fc.update()` only runs on the server, it is *not* subjected to any allow/deny rules.
 
 ### fc.allow(options)
 #### Allow client insert and remove, and HTTP data updates, subject to your limitations. - Server only
 
-**Deprecation notice:** Through version 0.1.18, HTTP GET requests were not impacted by allow/deny rules. As of v0.1.19, you may now implement "retrieve" allow/deny rules that affect whether any given HTTP GET request will succeed. HTTP GET requests without any "retrieve" allow/deny rules will still work until version v0.2.0, after which such requests will return error 403. To enable unrestricted HTTP GET access to files in a fileCollection:
+**Deprecation notice:** Through version 0.1.18, HTTP GET requests were not impacted by allow/deny rules. As of v0.1.19, you may now implement `'read'` allow/deny rules that affect whether any given HTTP GET request will succeed. HTTP GET requests without any `'read'` allow/deny rules will still work until version v0.2.0, after which such requests will return error 403. To enable unrestricted HTTP GET access to files in a fileCollection:
 
 ```js
 fc.allow({
-  retrieve: function (userId, file) { return true; }  // Anyone can retrieve via HTTP GET, yay!
+  read: function (userId, file) { return true; }  // Anyone can read via HTTP GET, yay!
+});
+```
+
+**Deprecation notice:** Through version 0.1.18, HTTP POST/PUT requests were controlled by `'update'` allow/deny rules. As of v0.1.19, you may now implement `'write'` allow/deny rules that operate in the same way. The use of `'update'` rules for this purpose is being deprecated to avoid confusion with `'update'` rules on Meteor Collections and to highlight that these rules apply to HTTP interfaces only. HTTP POST/PUT requests will continue to work with `'update'` allow/deny rules until version v0.2.0, after which such requests will return error 403. To enable unrestricted HTTP POST/PUT access to files in a fileCollection:
+
+```js
+fc.allow({
+  write: function (userId, file, fields) { return true; }  // Anyone can write a file via HTTP, yay!
 });
 ```
 
@@ -477,11 +485,14 @@ fc.allow({
 
 `insert` rules are essentially the same as for ordinary Meteor collections.
 
-`update` rules only apply to HTTP PUT/POST requests modifying file data, and will only see changes to the `length` and `md5` fields (in the `fieldnames` parameter) for that reason. Because MongoDB updates are not directly involved, no `modifier` is provided to the `update` function.
-
 `remove` rules also apply to HTTP DELETE requests.
 
-In addition to Meteor's `insert`, `update` and `remove` rules, fileCollection also uses `retrieve` rules. These are used to secure access to file data via HTTP GET and HEAD requests.
+In addition to Meteor's `insert` and `remove` rules, fileCollection also uses `read` and `write` rules. These are used to secure access to file data via HTTP GET and POST/PUT requests, respectively.
+
+`write` rules are analogous to `update` rules on Meteor collections, except that they apply only to HTTP PUT/POST requests modifying file data, and will only see changes to the `length` and `md5` fields (in the `fieldnames` parameter) for that reason. Because MongoDB updates are not directly involved, no `modifier` is provided to the `write` function.
+
+`read` rules apply only to HTTP GET/HEAD requests retrieving file data, and have the same parameters and `insert` and `remove` rules.
+
 
 ### fc.deny(options)
 #### Override allow rules. - Server only

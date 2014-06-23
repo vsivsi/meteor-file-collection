@@ -175,7 +175,7 @@ if Meteor.isServer
                return
 
             # Make sure we have permission
-            unless share.check_allow_deny.bind(@) 'update', req.meteorUserId, file, ['length', 'md5']
+            unless share.check_allow_deny.bind(@) 'write', req.meteorUserId, file, ['length', 'md5']
                res.writeHead(404)
                res.end()
                return
@@ -240,7 +240,7 @@ if Meteor.isServer
          return
 
       # Make sure we'll allow the POST that will come subsequently come from this...
-      unless share.check_allow_deny.bind(@) 'update', req.meteorUserId, file, ['length', 'md5']
+      unless share.check_allow_deny.bind(@) 'write', req.meteorUserId, file, ['length', 'md5']
          res.writeHead(404)
          res.end()
          return

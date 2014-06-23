@@ -55,8 +55,8 @@ if Meteor.isServer
             share.setupHttpAccess.bind(@)(options)
 
          # Default client allow/deny permissions
-         @allows = { retrieve: [], insert: [], update: [], remove: [] }
-         @denys = { retrieve: [], insert: [], update: [], remove: [] }
+         @allows = { read: [], insert: [], write: [], remove: [] }
+         @denys = { read: [], insert: [], write: [], remove: [] }
 
          # Call super's constructor
          super @root + '.files', { idGeneration: 'MONGO' }
@@ -121,10 +121,38 @@ if Meteor.isServer
 
       # Register application allow rules
       allow: (allowOptions) ->
+         if 'update' of allowOptions
+            allowOptions.write = allowOptions.update
+            delete allowOptions.update
+            console.warn '***********************************************************************'
+            console.warn '** "update" allow/deny rules on fileCollections are now deprecated for'
+            console.warn '** use in securing HTTP POST/PUT requests. "write" allow/deny rules'
+            console.warn '** should be used instead.'
+            console.warn '**'
+            console.warn '** As of v0.2.0 all fileCollections implementing "update" allow/deny'
+            console.warn '** rules will need to implement "write" allow rules instead.'
+            console.warn '**'
+            console.warn '** See:'
+            console.warn '** https://github.com/vsivsi/meteor-file-collection/#fcallowoptions'
+            console.warn '***********************************************************************'
          @allows[type].push(func) for type, func of allowOptions when type of @allows and typeof func is 'function'
 
       # Register application deny rules
       deny: (denyOptions) ->
+         if 'update' of denyOptions
+            denyOptions.write = denyOptions.update
+            delete denyOptions.update
+            console.warn '***********************************************************************'
+            console.warn '** "update" allow/deny rules on fileCollections are now deprecated for'
+            console.warn '** use in securing HTTP POST/PUT requests. "write" allow/deny rules'
+            console.warn '** should be used instead.'
+            console.warn '**'
+            console.warn '** As of v0.2.0 all fileCollections implementing "update" allow/deny'
+            console.warn '** rules will need to implement "write" allow rules instead.'
+            console.warn '**'
+            console.warn '** See:'
+            console.warn '** https://github.com/vsivsi/meteor-file-collection/#fcallowoptions'
+            console.warn '***********************************************************************'
          @denys[type].push(func) for type, func of denyOptions when type of @denys and typeof func is 'function'
 
       insert: (file = {}, callback = undefined) ->

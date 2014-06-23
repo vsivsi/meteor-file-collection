@@ -63,47 +63,47 @@ if Meteor.isServer
 
   testColl.allow
     insert: () -> true
-    update: () -> true
+    write: () -> true
     remove: () -> true
-    retrieve: () -> true
+    read: () -> true
 
   testColl.deny
     insert: () -> false
-    update: () -> false
+    write: () -> false
     remove: () -> false
-    retrieve: () -> false
+    read: () -> false
 
   noAllowColl.allow
-    retrieve: () -> false
+    read: () -> false
     insert: () -> false
-    update: () -> false
+    write: () -> false
     remove: () -> false
 
   noReadColl.allow
-    retrieve: () -> false
+    read: () -> false
     insert: () -> true
-    update: () -> true
+    write: () -> true
     remove: () -> true
 
   noReadColl.deny
-    retrieve: () -> false
+    read: () -> false
     insert: () -> false
-    update: () -> false
+    write: () -> false
     remove: () -> false
 
   denyColl.deny
-    retrieve: () -> true
+    read: () -> true
     insert: () -> true
-    update: () -> true
+    write: () -> true
     remove: () -> true
 
   Tinytest.add 'set allow/deny on FileCollection', (test) ->
-    test.equal testColl.allows.retrieve[0](), true
+    test.equal testColl.allows.read[0](), true
     test.equal testColl.allows.insert[0](), true
     test.equal testColl.allows.remove[0](), true
-    test.equal testColl.allows.update[0](), true
-    test.equal testColl.denys.retrieve[0](), false
-    test.equal testColl.denys.update[0](), false
+    test.equal testColl.allows.write[0](), true
+    test.equal testColl.denys.read[0](), false
+    test.equal testColl.denys.write[0](), false
     test.equal testColl.denys.insert[0](), false
     test.equal testColl.denys.remove[0](), false
 
