@@ -1,5 +1,11 @@
 ## Revision history
 
+### 0.1.20
+
+*   `fc.allow` and `fc.deny` now support rules for the `'retrieve'` operation, which impacts HTTP GET/HEAD requests.
+*   HTTP GET requests now support the `?filename=somename.txt` query. This is similar to the `?download=true` option, except that the filename used when the browser save is triggered is specified in the request URL.
+*   Thanks to @elbowz for both feature suggestions.
+
 ### 0.1.19
 
 *   Acceptance tests are now written in Coffeescript.

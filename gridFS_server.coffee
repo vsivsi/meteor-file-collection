@@ -55,8 +55,8 @@ if Meteor.isServer
             share.setupHttpAccess.bind(@)(options)
 
          # Default client allow/deny permissions
-         @allows = { insert: [], update: [], remove: [] }
-         @denys = { insert: [], update: [], remove: [] }
+         @allows = { retrieve: [], insert: [], update: [], remove: [] }
+         @denys = { retrieve: [], insert: [], update: [], remove: [] }
 
          # Call super's constructor
          super @root + '.files', { idGeneration: 'MONGO' }
@@ -121,11 +121,11 @@ if Meteor.isServer
 
       # Register application allow rules
       allow: (allowOptions) ->
-         @allows[type].push(func) for type, func of allowOptions when type of @allows
+         @allows[type].push(func) for type, func of allowOptions when type of @allows and typeof func is 'function'
 
       # Register application deny rules
       deny: (denyOptions) ->
-         @denys[type].push(func) for type, func of denyOptions when type of @denys
+         @denys[type].push(func) for type, func of denyOptions when type of @denys and typeof func is 'function'
 
       insert: (file = {}, callback = undefined) ->
          file = share.insert_func file, @chunkSize

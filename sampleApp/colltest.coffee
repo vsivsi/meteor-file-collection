@@ -141,4 +141,9 @@ if Meteor.isServer
             file.metadata._auth =
                owner: userId
             true
+         retrieve:: (userId, file) ->
+            # Only owners can GET file data
+            if file.metadata?._auth?.owner and userId isnt file.metadata._auth.owner
+               return false
+            true
 

@@ -69,6 +69,14 @@ if (Meteor.isServer) {
   // Allow rules for security. Should look familiar!
   // Without these, no file writes would be allowed
   myFiles.allow({
+    retrieve: function (userId, file) {
+      // Only owners can retrieve a file via HTTP GET/HEAD
+      if (userId !== file.metadata.owner) {
+        return false;
+      } else {
+        return true;
+      }
+    },
     remove: function (userId, file) {
       // Only owners can delete
       if (userId !== file.metadata.owner) {
@@ -211,6 +219,7 @@ You may have noticed that the gridFS `files` data model says nothing about file 
 *    A file is always initially created as a valid zero-length gridFS file using `insert` on the client/server. When it takes place on the client, the `insert` allow/deny rules apply.
 *    Clients are always denied from directly updating a file document's attributes. The `update` allow/deny rules secure writing file *data* to a previously inserted file via HTTP methods. This means that an HTTP POST/PUT cannot create a new file by itself. It needs to have been inserted first, and only then can data be added to it using HTTP.
 *    The `remove` allow/deny rules work just as you would expect for client calls, and they also secure the HTTP DELETE method when it's used.
+*    The `retrieve` allow/deny rules secure access to file data requested via HTTP GET. These rules have no effect on client `file()` or `findOne()` methods; these operations are secured by `Meteor.publish()` as with any meteor collection.
 *    All HTTP methods are disabled by default. When enabled, they can be authenticated to a Meteor `userId` by using a currently valid authentication token passed either in the HTTP request header or as an URL query parameter.
 
 ## API
@@ -314,11 +323,11 @@ Here are some example HTTP interface definition objects to get you started:
              contentType: query.type} }}
 ```
 
-Authentication of HTTP requests is performed using Meteor login tokens. When Meteor [Accounts](http://docs.meteor.com/#accounts_api) are used in an application, a logged in client can see its current token using `Accounts._storedLoginToken()`. Tokens are passed in HTTP requests using either the HTTP header `X-Auth-Token: [token]` or in a specific URL query parameter `?X-Auth-Token=[token]`. If the token matches a valid logged in user, then that userId will be provided to any allow/deny rules that are called for permission for an action. Currently there is no built-in support for writing access rules for HTTP GET requests using authentication tokens. This could easily be done, but would require creating a new type of allow/deny rule to cover this case.
+Authentication of HTTP requests is performed using Meteor login tokens. When Meteor [Accounts](http://docs.meteor.com/#accounts_api) are used in an application, a logged in client can see its current token using `Accounts._storedLoginToken()`. Tokens are passed in HTTP requests using either the HTTP header `X-Auth-Token: [token]` or in a specific URL query parameter `?X-Auth-Token=[token]`. If the token matches a valid logged in user, then that userId will be provided to any allow/deny rules that are called for permission for an action.
 
 For clients that aren't humans logged-in using browsers, it is possible to authenticate with Meteor using the DDP protocol and programmatically obtain a token. See the [ddp-login](https://www.npmjs.org/package/ddp-login) npm package for a node.js library and command-line utility capable of logging into Meteor (similar libraries also exist for other languages such as Python).
 
-URLs used to HTTP GET file data within a browser can be configured to automatically trigger a "File SaveAs..." download by using the `?download=true` query in the request URL.
+URLs used to HTTP GET file data within a browser can be configured to automatically trigger a "File SaveAs..." download by using the `?download=true` query in the request URL. Similarly, if the `?filename=[filename.ext]` query is used, a "File SaveAs..." download will be invoked, but using the specified filename as the defaul, rather than the GridFS `filename` as is the case with `?download=true`.
 
 HTTP PUT requests write the data from the request body directly into the file. By contrast, HTTP POST requests assume that the body is formatted as MIME multipart/form-data (as an old-school browser form based file upload would generate), and the data written to the file is taken from the part named `"file"`.  Below are example [cURL](`https://en.wikipedia.org/wiki/CURL#cURL`) commands that successfully invoke each of the four possible HTTP methods.
 
@@ -456,13 +465,23 @@ Since `fc.update()` only runs on the server, it is *not* subjected to the `'upda
 ### fc.allow(options)
 #### Allow client insert and remove, and HTTP data updates, subject to your limitations. - Server only
 
+**Deprecation notice:** Through version 0.1.18, HTTP GET requests were not impacted by allow/deny rules. As of v0.1.19, you may now implement "retrieve" allow/deny rules that affect whether any given HTTP GET request will succeed. HTTP GET requests without any "retrieve" allow/deny rules will still work until version v0.2.0, after which such requests will return error 403. To enable unrestricted HTTP GET access to files in a fileCollection:
+
 ```js
 fc.allow({
-  insert: function (userId, file) { return true; }  // Anyone can insert, yay!
+  retrieve: function (userId, file) { return true; }  // Anyone can retrieve via HTTP GET, yay!
 });
 ```
 
-`fc.allow(options)` is the same as [Meteor's `Collection.allow()`](http://docs.meteor.com/#allow), except that the Meteor Collection `fetch` and `transform` options are not supported by `FileCollection`. The `update` rule only applies to HTTP PUT/POST requests to modify file data, and will only see changes to the `length` and `md5` fields (in the `fieldnames` parameter) for that reason. Because MongoDB updates are not directly involved, no `modifier` is provided to the `update` function. The `remove` rule also applies to HTTP DELETE requests if they are enabled.
+`fc.allow(options)` is essentially the same as [Meteor's `Collection.allow()`](http://docs.meteor.com/#allow), except that the Meteor Collection `fetch` and `transform` options are not supported by `FileCollection`.
+
+`insert` rules are essentially the same as for ordinary Meteor collections.
+
+`update` rules only apply to HTTP PUT/POST requests modifying file data, and will only see changes to the `length` and `md5` fields (in the `fieldnames` parameter) for that reason. Because MongoDB updates are not directly involved, no `modifier` is provided to the `update` function.
+
+`remove` rules also apply to HTTP DELETE requests.
+
+In addition to Meteor's `insert`, `update` and `remove` rules, fileCollection also uses `retrieve` rules. These are used to secure access to file data via HTTP GET and HEAD requests.
 
 ### fc.deny(options)
 #### Override allow rules. - Server only

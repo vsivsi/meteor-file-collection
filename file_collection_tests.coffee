@@ -38,6 +38,17 @@ testColl = new FileCollection "test",
      { method: 'delete', path: '/:_id', lookup: (params, query) -> { _id: params._id }}
   ]
 
+noReadColl = new FileCollection "noReadColl",
+  baseURL: "/noread"
+  chunkSize: 1024*1024
+  resumable: false
+  http: [
+     { method: 'get', path: '/:_id', lookup: (params, query) -> { _id: params._id }}
+     { method: 'post', path: '/:_id', lookup: (params, query) -> { _id: params._id }}
+     { method: 'put', path: '/:_id', lookup: (params, query) -> { _id: params._id }}
+     { method: 'delete', path: '/:_id', lookup: (params, query) -> { _id: params._id }}
+  ]
+
 noAllowColl = new FileCollection "noAllowColl"
 denyColl = new FileCollection "denyColl"
 
@@ -45,6 +56,7 @@ if Meteor.isServer
 
   Meteor.publish 'everything', () -> testColl.find {}
   Meteor.publish 'noAllowCollPub', () -> noAllowColl.find {}
+  Meteor.publish 'noReadCollPub', () -> noReadColl.find {}
   Meteor.publish 'denyCollPub', () -> denyColl.find {}
 
   sub = null
@@ -53,26 +65,44 @@ if Meteor.isServer
     insert: () -> true
     update: () -> true
     remove: () -> true
+    retrieve: () -> true
 
   testColl.deny
     insert: () -> false
     update: () -> false
     remove: () -> false
+    retrieve: () -> false
 
   noAllowColl.allow
+    retrieve: () -> false
+    insert: () -> false
+    update: () -> false
+    remove: () -> false
+
+  noReadColl.allow
+    retrieve: () -> false
+    insert: () -> true
+    update: () -> true
+    remove: () -> true
+
+  noReadColl.deny
+    retrieve: () -> false
     insert: () -> false
     update: () -> false
     remove: () -> false
 
   denyColl.deny
+    retrieve: () -> true
     insert: () -> true
     update: () -> true
     remove: () -> true
 
   Tinytest.add 'set allow/deny on FileCollection', (test) ->
+    test.equal testColl.allows.retrieve[0](), true
     test.equal testColl.allows.insert[0](), true
     test.equal testColl.allows.remove[0](), true
     test.equal testColl.allows.update[0](), true
+    test.equal testColl.denys.retrieve[0](), false
     test.equal testColl.denys.update[0](), false
     test.equal testColl.denys.insert[0](), false
     test.equal testColl.denys.remove[0](), false
@@ -226,23 +256,43 @@ Tinytest.addAsync 'REST API POST/GET/DELETE', (test, onComplete) ->
             onComplete()
 
 if Meteor.isClient
+
   noAllowSub = Meteor.subscribe 'noAllowCollPub'
+  noReadSub = Meteor.subscribe 'noReadCollPub'
   denySub = Meteor.subscribe 'denyCollPub'
 
-  Tinytest.add 'Reject insert without true allow rule', subWrapper(noAllowSub, (test, onComplete) ->
+  Tinytest.addAsync 'Reject insert without true allow rule', subWrapper(noAllowSub, (test, onComplete) ->
     _id = noAllowColl.insert {}, (err, retid) ->
       if err
         test.equal err.error, 403
-        onComplete()
       else
         test.fail new Error "Insert without allow succeeded."
+      onComplete()
   )
 
-  Tinytest.add 'Reject insert with true deny rule', subWrapper(denySub, (test, onComplete) ->
+  Tinytest.addAsync 'Reject insert with true deny rule', subWrapper(denySub, (test, onComplete) ->
     _id = denyColl.insert {}, (err, retid) ->
       if err
         test.equal err.error, 403
-        onComplete()
       else
         test.fail new Error "Insert with deny succeeded."
+      onComplete()
   )
+
+  Tinytest.addAsync 'Reject HTTP GET without true allow rule', subWrapper(noReadSub, (test, onComplete) ->
+    _id = noReadColl.insert { filename: 'writefile', contentType: 'text/plain' }, (err, _id) ->
+      test.fail(err) if err
+      console.log 'Inserted!'
+      url = Meteor.absoluteUrl 'noread/' + _id
+      HTTP.put url, { content: '0987654321'}, (err, res) ->
+        test.fail(err) if err
+        console.log 'PUT!'
+        req = $.get url
+        req.done () ->
+          test.fail new Error "Read without allow succeeded."
+          onComplete()
+        req.fail (jqXHR, status, err) ->
+          test.equal err, 'Forbidden', 'Test was not forbidden'
+          onComplete()
+  )
+
