@@ -7,6 +7,7 @@
 if Meteor.isServer
 
    express = Npm.require 'express'
+   cookieParser = Npm.require 'cookie-parser'
    mongodb = Npm.require 'mongodb'
    grid = Npm.require 'gridfs-locking-stream'
    gridLocks = Npm.require 'gridfs-locks'
@@ -202,7 +203,7 @@ if Meteor.isServer
                            console.warn '** HTTP GET to a fileCollection without one or more "read"'
                            console.warn '** "allow/deny rules is deprecated.'
                            console.warn '**'
-                           console.warn '** As of v0.2.0 all fileCollections implementing HTTP GET will need to'
+                           console.warn '** As of v0.3.0 all fileCollections implementing HTTP GET will need to'
                            console.warn '** implement at least one "read" allow rule that returns "true".'
                            console.warn '**'
                            console.warn '** See:'
@@ -255,20 +256,35 @@ if Meteor.isServer
    # Express middleware to convert a Meteor access token provided in an HTTP request
    # to a Meteor userId attached to the request object as req.meteorUserId
 
+   tokenWarning = false
+
    handle_auth = (req, res, next) ->
       unless req.meteorUserId?
          # Lookup userId if token is provided in HTTP heder
          if req.headers?['x-auth-token']?
             req.meteorUserId = lookup_userId_by_token req.headers['x-auth-token']
          # Or as a URL query of the same name
+         else if req.cookies?['x-auth-token']?
+            req.meteorUserId = lookup_userId_by_token req.cookies['x-auth-token']
          else if req.query?['x-auth-token']?
             req.meteorUserId = lookup_userId_by_token req.query['x-auth-token']
+            unless tokenWarning
+               tokenWarning = true
+               console.warn '***********************************************************************'
+               console.warn '** Sending x-auth-token using URL queries is inherently dangerous and'
+               console.warn '** support for it is now deprecated. Please transition to using'
+               console.warn '** either the X-Auth-Token HTTP Header or HTTP Cookie.'
+               console.warn '**'
+               console.warn '** As of v0.3.0 all support for using URL queries to send x-auth-token'
+               console.warn '** values will be removed.'
+               console.warn '***********************************************************************'
       next()
 
    # Set up all of the middleware, including optional support for Resumable.js chunked uploads
    share.setupHttpAccess = (options) ->
          r = express.Router()
          r.use express.query()   # Parse URL query strings
+         r.use cookieParser()    # Parse cookies
          r.use handle_auth       # Turn x-auth-tokens into Meteor userIds
          WebApp.rawConnectHandlers.use(@baseURL, share.bind_env(r))
 

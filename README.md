@@ -220,7 +220,7 @@ You may have noticed that the gridFS `files` data model says nothing about file 
 *    The `read` allow/deny rules secure access to file data requested via HTTP GET. These rules have no effect on client `file()` or `findOne()` methods; these operations are secured by `Meteor.publish()` as with any meteor collection.
 *    The `write` allow/deny rules secure writing file *data* to a previously inserted file via HTTP methods. This means that an HTTP POST/PUT cannot create a new file by itself. It needs to have been inserted first, and only then can data be added to it using HTTP.
 *    There are no `update` allow/deny rules because clients are always prohibited from directly updating a file document's attributes.
-*    All HTTP methods are disabled by default. When enabled, they can be authenticated to a Meteor `userId` by using a currently valid authentication token passed either in the HTTP request header or as an URL query parameter.
+*    All HTTP methods are disabled by default. When enabled, they can be authenticated to a Meteor `userId` by using a currently valid authentication token passed either in the HTTP request header or using an HTTP Cookie.
 
 ## API
 
@@ -249,7 +249,7 @@ fc = new FileCollection('fs',  // base name of collection
 );
 ```
 
-**Deprecation notice:** Through version 0.1.14, the global `FileCollection` object was called `fileCollection` (with lowercase "f"). This will still work through version v0.2.0, after which it will be removed.
+**Deprecation notice:** Through version 0.1.14, the global `FileCollection` object was called `fileCollection` (with lowercase "f"). This will still work until version v0.3.0, after which it will be removed.
 
 **Note:** The same `FileCollection` call should be made on both the client and server.
 
@@ -323,15 +323,11 @@ Here are some example HTTP interface definition objects to get you started:
              contentType: query.type} }}
 ```
 
-Authentication of HTTP requests is performed using Meteor login tokens. When Meteor [Accounts](http://docs.meteor.com/#accounts_api) are used in an application, a logged in client can see its current token using `Accounts._storedLoginToken()`. Tokens are passed in HTTP requests using either the HTTP header `X-Auth-Token: [token]` or in a specific URL query parameter `?X-Auth-Token=[token]`. If the token matches a valid logged in user, then that userId will be provided to any allow/deny rules that are called for permission for an action.
+Authentication of HTTP requests is performed using Meteor login tokens. When Meteor [Accounts](http://docs.meteor.com/#accounts_api) are used in an application, a logged in client can see its current token using `Accounts._storedLoginToken()`. Tokens are passed in HTTP requests using either the HTTP header `X-Auth-Token: [token]` or using an HTTP cookie named `X-Auth-Token=[token]`. If the token matches a valid logged in user, then that userId will be provided to any allow/deny rules that are called for permission for an action.
 
-####**WARNING** Extreme caution is needed when using authentication tokens in URLs!
-```
-http://localhost:3000/gridfs/fs/19f716e5ab1758?x-auth-token=T_IB33OJnzwjfgX6JMVosr1dG1h870LnQ2vshCh_Mpd
-```
-For example: the URL shown above contains all of the information necessary for a 3rd party to impersonate the authenticated user on the server for the lifetime of the authentication token (which can be months depending on server configuration!) It is very dangerous to generate user visible URLs that contain the `x-auth-token` query parameter. If the user shares this URL on the Internet, they will inadvertently be handing the keys to their account to the world. It is much safer to use `x-auth-token` as an HTTP header, and to use special URLs that require no authentication to enable user sharing of links.
+**Deprecation notice:** Through fileCollection v0.1.18, HTTP requests could pass authentication tokens using an URL query. With the addition of token based authentication for GET requests in v0.2.0, this support became a security risk. It is very dangerous to generate user visible URLs that contain a `?x-auth-token=[token]` query parameter. If a user shares such an URL on the Internet, they will be inadvertently handing the keys to their account to the world. It is much safer to use `x-auth-token` as an HTTP header or HTTP Cookie, or to use special URLs that require no authentication to enable user sharing of file links. Support for URL `?x-auth-token=[token]` queries is therefore deprecated and will be removed in fileCollection v0.3.0.
 
-For clients that aren't humans logged-in using browsers, it is possible to authenticate with Meteor using the DDP protocol and programmatically obtain a token. See the [ddp-login](https://www.npmjs.org/package/ddp-login) npm package for a node.js library and command-line utility capable of logging into Meteor (similar libraries also exist for other languages such as Python).
+For non-Meteor clients that aren't logged-in humans using browsers, it is possible to authenticate with Meteor using the DDP protocol and programmatically obtain a token. See the [ddp-login](https://www.npmjs.org/package/ddp-login) npm package for a node.js library and command-line utility capable of logging into Meteor (similar libraries also exist for other languages such as Python).
 
 URLs used to HTTP GET file data within a browser can be configured to automatically trigger a "File SaveAs..." download by using the `?download=true` query in the request URL. Similarly, if the `?filename=[filename.ext]` query is used, a "File SaveAs..." download will be invoked, but using the specified filename as the default, rather than the GridFS `filename` as is the case with `?download=true`.
 
@@ -471,7 +467,7 @@ Since `fc.update()` only runs on the server, it is *not* subjected to any allow/
 ### fc.allow(options)
 #### Allow client insert and remove, and HTTP data updates, subject to your limitations. - Server only
 
-**Deprecation notice:** Through version 0.1.18, HTTP GET requests were not impacted by allow/deny rules. As of v0.1.19, you may now implement `'read'` allow/deny rules that affect whether any given HTTP GET request will succeed. HTTP GET requests without any `'read'` allow/deny rules will still work until version v0.2.0, after which such requests will return error 403. To enable unrestricted HTTP GET access to files in a fileCollection:
+**Deprecation notice:** Through version 0.1.18, HTTP GET requests were not impacted by allow/deny rules. As of v0.2.0, you may now implement `'read'` allow/deny rules that affect whether any given HTTP GET request will succeed. HTTP GET requests without any `'read'` allow/deny rules will still work until version v0.3.0, after which such requests will return error 403. To enable unrestricted HTTP GET access to files in a fileCollection:
 
 ```js
 fc.allow({
@@ -479,7 +475,7 @@ fc.allow({
 });
 ```
 
-**Deprecation notice:** Through version 0.1.18, HTTP POST/PUT requests were controlled by `'update'` allow/deny rules. As of v0.1.19, you may now implement `'write'` allow/deny rules that operate in the same way. The use of `'update'` rules for this purpose is being deprecated to avoid confusion with `'update'` rules on Meteor Collections and to highlight that these rules apply to HTTP interfaces only. HTTP POST/PUT requests will continue to work with `'update'` allow/deny rules until version v0.2.0, after which such requests will return error 403. To enable unrestricted HTTP POST/PUT access to files in a fileCollection:
+**Deprecation notice:** Through version 0.1.18, HTTP POST/PUT requests were controlled by `'update'` allow/deny rules. As of v0.2.0, you may now implement `'write'` allow/deny rules that operate in the same way. The use of `'update'` rules for this purpose is being deprecated to avoid confusion with `'update'` rules on Meteor Collections and to highlight that these rules apply to HTTP interfaces only. HTTP POST/PUT requests will continue to work with `'update'` allow/deny rules until version v0.3.0, after which such requests will return error 403. To enable unrestricted HTTP POST/PUT access to files in a fileCollection:
 
 ```js
 fc.allow({
