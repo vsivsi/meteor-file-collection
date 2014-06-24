@@ -1,14 +1,12 @@
 ## Revision history
 
-### 0.1.20
+### 0.2.0
 
 *   `fc.allow` and `fc.deny` now support rules for the `'read'` operation, which impacts HTTP GET/HEAD requests.
 *   HTTP GET requests now support the `?filename=somename.txt` query. This is similar to the `?download=true` option, except that the filename used when the browser save is triggered is specified in the request URL.
 *   Thanks to @elbowz for both of the above feature suggestions.
 *   `fc.allow` and `fc.deny` now support rules for the `'write'` operation, which impacts HTTP POST/PUT requests.  `'write'` allow/deny rules are replacing the use of `'update'` rules, and work identically. The reason for the change is to avoid confusion with the `'update'` rules on Meteor collections.
-
-### 0.1.19
-
+*   Added support for sending x-auth-token as an HTTP Cookie, rather than as a URL query, which is now deprecated.
 *   Acceptance tests are now written in Coffeescript.
 *   Documentation improvements
 
