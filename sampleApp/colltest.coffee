@@ -23,6 +23,12 @@ if Meteor.isClient
 
    Meteor.startup () ->
 
+      # Set up an autorun to keep the x-auth-token cookie up-to-date
+      Deps.autorun () ->
+         Meteor.userId()
+         token = Accounts._storedLoginToken()
+         $.cookie 'X-Auth-Token', token
+
       ################################
       # Setup resumable.js in the UI
 
