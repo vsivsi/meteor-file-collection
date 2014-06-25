@@ -264,7 +264,7 @@ if Meteor.isServer
          if req.headers?['x-auth-token']?
             req.meteorUserId = lookup_userId_by_token req.headers['x-auth-token']
          # Or as a URL query of the same name
-         else if req.cookies?['x-auth-token']?
+         else if req.cookies?['X-Auth-Token']?
             req.meteorUserId = lookup_userId_by_token req.cookies['x-auth-token']
          else if req.query?['x-auth-token']?
             req.meteorUserId = lookup_userId_by_token req.query['x-auth-token']
