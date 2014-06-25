@@ -23,7 +23,7 @@ if Meteor.isClient
 
    Meteor.startup () ->
 
-      # Set up an autorun to keep the x-auth-token cookie up-to-date
+      # Set up an autorun to keep the X-Auth-Token cookie up-to-date
       Deps.autorun () ->
          Meteor.userId()
          token = Accounts._storedLoginToken()
