@@ -36,7 +36,7 @@
       {{#each dataEntries}}
         <tr>
           <td>
-            <a href="{{link}}?x-auth-token={{loginToken}}&download=true">{{filename}}</a>
+            <a href="{{link}}?download=true">{{filename}}</a>
             <button type="button" class="close del-file" aria-hidden="true">&times;</button>
           </td>
           <td>{{id}}</td>
@@ -63,7 +63,7 @@
           <td>{{md5}}</td>
           <td>
             {{#if isImage}}
-                <a href="{{link}}?x-auth-token={{loginToken}}"><img class="img-thumbnail" alt="[ preview of {{filename}} will display here ]" src="{{link}}?x-auth-token={{loginToken}}" width="150"></a>
+                <a href="{{link}}?x-auth-token={{loginToken}}"><img class="img-thumbnail" alt="[ preview of {{filename}} will display here ]" src="{{link}}" width="150"></a>
             {{else}}
                <span class="text-muted">No preview</span>
             {{/if}}
