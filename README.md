@@ -159,24 +159,25 @@ The package exposes a global object `FileCollection` on both client and server.
 If you'd like to try out the sample app, you can clone the repo from github:
 
 ```
-git clone --recursive \
-    https://github.com/vsivsi/meteor-file-collection.git \
-    fileCollection
+git clone https://github.com/vsivsi/meteor-file-job-sample-app.git fcjcSample
 ```
 
-Then go to the `sampleApp` subdirectory and run meteorite to launch:
+Then go to the `fcjcSample` subdirectory and run meteorite to launch:
 
 ```
-cd fileCollection/sampleApp/
+cd fcjcSample
 mrt
 ```
 
 You should now be able to point your browser to `http://localhost:3000/` and play with the sample app.
 
-To run tests (using Meteor tiny-test) run from within the fileCollection subdirectory:
+To run tests (using Meteor tiny-test):
 
-    meteor test-packages ./
-
+```
+git clone https://github.com/vsivsi/meteor-file-collection fileCollection
+cd fileCollection
+meteor test-packages ./
+```
 Load `http://localhost:3000/` and the tests should run in your browser and on the server.
 
 ## Use

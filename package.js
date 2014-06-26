@@ -10,13 +10,13 @@ Package.describe({
 });
 
 Npm.depends({
-  mongodb: '1.4.5',
+  mongodb: '1.4.7',
   'gridfs-locking-stream': '0.2.2',
   'gridfs-locks': '1.2.1',
   dicer: '0.2.3',
   async: '0.9.0',
   express: '4.4.4',
-  'cookie-parser': '1.3.1'
+  'cookie-parser': '1.3.2'
 });
 
 Package.on_use(function(api) {
