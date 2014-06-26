@@ -134,7 +134,7 @@ if (Meteor.isClient) {
 
     // This autorun keeps a cookie up-to-date with the Meteor Auth token
     // of the logged-in user. This is needed so that the read/write allow
-    // rules on the server can verify the userId of each request.
+    // rules on the server can verify the userId of each HTTP request.
     Deps.autorun(function () {
       Meteor.userId(); //  because Accounts._storedLoginToken() isn't reactive
       var token = Accounts._storedLoginToken();
