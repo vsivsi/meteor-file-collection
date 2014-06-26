@@ -2,6 +2,7 @@
   "packages": {
     "bootstrap-3": {},
     "jquery-cookie": {},
+    "numeral": {},
     "fileCollection": {}
   }
 }
