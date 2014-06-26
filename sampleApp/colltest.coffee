@@ -96,7 +96,7 @@ if Meteor.isClient
          "Uploading..."
 
    Template.collTest.formattedLength = () ->
-      Numeral(this.length).format('0.0b')
+      numeral(this.length).format('0.0b')
 
    Template.collTest.uploadProgress = () ->
       percent = Session.get "#{this._id}"
