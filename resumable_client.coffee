@@ -25,8 +25,8 @@ if Meteor.isClient
          @resumable = null
       else
          # Autoupdate the token depending on who is logged in
-         if Accounts?
-            Deps.autorun () =>
-                  Meteor.userId()
-                  r.opts.headers['X-Auth-Token'] = Accounts._storedLoginToken() ? ''
+         # if Accounts?
+         #    Deps.autorun () =>
+         #       Meteor.userId()   # Accounts._storedLoginToken() isn't reactive
+         #       r.opts.headers['X-Auth-Token'] = Accounts._storedLoginToken() ? ''
          @resumable = r
