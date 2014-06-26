@@ -108,6 +108,7 @@ if (Meteor.isClient) {
   Meteor.subscribe('myData');
 
   Meteor.startup(function() {
+
     // This assigns a file upload drop zone to some DOM node
     myFiles.resumable.assignDrop($(".fileDrop"));
 
@@ -129,6 +130,17 @@ if (Meteor.isClient) {
           myFiles.resumable.upload();
         }
       );
+    });
+
+    // This autorun keeps a cookie up-to-date with the Meteor Auth token
+    // of the logged-in user. This is needed so that the read/write allow
+    // rules on the server can verify the userId of each request.
+    Deps.autorun(function () {
+      Meteor.userId(); //  because Accounts._storedLoginToken() isn't reactive
+      var token = Accounts._storedLoginToken();
+      // $.cookie() assumes use of "jquery-cookie" Atmosphere package.
+      // You can use any other cookie package you may prefer...
+      $.cookie('X-Auth-Token', token);
     });
   });
 }
