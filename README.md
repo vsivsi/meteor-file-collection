@@ -1,5 +1,9 @@
 # fileCollection
 
+### What's new in v0.2?
+Some things have changed! Everything from v0.1.x should still work (with depecation warnings). Look in HISTORY.md for deatils regarding new features and the phase-out of the old.
+
+
 fileCollection is a [Meteor.js](https://www.meteor.com/) [package](https://atmospherejs.com/package/collectionFS) that cleanly extends Meteor's `Collection` metaphor for efficiently dealing with collections of files and their data. File Collections are fully reactive, so if you know how to use Meteor [Collections](http://docs.meteor.com/#collections), you already know most of what you need to begin working with fileCollection.
 
 ```js
