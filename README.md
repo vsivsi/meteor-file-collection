@@ -65,9 +65,14 @@ if (Meteor.isServer) {
   // Only publish files owned by this userId, and ignore
   // file chunks being used by Resumable.js for current uploads
   Meteor.publish('myData',
-    function () {
-      return myFiles.find({ 'metadata._Resumable': { $exists: false },
-                   'metadata.owner': this.userId });
+    function (clientUserId) {
+      if (clientUserId === this.userId) {
+        return myFiles.find({ 'metadata._Resumable': { $exists: false },
+                              'metadata.owner': this.userId });
+      } else {        // Prevent client race condition:
+        return null;  // This is triggered when publish is rerun with a new
+                      // userId before client has resubscribed with that userId
+      }
     }
   );
 
@@ -110,8 +115,6 @@ if (Meteor.isServer) {
 
 if (Meteor.isClient) {
 
-  Meteor.subscribe('myData');
-
   Meteor.startup(function() {
 
     // This assigns a file upload drop zone to some DOM node
@@ -141,11 +144,11 @@ if (Meteor.isClient) {
     // of the logged-in user. This is needed so that the read/write allow
     // rules on the server can verify the userId of each HTTP request.
     Deps.autorun(function () {
-      Meteor.userId(); //  because Accounts._storedLoginToken() isn't reactive
-      var token = Accounts._storedLoginToken();
+      var userId = Meteor.userId(); //  because Accounts._storedLoginToken() isn't reactive
+      Meteor.subscribe('myData', userId);  // Sending userId prevents a race condition
       // $.cookie() assumes use of "jquery-cookie" Atmosphere package.
       // You can use any other cookie package you may prefer...
-      $.cookie('X-Auth-Token', token);
+      $.cookie('X-Auth-Token', Accounts._storedLoginToken());
     });
   });
 }
