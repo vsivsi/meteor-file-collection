@@ -122,6 +122,8 @@ if Meteor.isServer
       # Register application allow rules
       allow: (allowOptions) ->
          if 'update' of allowOptions
+            if allowOptions.write?
+               throw new Error 'Specifying both "update" and "write" allow rules is not permitted. Use "write" rules only.'
             allowOptions.write = allowOptions.update
             delete allowOptions.update
             console.warn '***********************************************************************'
@@ -135,11 +137,18 @@ if Meteor.isServer
             console.warn '** See:'
             console.warn '** https://github.com/vsivsi/meteor-file-collection/#fcallowoptions'
             console.warn '***********************************************************************'
-         @allows[type].push(func) for type, func of allowOptions when type of @allows and typeof func is 'function'
+         for type, func of allowOptions
+            unless type of @allows
+               throw new Error "Unrecognized allow rule type '#{type}'."
+            unless typeof func is 'function'
+               throw new Error "Allow rule #{type} must be a valid function."
+            @allows[type].push(func)
 
       # Register application deny rules
       deny: (denyOptions) ->
          if 'update' of denyOptions
+            if denyOptions.write?
+               throw new Error 'Specifying both "update" and "write" deny rules is not permitted. Use "write" rules only.'
             denyOptions.write = denyOptions.update
             delete denyOptions.update
             console.warn '***********************************************************************'
@@ -153,7 +162,12 @@ if Meteor.isServer
             console.warn '** See:'
             console.warn '** https://github.com/vsivsi/meteor-file-collection/#fcallowoptions'
             console.warn '***********************************************************************'
-         @denys[type].push(func) for type, func of denyOptions when type of @denys and typeof func is 'function'
+         for type, func of denyOptions
+            unless type of @denys
+               throw new Error "Unrecognized deny rule type '#{type}'."
+            unless typeof func is 'function'
+               throw new Error "Deny rule #{type} must be a valid function."
+            @denys[type].push(func)
 
       insert: (file = {}, callback = undefined) ->
          file = share.insert_func file, @chunkSize
