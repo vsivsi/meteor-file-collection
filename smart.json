@@ -3,7 +3,7 @@
   "description": "Collections that efficiently store files using MongoDB GridFS, with built-in HTTP down/upload support",
   "homepage": "https://github.com/vsivsi/meteor-file-collection",
   "author": "Vaughn Iverson (https://github.com/vsivsi)",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "git": "https://github.com/vsivsi/meteor-file-collection.git",
   "packages" : {}
 }
