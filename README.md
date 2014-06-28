@@ -347,6 +347,8 @@ Here are some example HTTP interface definition objects to get you started:
              contentType: query.type} }}
 ```
 
+#### HTTP authentication
+
 Authentication of HTTP requests is performed using Meteor login tokens. When Meteor [Accounts](http://docs.meteor.com/#accounts_api) are used in an application, a logged in client can see its current token using `Accounts._storedLoginToken()`. Tokens are passed in HTTP requests using either the HTTP header `X-Auth-Token: [token]` or using an HTTP cookie named `X-Auth-Token=[token]`. If the token matches a valid logged in user, then that userId will be provided to any allow/deny rules that are called for permission for an action.
 
 **Deprecation notice:** Through fileCollection v0.1.18, HTTP requests could pass authentication tokens using an URL query. With the addition of token based authentication for GET requests in v0.2.0, this support became a security risk. It is very dangerous to generate user visible URLs that contain a `?x-auth-token=[token]` query parameter. If a user shares such an URL on the Internet, they will be inadvertently handing the keys to their account to the world. It is much safer to use `x-auth-token` as an HTTP header or HTTP Cookie, or to use special URLs that require no authentication to enable user sharing of file links. Support for URL `?x-auth-token=[token]` queries is therefore deprecated and will be removed in fileCollection v0.3.0.
