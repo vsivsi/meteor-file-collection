@@ -2,7 +2,7 @@
 
 ### 0.2.1
 
-*   Added sanity checking of input to `fc.allow()` and `fc.deny`
+*   Added sanity checking of input to `fc.allow()` and `fc.deny()`
 *   Documentation improvements.
 
 ### 0.2.0
