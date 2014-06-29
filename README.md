@@ -1,7 +1,7 @@
 # fileCollection
 
 #### What's new in v0.2?
-Some things have changed! Everything from v0.1.x should still work (with depecation warnings). Look in [HISTORY.md](https://github.com/vsivsi/meteor-file-collection/blob/master/HISTORY.md) for details regarding new features.
+Some things have changed! Everything from v0.1.x should still work (with deprecation warnings). Look in [HISTORY.md](https://github.com/vsivsi/meteor-file-collection/blob/master/HISTORY.md) for details regarding new features.
 
 ## Introduction
 
