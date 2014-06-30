@@ -89,29 +89,17 @@ if (Meteor.isServer) {
     // Only owners can remove a file
     remove: function (userId, file) {
       // Only owners can delete
-      if (userId !== file.metadata.owner) {
-        return false;
-      } else {
-        return true;
-      }
+      return (userId === file.metadata.owner);
     },
     // Only owners can retrieve a file via HTTP GET
     read: function (userId, file) {
-      if (userId !== file.metadata.owner) {
-        return false;
-      } else {
-        return true;
-      }
+      return (userId === file.metadata.owner);
     },
     // This rule secures the HTTP REST interfaces' PUT/POST
     // Necessary to support Resumable.js
     write: function (userId, file, fields) {
       // Only owners can upload file data
-      if (userId !== file.metadata.owner) {
-        return false;
-      } else {
-        return true;
-      }
+      return (userId === file.metadata.owner);
     }
   });
 }
