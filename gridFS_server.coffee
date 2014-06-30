@@ -209,6 +209,9 @@ if Meteor.isServer
             throw new Error "File Collections do not support 'upsert'"
 
       upsertStream: (file, options = {}, callback = undefined) ->
+         if not callback? and typeof options is 'function'
+            callback = options
+            options = {}
          unless options.mode is 'w' or options.mode is 'w+'
             options.mode = 'w'
          callback = share.bind_env callback
@@ -239,6 +242,10 @@ if Meteor.isServer
          return writeStream
 
       findOneStream: (selector, options = {}, callback = undefined) ->
+         if not callback? and typeof options is 'function'
+            callback = options
+            options = {}
+
          callback = share.bind_env callback
          opts = {}
          opts.sort = options.sort if options.sort?

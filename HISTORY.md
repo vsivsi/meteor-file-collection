@@ -3,6 +3,7 @@
 ### v.NEXT
 
 *   Added sanity checking of input to `fc.allow()` and `fc.deny()`
+*   Allow options to be truly optional w/ callback in `findOneStream()` and `upsertStream`
 *   Updated resumable.js
 *   Documentation improvements.
 
