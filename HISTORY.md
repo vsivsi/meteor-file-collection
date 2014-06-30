@@ -3,6 +3,7 @@
 ### v.NEXT
 
 *   Added sanity checking of input to `fc.allow()` and `fc.deny()`
+*   Updated resumable.js
 *   Documentation improvements.
 
 ### v0.2.0
