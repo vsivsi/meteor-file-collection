@@ -216,26 +216,37 @@ if Meteor.isServer
             options.mode = 'w'
          callback = share.bind_env callback
 
+         mods = {}
+         mods.filename = file.filename if file.filename?
+         mods.aliases = file.aliases if file.aliases?
+         mods.content_type = file.contentType if file.contentType?
+         mods.metadata = file.metadata if file.metadata?
+
          # Make sure that we have an ID and it's valid
          if file._id
-            subFile = @findOne {_id: file._id}
-         unless file._id and subFile
-            file._id = @insert file
-            subFile = @findOne {_id: file._id}
+            found = @findOne {_id: file._id}
+            console.warn "Found file in upsert"
 
-         # Reformat the ID for a mongodb call
-         subFile._id = mongodb.ObjectID("#{subFile._id}")
-         subFile.mode = options.mode ? 'w'
-         subFile.root = @root
-         subFile.filename = file.filename if file.filename?
-         subFile.metadata = file.metadata if file.metadata?
-         subFile.aliases = file.aliases if file.aliases?
-         subFile.content_type = file.contentType if file.contentType?
-         subFile.timeOut = @lockOptions.timeOut
-         subFile.lockExpiration = @lockOptions.lockExpiration
-         subFile.pollingInterval = @lockOptions.pollingInterval
+         unless file._id and found
+            file._id = @insert mods
+            console.warn "Inserted file in upsert"
+         else
+            @update { _id: file._id }, mods
+            console.warn "Updated file in upsert"
 
-         writeStream = Meteor._wrapAsync(@gfs.createWriteStream.bind(@gfs)) subFile
+         writeStream = Meteor._wrapAsync(@gfs.createWriteStream.bind(@gfs))
+            root: @root
+            _id:  mongodb.ObjectID("#{file._id}")
+            mode: options.mode ? 'w'
+            timeOut: @lockOptions.timeOut
+            lockExpiration: @lockOptions.lockExpiration
+            pollingInterval: @lockOptions.pollingInterval
+
+         unless writeStream
+            console.warn "No writeStream!!!"
+         else
+            console.warn "Everything looks great!"
+
          if callback?
             writeStream.on 'close', (retFile) ->
                callback(null, retFile)
@@ -249,7 +260,7 @@ if Meteor.isServer
          callback = share.bind_env callback
          opts = {}
          opts.sort = options.sort if options.sort?
-         opts.sort = options.skip if options.skip?
+         opts.skip = options.skip if options.skip?
          file = @findOne selector, opts
          if file
             readStream = Meteor._wrapAsync(@gfs.createReadStream.bind(@gfs))
