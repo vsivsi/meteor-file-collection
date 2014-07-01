@@ -225,14 +225,11 @@ if Meteor.isServer
          # Make sure that we have an ID and it's valid
          if file._id
             found = @findOne {_id: file._id}
-            console.warn "Found file in upsert"
 
          unless file._id and found
             file._id = @insert mods
-            console.warn "Inserted file in upsert"
          else
-            @update { _id: file._id }, mods
-            console.warn "Updated file in upsert"
+            @update { _id: file._id }, { $set: mods }
 
          writeStream = Meteor._wrapAsync(@gfs.createWriteStream.bind(@gfs))
             root: @root
@@ -241,11 +238,6 @@ if Meteor.isServer
             timeOut: @lockOptions.timeOut
             lockExpiration: @lockOptions.lockExpiration
             pollingInterval: @lockOptions.pollingInterval
-
-         unless writeStream
-            console.warn "No writeStream!!!"
-         else
-            console.warn "Everything looks great!"
 
          if callback?
             writeStream.on 'close', (retFile) ->
@@ -326,8 +318,6 @@ if Meteor.isServer
          Match.ObjectIncluding({ filename:    Match.Any })
          Match.ObjectIncluding({ contentType: Match.Any })
       )
-
-      console.log "In modifier check", modifier
 
       return Match.test modifier, Match.OneOf(
          Match.ObjectIncluding({ $set: forbidden })

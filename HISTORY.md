@@ -5,6 +5,7 @@
 *   Added sanity checking of input to `fc.allow()` and `fc.deny()`
 *   Allow options to be truly optional w/ callback in `findOneStream()` and `upsertStream()`
 *   Fixed reversed/broken sort/skip options on `findOneStream()`
+*   Fixed an issue where `ObjectID`s in file metadata change type after `upsertStream()`
 *   Updated resumable.js
 *   Documentation improvements.
 
