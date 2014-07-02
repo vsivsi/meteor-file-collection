@@ -135,8 +135,8 @@ if (Meteor.isClient) {
     // of the logged-in user. This is needed so that the read/write allow
     // rules on the server can verify the userId of each HTTP request.
     Deps.autorun(function () {
-      var userId = Meteor.userId(); //  because Accounts._storedLoginToken() isn't reactive
-      Meteor.subscribe('myData', userId);  // Sending userId prevents a race condition
+      // Sending userId prevents a race condition
+      Meteor.subscribe('myData', Meteor.userId());
       // $.cookie() assumes use of "jquery-cookie" Atmosphere package.
       // You can use any other cookie package you may prefer...
       $.cookie('X-Auth-Token', Accounts._storedLoginToken());
