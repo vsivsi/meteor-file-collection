@@ -2,6 +2,8 @@
 
 ### v.NEXT
 
+* Updated README for new sample apps.
+
 ### v0.2.1
 
 *   Added sanity checking of input to `fc.allow()` and `fc.deny()`
