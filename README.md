@@ -158,17 +158,19 @@ The package exposes a global object `FileCollection` on both client and server.
 If you'd like to try out the sample app, you can clone the repo from github:
 
 ```
-git clone https://github.com/vsivsi/meteor-file-job-sample-app.git fcjcSample
+git clone https://github.com/vsivsi/meteor-file-sample-app.git fcSample
 ```
 
-Then go to the `fcjcSample` subdirectory and run meteorite to launch:
+Then go to the `fcSample` subdirectory and run meteorite to launch:
 
 ```
-cd fcjcSample
+cd fcSample
 mrt
 ```
 
 You should now be able to point your browser to `http://localhost:3000/` and play with the sample app.
+
+A more advanced example that implements a basic image gallery with upload and download support and automatic thumbnail generation using the [jobCollection package](https://atmospherejs.com/package/jobCollection) is available here: https://github.com/vsivsi/meteor-file-job-sample-app
 
 To run tests (using Meteor tiny-test):
 
