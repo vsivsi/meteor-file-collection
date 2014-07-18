@@ -219,7 +219,7 @@ if Meteor.isServer
          mods = {}
          mods.filename = file.filename if file.filename?
          mods.aliases = file.aliases if file.aliases?
-         mods.content_type = file.contentType if file.contentType?
+         mods.contentType = file.contentType if file.contentType?
          mods.metadata = file.metadata if file.metadata?
 
          # Make sure that we have an ID and it's valid
@@ -233,7 +233,7 @@ if Meteor.isServer
 
          writeStream = Meteor._wrapAsync(@gfs.createWriteStream.bind(@gfs))
             root: @root
-            _id:  mongodb.ObjectID("#{file._id}")
+            _id: mongodb.ObjectID("#{file._id}")
             mode: options.mode ? 'w'
             timeOut: @lockOptions.timeOut
             lockExpiration: @lockOptions.lockExpiration

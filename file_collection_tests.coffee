@@ -204,7 +204,7 @@ Tinytest.addAsync 'FileCollection insert and find with options in callback', sub
 
 if Meteor.isServer
 
-  Tinytest.addAsync 'Upsert stream to gridfs and read back, write to file system, and re-import',
+  Tinytest.addAsync 'Insert and then Upsert stream to gridfs and read back, write to file system, and re-import',
     (test, onComplete) ->
       _id = testColl.insert { filename: 'writefile', contentType: 'text/plain' }, (err, _id) ->
         test.fail(err) if err
@@ -213,6 +213,7 @@ if Meteor.isServer
           test.equal typeof file, 'object', "Bad file object after upsert stream"
           test.equal file.length, 10, "Improper file length"
           test.equal file.md5, 'e807f1fcf82d132f9bb018ca6738a19f', "Improper file md5 hash"
+          test.equal file.contentType, 'text/plain', "Improper contentType"
           readstream = testColl.findOneStream {_id: file._id }
           readstream.on 'data', bind_env (chunk) ->
             test.equal chunk.toString(), '1234567890','Incorrect data read back from stream'
@@ -229,6 +230,31 @@ if Meteor.isServer
                   onComplete()
         writestream.write '1234567890'
         writestream.end()
+
+  Tinytest.addAsync 'Just Upsert stream to gridfs and read back, write to file system, and re-import',
+    (test, onComplete) ->
+      writestream = testColl.upsertStream { filename: 'writefile', contentType: 'text/plain' }
+      writestream.on 'close', bind_env (file) ->
+        test.equal typeof file, 'object', "Bad file object after upsert stream"
+        test.equal file.length, 10, "Improper file length"
+        test.equal file.md5, 'e46c309de99c3dfbd6acd9e77751ae98', "Improper file md5 hash"
+        test.equal file.contentType, 'text/plain', "Improper contentType"
+        readstream = testColl.findOneStream {_id: file._id }
+        readstream.on 'data', bind_env (chunk) ->
+          test.equal chunk.toString(), 'ZYXWVUTSRQ','Incorrect data read back from stream'
+        readstream.on 'end', bind_env () ->
+          testfile = "/tmp/FileCollection." + file._id + ".test"
+          testColl.exportFile file, testfile, bind_env (err, doc) ->
+            test.fail(err) if err
+            testColl.importFile testfile, {}, bind_env (err, doc) ->
+              test.fail(err) if err
+              readstream = testColl.findOneStream {_id: doc._id }
+              readstream.on 'data', bind_env (chunk) ->
+                test.equal chunk.toString(), 'ZYXWVUTSRQ','Incorrect data read back from file stream'
+              readstream.on 'end', bind_env () ->
+                onComplete()
+      writestream.write 'ZYXWVUTSRQ'
+      writestream.end()
 
 Tinytest.addAsync 'REST API PUT/GET', (test, onComplete) ->
   _id = testColl.insert { filename: 'writefile', contentType: 'text/plain' }, (err, _id) ->
