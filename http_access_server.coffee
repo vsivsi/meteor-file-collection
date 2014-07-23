@@ -172,16 +172,15 @@ if Meteor.isServer
 
             (req, res, next) =>
 
-               # Validate that an _id is a valid 12 byte hex string
-               isHexString = (s) ->
-                  unless typeof s isnt 'string'
-                     s.match(/^[0-9a-f]{24}$/i) isnt null
+               safeObjectID = (s) ->
+                  if s.match /^[0-9a-f]{24}$/i  # Validate that _id is a 12 byte hex string
+                     new Meteor.Collection.ObjectID s
                   else
-                     false
+                     null
 
                # params and queries literally named "_id" get converted to ObjectIDs automatically
-               req.params._id = new Meteor.Collection.ObjectID("#{req.params._id}") if isHexString(req.params?._id)
-               req.query._id = new Meteor.Collection.ObjectID("#{req.query._id}") if isHexString(req.query?._id)
+               req.params._id = safeObjectID(req.params._id) if req.params?._id?
+               req.query._id = safeObjectID(req.query._id) if req.query?._id?
 
                # Build the path lookup mongoDB query object for the gridFS files collection
                lookup = r.lookup? req.params or {}, req.query or {}
