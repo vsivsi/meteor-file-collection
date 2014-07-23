@@ -15,7 +15,7 @@ Npm.depends({
   'gridfs-locks': '1.2.1',
   dicer: '0.2.3',
   async: '0.9.0',
-  express: '4.4.4',
+  express: '4.6.1',
   'cookie-parser': '1.3.2'
 });
 

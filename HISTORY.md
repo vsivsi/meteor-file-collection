@@ -2,6 +2,11 @@
 
 ### v.NEXT
 
+### v0.2.3
+
+* Added additional checking that `_id` values in URLs are 24-digit hex strings before attempting to make them into ObjectIds
+* Bumped express.js to latest version
+
 ### v0.2.2
 
 * Fixed #15
