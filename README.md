@@ -231,7 +231,7 @@ You may have noticed that the gridFS `files` data model says nothing about file 
 
 *    A file is always initially created as a valid zero-length gridFS file using `insert` on the client/server. When it takes place on the client, the `insert` allow/deny rules apply.
 *    The `remove` allow/deny rules work just as you would expect for client calls, and they also secure the HTTP DELETE method when it's used.
-*    The `read` allow/deny rules secure access to file data requested via HTTP GET. These rules have no effect on client `file()` or `findOne()` methods; these operations are secured by `Meteor.publish()` as with any meteor collection.
+*    The `read` allow/deny rules secure access to file data requested via HTTP GET. These rules have no effect on client `find()` or `findOne()` methods; these operations are secured by `Meteor.publish()` as with any meteor collection.
 *    The `write` allow/deny rules secure writing file *data* to a previously inserted file via HTTP methods. This means that an HTTP POST/PUT cannot create a new file by itself. It needs to have been inserted first, and only then can data be added to it using HTTP.
 *    There are no `update` allow/deny rules because clients are always prohibited from directly updating a file document's attributes.
 *    All HTTP methods are disabled by default. When enabled, they can be authenticated to a Meteor `userId` by using a currently valid authentication token passed either in the HTTP request header or using an HTTP Cookie.
