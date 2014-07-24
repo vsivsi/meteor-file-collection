@@ -366,20 +366,22 @@ HTTP PUT requests write the data from the request body directly into the file. B
 
 # GET the file data
 curl -X GET 'http://127.0.0.1:3000/gridfs/fs/38a14c8fef2d6cef53c70792' \
-     -H 'X-Auth-Token: zrtrotHrDzwA4nC5'
+     -H 'X-Auth-Token: 3pl5vbN_ZbKDJ1ko5JteO3ZSTrnQIl5g6fd8XW0U4NQ'
 
 # POST with file in multipart/form-data
 curl -X POST 'http://127.0.0.1:3000/gridfs/fs/38a14c8fef2d6cef53c70792' \
-     -F 'file=@"lolcat.gif";type=image/gif' -H 'X-Auth-Token: zrtrotHrDzwA4nC5'
+     -F 'file=@"lolcat.gif";type=image/gif' \
+     -H 'X-Auth-Token: 3pl5vbN_ZbKDJ1ko5JteO3ZSTrnQIl5g6fd8XW0U4NQ'
 
 # PUT with file in request body
 curl -X PUT 'http://127.0.0.1:3000/gridfs/fs/38a14c8fef2d6cef53c70792' \
-     -H 'Content-Type: image/gif' -H 'X-Auth-Token: zrtrotHrDzwA4nC5' \
+     -H 'Content-Type: image/gif' \
+     -H 'X-Auth-Token: 3pl5vbN_ZbKDJ1ko5JteO3ZSTrnQIl5g6fd8XW0U4NQ' \
      -T "lolcat.gif"
 
 # DELETE the file
 curl -X DELETE 'http://127.0.0.1:3000/gridfs/fs/38a14c8fef2d6cef53c70792' \
-     -H 'X-Auth-Token: zrtrotHrDzwA4nC5'
+     -H 'X-Auth-Token: 3pl5vbN_ZbKDJ1ko5JteO3ZSTrnQIl5g6fd8XW0U4NQ'
 ```
 
 Below are the methods defined on the returned `FileCollection` object
@@ -403,7 +405,7 @@ myData.resumable.on('fileAdded', function (file) {
 Failed to load resource: the server responded with a status of 404 (Not Found)
 http://localhost:3000/gridfs/fs/_resumable?resumableChunkNumber=1&  ...
 ```
-This is a side-effect of Resumable.js feature called `testChunks` which is fully supported by fileCollection. You can read more about it in [this issue on GitHub](https://github.com/vsivsi/meteor-file-collection/issues/5).
+This is a side-effect of a Resumable.js feature called `testChunks` which is fully supported by fileCollection. You can read more about it in [this issue on GitHub](https://github.com/vsivsi/meteor-file-collection/issues/5).
 
 ### fc.find(selector, [options])
 #### Find any number of files - Server and Client
