@@ -2,6 +2,9 @@
 
 ### v.NEXT
 
+* Added additional error checking when receiving a 'close' event.
+* Don't automatically index the fileCollection.
+
 ### v0.2.3
 
 * Added additional checking that `_id` values in URLs are 24-digit hex strings before attempting to make them into ObjectIds
