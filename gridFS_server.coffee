@@ -41,12 +41,14 @@ if Meteor.isServer
 
          @gfs = new grid(@db, mongodb, @root)
 
-         # Make an index on md5, to support GET requests
-         @gfs.files.ensureIndex [['md5', 1]], (err, ret) ->
-            throw err if err
-         # Make an index on aliases, to support alternative GET requests
-         @gfs.files.ensureIndex [['aliases', 1]], (err, ret) ->
-            throw err if err
+         # Don't automatically index anything...
+
+         # # Make an index on md5, to support GET requests
+         # @gfs.files.ensureIndex [['md5', 1]], (err, ret) ->
+         #    throw err if err
+         # # Make an index on aliases, to support alternative GET requests
+         # @gfs.files.ensureIndex [['aliases', 1]], (err, ret) ->
+         #    throw err if err
 
          @baseURL = options.baseURL ? "/gridfs/#{@root}"
 
@@ -215,7 +217,7 @@ if Meteor.isServer
          unless options.mode is 'w' or options.mode is 'w+'
             options.mode = 'w'
          callback = share.bind_env callback
-
+         cbCalled = false
          mods = {}
          mods.filename = file.filename if file.filename?
          mods.aliases = file.aliases if file.aliases?
@@ -241,7 +243,10 @@ if Meteor.isServer
 
          if callback?
             writeStream.on 'close', (retFile) ->
-               callback(null, retFile)
+               callback(null, retFile) if retFile
+            writeStream.on 'error', (err) ->
+               callback(err)
+
          return writeStream
 
       findOneStream: (selector, options = {}, callback = undefined) ->
@@ -262,8 +267,10 @@ if Meteor.isServer
                lockExpiration: @lockOptions.lockExpiration
                pollingInterval: @lockOptions.pollingInterval
             if callback?
-               readStream.on 'end', (retFile) ->
+               readStream.on 'close', () ->
                   callback(null, file)
+               readStream.on 'error', (err) ->
+                  callback(err)
             return readStream
          else
             return null
