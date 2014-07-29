@@ -202,13 +202,15 @@ if Meteor.isServer
                return
 
             fileStream.pipe(writeStream)
-               .on 'close', share.bind_env((file) =>
-                  res.writeHead(200)
-                  res.end()
-                  # Check to see if all of the parts are now available and can be reassembled
-                  check_order.bind(@)(file, (err) ->
-                     console.error "Error reassembling chunks of resumable.js upload", err
-                     ))
+               .on 'close', share.bind_env((retFile) =>
+                  if retFile
+                     res.writeHead(200)
+                     res.end()
+                     # Check to see if all of the parts are now available and can be reassembled
+                     check_order.bind(@)(file, (err) ->
+                        console.error "Error reassembling chunks of resumable.js upload", err
+                     )
+                  )
                .on 'error', share.bind_env((err) =>
                   console.error "Piping Error!", err
                   res.writeHead(500)
