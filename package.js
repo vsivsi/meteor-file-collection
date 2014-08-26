@@ -5,7 +5,7 @@
 ***************************************************************************/
 
 Package.describe({
-  name: 'fileCollection',
+  name: 'file-collection',
   summary: "Files stored in Meteor collections, based on MongoDB's GridFS filestore"
 });
 
@@ -20,6 +20,8 @@ Npm.depends({
 });
 
 Package.on_use(function(api) {
+  api.versionsFrom('METEOR@0.9.0');
+
   api.use('coffeescript', ['server','client']);
   api.use('webapp', 'server');
   api.add_files('gridFS.coffee', ['server','client']);
