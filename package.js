@@ -5,7 +5,7 @@
 ***************************************************************************/
 
 Package.describe({
-  name: 'filecollection',
+  name: 'vsivsi:filecollection',
   summary: "Files stored in Meteor collections, based on MongoDB's GridFS filestore",
   git: "https://github.com/vsivsi/meteor-file-collection.git"
 });
