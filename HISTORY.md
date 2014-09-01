@@ -5,6 +5,8 @@
 * Updated package name to conform with Meteor 0.9.0 package system
 * Added versions.json file
 * Documentation updates
+* Added additional error checking when receiving a 'close' event.
+* Don't automatically index the fileCollection.
 
 ### v0.2.3
 
