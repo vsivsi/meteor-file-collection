@@ -2,6 +2,10 @@
 
 ### v.NEXT
 
+* Updated package name to conform with Meteor 0.9.0 package system
+* Added versions.json file
+* Documentation updates
+
 ### v0.2.3
 
 * Added additional checking that `_id` values in URLs are 24-digit hex strings before attempting to make them into ObjectIds

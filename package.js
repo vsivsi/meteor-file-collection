@@ -5,7 +5,7 @@
 ***************************************************************************/
 
 Package.describe({
-  name: 'fileCollection',
+  name: 'vsivsi:file-collection',
   summary: "Files stored in Meteor collections, based on MongoDB's GridFS filestore"
 });
 
@@ -35,6 +35,6 @@ Package.on_use(function(api) {
 });
 
 Package.on_test(function (api) {
-  api.use(['fileCollection', 'coffeescript', 'tinytest', 'test-helpers', 'http']);
+  api.use(['vsivsi:file-collection', 'coffeescript', 'tinytest', 'test-helpers', 'http']);
   api.add_files('file_collection_tests.coffee', ['server', 'client']);
 });
