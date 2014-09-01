@@ -5,8 +5,10 @@
 ***************************************************************************/
 
 Package.describe({
+  summary: 'Collections that efficiently store files using MongoDB GridFS, with built-in HTTP down/upload support',
   name: 'vsivsi:file-collection',
-  summary: "Files stored in Meteor collections, based on MongoDB's GridFS filestore"
+  version: '0.3.0',
+  git: 'https://github.com/vsivsi/meteor-file-collection.git'
 });
 
 Npm.depends({
