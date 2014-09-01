@@ -1,11 +1,10 @@
-# fileCollection
+# file-collection
 
-#### What's new in v0.2?
-Some things have changed! Everything from v0.1.x should still work (with deprecation warnings). Look in [HISTORY.md](https://github.com/vsivsi/meteor-file-collection/blob/master/HISTORY.md) for details regarding new features.
+*NOTE!* Prior to version v0.3 this package was called "fileCollection" As of Meteor v0.9 package names may not contain upper case characters, so the name had to be changed.
 
 ## Introduction
 
-fileCollection is a [Meteor.js](https://www.meteor.com/) [package](https://atmospherejs.com/package/collectionFS) that cleanly extends Meteor's `Collection` metaphor for efficiently dealing with collections of files and their data. File Collections are fully reactive, so if you know how to use Meteor [Collections](http://docs.meteor.com/#collections), you already know most of what you need to begin working with fileCollection.
+file-collection is a [Meteor.js](https://www.meteor.com/) [package](https://atmospherejs.com/package/collectionFS) that cleanly extends Meteor's `Collection` metaphor for efficiently dealing with collections of files and their data. File Collections are fully reactive, so if you know how to use Meteor [Collections](http://docs.meteor.com/#collections), you already know most of what you need to begin working with this package.
 
 ```js
 myFiles = new FileCollection('myFiles');
@@ -23,7 +22,7 @@ thatFileStream = myFiles.findOneStream({ filename: 'lolcat.gif' });
 
 ### Feature summary
 
-Under the hood, file data is stored entirely within the Meteor MongoDB instance using a Mongo technology called [gridFS](http://docs.mongodb.org/manual/reference/gridfs/). Your fileCollection and the underlying gridFS collection remain perfectly in sync because they *are* the same collection; and fileCollection is automatically safe for concurrent read/write access to files via [MongoDB based locking](https://github.com/vsivsi/gridfs-locks). fileCollection also provides a simple way to enable secure HTTP (GET, POST, PUT, DELETE) interfaces to your files, and additionally has built-in support for robust and resumable file uploads using the excellent [Resumable.js](http://www.resumablejs.com/) library.
+Under the hood, file data is stored entirely within the Meteor MongoDB instance using a Mongo technology called [gridFS](http://docs.mongodb.org/manual/reference/gridfs/). Your file collection and the underlying gridFS collection remain perfectly in sync because they *are* the same collection; and file collections are automatically safe for concurrent read/write access to files via [MongoDB based locking](https://github.com/vsivsi/gridfs-locks). The file-collection package also provides a simple way to enable secure HTTP (GET, POST, PUT, DELETE) interfaces to your files, and additionally has built-in support for robust and resumable file uploads using the excellent [Resumable.js](http://www.resumablejs.com/) library.
 
 ### Design philosophy
 
@@ -31,11 +30,11 @@ My goal in writing this package was to stay true to the spirit of Meteor and bui
 
 If you've been searching for ways to deal with file data on Meteor, you've probably also encountered [collectionFS](https://atmospherejs.com/package/collectionFS). If not, you should definitely check it out. It's a great set of packages written by smart people, and I even pitched in to help with a rewrite of their [gridFS support](https://atmospherejs.com/package/cfs-gridfs).
 
-Here's the difference in a nutshell: collectionFS is a Ferrari, and fileCollection is a Fiat.
+Here's the difference in a nutshell: collectionFS is a Ferrari, and file-collection is a Fiat.
 
-They do approximately the same thing using some of the same technologies, but reflect different design priorities. fileCollection is much simpler and somewhat less flexible; but if it meets your needs you'll find it has a lot fewer moving parts and may be significantly more efficient to work with and use.
+They do approximately the same thing using some of the same technologies, but reflect different design priorities. file-collection is much simpler and somewhat less flexible; but if it meets your needs you'll find it has a lot fewer moving parts and may be significantly more efficient to work with and use.
 
-If you're trying to quickly prototype an idea or you know that you just need a straightforward way of dealing with files, you should definitely try fileCollection.
+If you're trying to quickly prototype an idea or you know that you just need a straightforward way of dealing with files, you should definitely try file-collection.
 
 However, if you find your project needs all of the bells and whistles that collectionFS offers, then you'll have your answer.
 
@@ -151,7 +150,7 @@ I've only tested with Meteor v0.8. It may run on Meteor v0.7 as well, I don't kn
 
 Requires [meteorite](https://atmospherejs.com/docs/installing). To add to your project, run:
 
-    mrt add fileCollection
+    meteor add vsivsi:file-collection
 
 The package exposes a global object `FileCollection` on both client and server.
 
@@ -170,20 +169,20 @@ mrt
 
 You should now be able to point your browser to `http://localhost:3000/` and play with the sample app.
 
-A more advanced example that implements a basic image gallery with upload and download support and automatic thumbnail generation using the [jobCollection package](https://atmospherejs.com/package/jobCollection) is available here: https://github.com/vsivsi/meteor-file-job-sample-app
+A more advanced example that implements a basic image gallery with upload and download support and automatic thumbnail generation using the [job-collection package](https://atmospherejs.com/package/jobCollection) is available here: https://github.com/vsivsi/meteor-file-job-sample-app
 
 To run tests (using Meteor tiny-test):
 
 ```
-git clone https://github.com/vsivsi/meteor-file-collection fileCollection
-cd fileCollection
+git clone https://github.com/vsivsi/meteor-file-collection FileCollection
+cd FileCollection
 meteor test-packages ./
 ```
 Load `http://localhost:3000/` and the tests should run in your browser and on the server.
 
 ## Use
 
-Below you'll find the [MongoDB gridFS `files` data model](http://docs.mongodb.org/manual/reference/gridfs/#the-files-collection). This is also the schema used by fileCollection because fileCollection *is* gridFS.
+Below you'll find the [MongoDB gridFS `files` data model](http://docs.mongodb.org/manual/reference/gridfs/#the-files-collection). This is also the schema used by file-collection because a FileCollection *is* a gridFS collection.
 
 ```js
 {
@@ -203,17 +202,17 @@ Below you'll find the [MongoDB gridFS `files` data model](http://docs.mongodb.or
 Here are a few things to keep in mind about the gridFS file data model:
 
 *    Some of the attributes belong to gridFS, and you may **lose data** if you mess around with these.
-*    For this reason, `_id`, `length`, `chunkSize`, `uploadDate` and `md5` are read-only in fileCollection.
+*    For this reason, `_id`, `length`, `chunkSize`, `uploadDate` and `md5` are read-only.
 *    Some of the attributes belong to you. Your application can do whatever you want with them.
 *    `filename`, `contentType`, `aliases` and `metadata` are yours. Go to town.
 *    `contentType` should probably be a valid [MIME Type](https://en.wikipedia.org/wiki/MIME_type)
 *    `filename` is *not* guaranteed unique. `_id` is a better bet if you want to be sure of what you're getting.
 
-Sound complicated? It really isn't and fileCollection is here to help.
+Sound complicated? It really isn't and file-collection is here to help.
 
-First off, when you create a new file you use `myFiles.insert(...)` and just populate whatever attributes you care about. Then fileCollection does the rest. You are guaranteed to get a valid gridFS file, even if you just do this: `id = myFiles.insert();`
+First off, when you create a new file you use `myFiles.insert(...)` and just populate whatever attributes you care about. The file-collection package does the rest. You are guaranteed to get a valid gridFS file, even if you just do this: `id = myFiles.insert();`
 
-Likewise, when you run `myFiles.update(...)` on the server, fileCollection tries really hard to make sure that you aren't clobbering one of the "read-only" attributes with your update modifier. For safety, clients are never allowed to directly `update`, although you can selectively give them that power via `Meteor.methods()`.
+Likewise, when you run `myFiles.update(...)` on the server, file-collection tries really hard to make sure that you aren't clobbering one of the "read-only" attributes with your update modifier. For safety, clients are never allowed to directly `update`, although you can selectively give them that power via `Meteor.methods()`.
 
 ### Limits and performance
 
@@ -221,13 +220,13 @@ There are essentially no hard limits on the number or size of files other than w
 
 At no point in normal operation is a file-sized data buffer ever in memory. All of the file data import/export mechanisms are [stream based](http://nodejs.org/api/stream.html#stream_stream), so even very active servers should not see much memory dedicated to file transfers.
 
-File data is never copied within a collection. During chunked file uploading, file chunk references are changed, but the data itself is never copied. This makes fileCollection particularly efficient when handling multi-gigabyte files.
+File data is never copied within a collection. During chunked file uploading, file chunk references are changed, but the data itself is never copied. This makes file-collection particularly efficient when handling multi-gigabyte files.
 
-fileCollection uses robust multiple reader / exclusive writer file locking on top of gridFS, so essentially any number of readers and writers of shared files may peacefully coexist without risk of file corruption. Note that if you have other applications reading/writing directly to a gridFS collection (e.g. a node.js program, not using Meteor/fileCollection), it will need to use the [`gridfs-locks`](https://www.npmjs.org/package/gridfs-locks) or [`gridfs-locking-stream`](https://www.npmjs.org/package/gridfs-locking-stream) npm packages to safely inter-operate with fileCollection.
+file-collection uses robust multiple reader / exclusive writer file locking on top of gridFS, so essentially any number of readers and writers of shared files may peacefully coexist without risk of file corruption. Note that if you have other applications reading/writing directly to a gridFS collection (e.g. a node.js program, not using Meteor/file-collection), it will need to use the [`gridfs-locks`](https://www.npmjs.org/package/gridfs-locks) or [`gridfs-locking-stream`](https://www.npmjs.org/package/gridfs-locking-stream) npm packages to safely inter-operate with file-collection.
 
 ### Security
 
-You may have noticed that the gridFS `files` data model says nothing about file ownership. That's your job. If you look again at the example code block above, you will see a bare bones `Meteor.userId` based ownership scheme implemented with the attribute `file.metadata.owner`. As with any Meteor Collection, allow/deny rules are needed to enforce and defend that document attribute, and fileCollection implements that in *almost* the same way that ordinary Meteor Collections do. Here's how they're a little different:
+You may have noticed that the gridFS `files` data model says nothing about file ownership. That's your job. If you look again at the example code block above, you will see a bare bones `Meteor.userId` based ownership scheme implemented with the attribute `file.metadata.owner`. As with any Meteor Collection, allow/deny rules are needed to enforce and defend that document attribute, and file-collection implements that in *almost* the same way that ordinary Meteor Collections do. Here's how they're a little different:
 
 *    A file is always initially created as a valid zero-length gridFS file using `insert` on the client/server. When it takes place on the client, the `insert` allow/deny rules apply.
 *    The `remove` allow/deny rules work just as you would expect for client calls, and they also secure the HTTP DELETE method when it's used.
@@ -263,18 +262,16 @@ fc = new FileCollection('fs',  // base name of collection
 );
 ```
 
-**Deprecation notice:** Through version 0.1.14, the global `FileCollection` object was called `fileCollection` (with lowercase "f"). This will still work until version v0.3.0, after which it will be removed.
-
 **Note:** The same `FileCollection` call should be made on both the client and server.
 
 `name` is the root name of the underlying MongoDB gridFS collection. If omitted, it defaults to `'fs'`, the default gridFS collection name. Internally, three collections are used for each `FileCollection` instance:
 
-*     `[name].files` - This is the collection you actually see when using fileCollection
+*     `[name].files` - This is the collection you actually see when using file-collection
 *     `[name].chunks` - This collection contains the actual file data chunks. It is managed automatically.
 *     `[name].locks` - This collection is used by `gridfs-locks` to make concurrent reading/writing safe.
 
 `FileCollection` is a subclass of `Meteor.Collection`, however it doesn't support the same `[options]`.
-Meteor Collections support `connection`, `idGeneration` and `transform` options. Currently, fileCollection only supports the default Meteor server connection, although this may change in the future. All `_id` values used by `FileCollection` are MongoDB style IDs. The Meteor Collection transform functionality is unsupported in `FileCollection`.
+Meteor Collections support `connection`, `idGeneration` and `transform` options. Currently, file-collection only supports the default Meteor server connection, although this may change in the future. All `_id` values used by `FileCollection` are MongoDB style IDs. The Meteor Collection transform functionality is unsupported in `FileCollection`.
 
 Here are the options `FileCollection` does support:
 
@@ -341,8 +338,6 @@ Here are some example HTTP interface definition objects to get you started:
 
 Authentication of HTTP requests is performed using Meteor login tokens. When Meteor [Accounts](http://docs.meteor.com/#accounts_api) are used in an application, a logged in client can see its current token using `Accounts._storedLoginToken()`. Tokens are passed in HTTP requests using either the HTTP header `X-Auth-Token: [token]` or using an HTTP cookie named `X-Auth-Token=[token]`. If the token matches a valid logged in user, then that userId will be provided to any allow/deny rules that are called for permission for an action.
 
-**Deprecation notice:** Through fileCollection v0.1.18, HTTP requests could pass authentication tokens using an URL query. With the addition of token based authentication for GET requests in v0.2.0, this support became a security risk. It is very dangerous to generate user visible URLs that contain a `?X-Auth-Token=[token]` query parameter. If a user shares such an URL on the Internet, they will be inadvertently handing the keys to their account to the world. It is much safer to use `X-Auth-Token` as an HTTP header or HTTP Cookie, or to use special URLs that require no authentication to enable user sharing of file links. Support for URL `?X-Auth-Token=[token]` queries is therefore deprecated and will be removed in fileCollection v0.3.0.
-
 For non-Meteor clients that aren't logged-in humans using browsers, it is possible to authenticate with Meteor using the DDP protocol and programmatically obtain a token. See the [ddp-login](https://www.npmjs.org/package/ddp-login) npm package for a node.js library and command-line utility capable of logging into Meteor (similar libraries also exist for other languages such as Python).
 
 #### HTTP request behaviors
@@ -398,14 +393,14 @@ myData.resumable.on('fileAdded', function (file) {
 }
 ```
 
-`fc.resumable` is a ready to use, preconfigured `Resumable` object that is available when a `FileCollection` is created with `options.resumable == true`. `fc.resumable` contains the results of calling `new Resumable([options])` where all of the options have been specified by fileCollection to work with its server side support. See the [Resumable.js documentation](http://www.resumablejs.com/) for more details on how to use it.
+`fc.resumable` is a ready to use, preconfigured `Resumable` object that is available when a `FileCollection` is created with `options.resumable == true`. `fc.resumable` contains the results of calling `new Resumable([options])` where all of the options have been specified by file-collection to work with its server side support. See the [Resumable.js documentation](http://www.resumablejs.com/) for more details on how to use it.
 
 **NOTE:** when using Resumable.js to perform file uploads, it is normal to see 404 errors in the client console that look something like:
 ```
 Failed to load resource: the server responded with a status of 404 (Not Found)
 http://localhost:3000/gridfs/fs/_resumable?resumableChunkNumber=1&  ...
 ```
-This is a side-effect of a Resumable.js feature called `testChunks` which is fully supported by fileCollection. You can read more about it in [this issue on GitHub](https://github.com/vsivsi/meteor-file-collection/issues/5).
+This is a side-effect of a Resumable.js feature called `testChunks` which is fully supported by file-collection. You can read more about it in [this issue on GitHub](https://github.com/vsivsi/meteor-file-collection/issues/5).
 
 ### fc.find(selector, [options])
 #### Find any number of files - Server and Client
@@ -487,29 +482,13 @@ Since `fc.update()` only runs on the server, it is *not* subjected to any allow/
 ### fc.allow(options)
 #### Allow client insert and remove, and HTTP data updates, subject to your limitations. - Server only
 
-**Deprecation notice:** Through version 0.1.18, HTTP GET requests were not impacted by allow/deny rules. As of v0.2.0, you may now implement `'read'` allow/deny rules that affect whether any given HTTP GET request will succeed. HTTP GET requests without any `'read'` allow/deny rules will still work until version v0.3.0, after which such requests will return error 403. To enable unrestricted HTTP GET access to files in a fileCollection:
-
-```js
-fc.allow({
-  read: function (userId, file) { return true; }  // Anyone can read via HTTP GET, yay!
-});
-```
-
-**Deprecation notice:** Through version 0.1.18, HTTP POST/PUT requests were controlled by `'update'` allow/deny rules. As of v0.2.0, you may now implement `'write'` allow/deny rules that operate in the same way. The use of `'update'` rules for this purpose is being deprecated to avoid confusion with `'update'` rules on Meteor Collections and to highlight that these rules apply to HTTP interfaces only. HTTP POST/PUT requests will continue to work with `'update'` allow/deny rules until version v0.3.0, after which such requests will return error 403. To enable unrestricted HTTP POST/PUT access to files in a fileCollection:
-
-```js
-fc.allow({
-  write: function (userId, file, fields) { return true; }  // Anyone can write a file via HTTP, yay!
-});
-```
-
 `fc.allow(options)` is essentially the same as [Meteor's `Collection.allow()`](http://docs.meteor.com/#allow), except that the Meteor Collection `fetch` and `transform` options are not supported by `FileCollection`.
 
 `insert` rules are essentially the same as for ordinary Meteor collections.
 
 `remove` rules also apply to HTTP DELETE requests.
 
-In addition to Meteor's `insert` and `remove` rules, fileCollection also uses `read` and `write` rules. These are used to secure access to file data via HTTP GET and POST/PUT requests, respectively.
+In addition to Meteor's `insert` and `remove` rules, file-collection also uses `read` and `write` rules. These are used to secure access to file data via HTTP GET and POST/PUT requests, respectively.
 
 `write` rules are analogous to `update` rules on Meteor collections, except that they apply only to HTTP PUT/POST requests modifying file data, and will only see changes to the `length` and `md5` fields (in the `fieldnames` parameter) for that reason. Because MongoDB updates are not directly involved, no `modifier` is provided to the `write` function.
 
@@ -528,7 +507,7 @@ fc.deny({
 `fc.deny(options)` is the same as [Meteor's `Collection.deny()`](http://docs.meteor.com/#deny), except that the Meteor Collection `fetch` and `transform` options are not supported by `FileCollection`. See `fc.allow()` above for more deatils.
 
 ### fc.findOneStream(selector, [options], [callback])
-#### Find a fileCollection file and return a readable stream for its data. - Server only
+#### Find a file collection file and return a readable stream for its data. - Server only
 
 ```js
 // Get a readable data stream for a known lolcat
@@ -544,12 +523,12 @@ The returned stream is a gridfs-locking-stream `readStream`, which has some [spe
 *     `stream.renewLock([callback])` - Renews the held lock for another expiration interval
 *     `stream.releaseLock([callback])` - Releases the held lock if you are done with the stream.
 
-This last call, `stream.releaseLock()` may be useful if you use `file.findOneStream()` and then do not read the file to the end (which would cause the lock to release automatically).  In this case, calling `stream.releaseLock()` is nice because it frees the lock before the expiration time is up. This would probably only matter for applications with lots of writers and readers contending for the same files, but it's good to know it exists. The values used for the locking parameters are set when the fileCollection is created via the `options.locks` option.
+This last call, `stream.releaseLock()` may be useful if you use `file.findOneStream()` and then do not read the file to the end (which would cause the lock to release automatically).  In this case, calling `stream.releaseLock()` is nice because it frees the lock before the expiration time is up. This would probably only matter for applications with lots of writers and readers contending for the same files, but it's good to know it exists. The values used for the locking parameters are set when the `FileCollection` is created via the `options.locks` option.
 
 When the stream has ended, the `callback` is called with the gridFS file document.
 
 ### fc.upsertStream(file, [options], [callback])
-#### Create/update a fileCollection file and return a writable stream to its data. - Server only
+#### Create/update a file collection file and return a writable stream to its data. - Server only
 
 ```js
 // Get a writeable data stream to re-store all that is right and good
@@ -559,7 +538,7 @@ nyanStream = fc.upsertStream({ filename: 'nyancat.flv',
                              });
 ```
 
-`fc.upsertStream()` is a little bit like Meteor's `Collection.upsert()` only really not... If the `file` parameter contains an `_id` field, then the call will work on the file with that `_id`. If a file with that `_id` doesn't exist, or if no `_id` is provided, then a new file is `insert`ed into the fileCollection. Any application owned gridFS attributes (`filename`, `contentType`, `aliases`, `metadata`) that are present in the `file` parameter will be used for the file, whether it is being inserted, or updated.
+`fc.upsertStream()` is a little bit like Meteor's `Collection.upsert()` only really not... If the `file` parameter contains an `_id` field, then the call will work on the file with that `_id`. If a file with that `_id` doesn't exist, or if no `_id` is provided, then a new file is `insert`ed into the file collection. Any application owned gridFS attributes (`filename`, `contentType`, `aliases`, `metadata`) that are present in the `file` parameter will be used for the file, whether it is being inserted, or updated.
 
 Once that is done, `fc.upsertStream()` returns a [writable stream](http://nodejs.org/api/stream.html#stream_class_stream_writable) for the file.
 
@@ -572,12 +551,12 @@ The returned stream is a gridfs-locking-stream `writeStream`, which has some [sp
 *     `stream.renewLock([callback])` - Renews the held lock for another expiration interval
 *     `stream.releaseLock([callback])` - Releases the held lock if you are done with the stream.
 
-You probably won't need these, but it's good to know they're there. The values used for the locking parameters are set when the fileCollection is created via the `options.locks` option.
+You probably won't need these, but it's good to know they're there. The values used for the locking parameters are set when the `FileCollection` is created via the `options.locks` option.
 
 When the write stream has closed, the `callback` is called as `callback(error, file)`, where file is the gridFS file document following the write.
 
 ### fc.exportFile(selector, filePath, callback)
-#### Export a fileCollection file to the local fileSystem. - Server only
+#### Export a file collection file to the local fileSystem. - Server only
 
 ```js
 // Write a file to wherever it belongs in the filesystem
@@ -593,7 +572,7 @@ fc.exportFile({ 'filename': 'nyancat.flv'},
 The `selector` parameter works as it does with `fc.findOneStream()`. The `filePath` is the String directory path and filename in the local filesystem to write the file data to. The value of the `filename` attribute in the found gridFS file document is ignored. The callback is mandatory and will be called with a single parameter that will be either an `Error` object or `null` depending on the success of the operation.
 
 ### fc.importFile(filePath, file, callback)
-#### Import a local filesystem file into a fileCollection file. - Server only
+#### Import a local filesystem file into a file collection file. - Server only
 
 ```js
 // Write a file to wherever it belongs in the filesystem
