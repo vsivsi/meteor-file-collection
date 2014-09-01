@@ -7,6 +7,7 @@
 * Documentation updates
 * Added additional error checking when receiving a 'close' event.
 * Don't automatically index the fileCollection.
+* Updated express and mopngodb packages to latest versions
 
 ### v0.2.3
 
