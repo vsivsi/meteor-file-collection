@@ -202,23 +202,10 @@ if Meteor.isServer
                   # Make sure that the requested method is permitted for this file in the allow/deny rules
                   switch req.method
                      when 'HEAD', 'GET'
-                        unless @allows.read.length is 0 and @denys.read.length is 0 or
-                               share.check_allow_deny.bind(@) 'read', req.meteorUserId, req.gridFS
+                        unless share.check_allow_deny.bind(@) 'read', req.meteorUserId, req.gridFS
                            res.writeHead(403)
                            res.end()
                            return
-                        else if @allows.read.length is 0 and @denys.read.length is 0 and getDep
-                           console.warn '***********************************************************************'
-                           console.warn '** HTTP GET to a fileCollection without one or more "read"'
-                           console.warn '** "allow/deny rules is deprecated.'
-                           console.warn '**'
-                           console.warn '** As of v0.3.0 all fileCollections implementing HTTP GET will need to'
-                           console.warn '** implement at least one "read" allow rule that returns "true".'
-                           console.warn '**'
-                           console.warn '** See:'
-                           console.warn '** https://github.com/vsivsi/meteor-file-collection/#fcallowoptions'
-                           console.warn '***********************************************************************'
-                           getDep = false
                      when 'POST', 'PUT'
                         unless share.check_allow_deny.bind(@) 'write', req.meteorUserId, req.gridFS
                            res.writeHead(403)
@@ -275,18 +262,6 @@ if Meteor.isServer
          # Or as a URL query of the same name
          else if req.cookies?['X-Auth-Token']?
             req.meteorUserId = lookup_userId_by_token req.cookies['X-Auth-Token']
-         else if req.query?['x-auth-token']?
-            req.meteorUserId = lookup_userId_by_token req.query['x-auth-token']
-            unless tokenWarning
-               tokenWarning = true
-               console.warn '***********************************************************************'
-               console.warn '** Sending x-auth-token using URL queries is inherently dangerous and'
-               console.warn '** support for it is now deprecated. Please transition to using'
-               console.warn '** either the X-Auth-Token HTTP Header or HTTP Cookie.'
-               console.warn '**'
-               console.warn '** As of v0.3.0 all support for using URL queries to send x-auth-token'
-               console.warn '** values will be removed.'
-               console.warn '***********************************************************************'
       next()
 
    # Set up all of the middleware, including optional support for Resumable.js chunked uploads

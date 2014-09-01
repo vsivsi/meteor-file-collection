@@ -41,15 +41,6 @@ if Meteor.isServer
 
          @gfs = new grid(@db, mongodb, @root)
 
-         # Don't automatically index anything...
-
-         # # Make an index on md5, to support GET requests
-         # @gfs.files.ensureIndex [['md5', 1]], (err, ret) ->
-         #    throw err if err
-         # # Make an index on aliases, to support alternative GET requests
-         # @gfs.files.ensureIndex [['aliases', 1]], (err, ret) ->
-         #    throw err if err
-
          @baseURL = options.baseURL ? "/gridfs/#{@root}"
 
          # if there are HTTP options, setup the express HTTP access point(s)
@@ -123,22 +114,6 @@ if Meteor.isServer
 
       # Register application allow rules
       allow: (allowOptions) ->
-         if 'update' of allowOptions
-            if allowOptions.write?
-               throw new Error 'Specifying both "update" and "write" allow rules is not permitted. Use "write" rules only.'
-            allowOptions.write = allowOptions.update
-            delete allowOptions.update
-            console.warn '***********************************************************************'
-            console.warn '** "update" allow/deny rules on fileCollections are now deprecated for'
-            console.warn '** use in securing HTTP POST/PUT requests. "write" allow/deny rules'
-            console.warn '** should be used instead.'
-            console.warn '**'
-            console.warn '** As of v0.3.0 all fileCollections implementing "update" allow/deny'
-            console.warn '** rules will begin returning 403 errors for POST/PUT requests.'
-            console.warn '**'
-            console.warn '** See:'
-            console.warn '** https://github.com/vsivsi/meteor-file-collection/#fcallowoptions'
-            console.warn '***********************************************************************'
          for type, func of allowOptions
             unless type of @allows
                throw new Error "Unrecognized allow rule type '#{type}'."
@@ -148,22 +123,6 @@ if Meteor.isServer
 
       # Register application deny rules
       deny: (denyOptions) ->
-         if 'update' of denyOptions
-            if denyOptions.write?
-               throw new Error 'Specifying both "update" and "write" deny rules is not permitted. Use "write" rules only.'
-            denyOptions.write = denyOptions.update
-            delete denyOptions.update
-            console.warn '***********************************************************************'
-            console.warn '** "update" allow/deny rules on fileCollections are now deprecated for'
-            console.warn '** use in securing HTTP POST/PUT requests. "write" allow/deny rules'
-            console.warn '** should be used instead.'
-            console.warn '**'
-            console.warn '** As of v0.3.0 all fileCollections implementing "update" allow/deny'
-            console.warn '** rules will begin returning 403 errors for POST/PUT requests.'
-            console.warn '**'
-            console.warn '** See:'
-            console.warn '** https://github.com/vsivsi/meteor-file-collection/#fcallowoptions'
-            console.warn '***********************************************************************'
          for type, func of denyOptions
             unless type of @denys
                throw new Error "Unrecognized deny rule type '#{type}'."
@@ -337,16 +296,3 @@ if Meteor.isServer
          Match.ObjectIncluding({ $rename: required})
          Match.ObjectIncluding({ $currentDate: forbidden})
       )
-
-   # Encapsulating class for deprecation warning
-   class fileCollection extends FileCollection
-      constructor: (r = share.defaultRoot, o = {}) ->
-         unless @ instanceof fileCollection
-            return new fileCollection(r, o)
-         console.warn '******************************************************'
-         console.warn '** The "fileCollection" global object is deprecated'
-         console.warn '** It will be removed in v0.3.0'
-         console.warn '**'
-         console.warn '** Use "FileCollection" instead (with capital "F")'
-         console.warn '******************************************************'
-         super r, o
