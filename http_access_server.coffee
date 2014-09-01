@@ -72,9 +72,10 @@ if Meteor.isServer
          stream = @upsertStream req.gridFS
          if stream
             fileStream.pipe(stream)
-               .on 'close', () ->
-                  res.writeHead(200)
-                  res.end()
+               .on 'close', (retFile) ->
+                  if retFile
+                     res.writeHead(200)
+                     res.end()
                .on 'error', (err) ->
                   res.writeHead(500)
                   res.end()
@@ -110,11 +111,11 @@ if Meteor.isServer
       if stream
          res.writeHead 200, headers
          stream.pipe(res)
-               .on 'close', () ->
-                  res.end()
-               .on 'error', (err) ->
-                  res.writeHead(500)
-                  res.end(err)
+            .on 'close', () ->
+               res.end()
+            .on 'error', (err) ->
+               res.writeHead(500)
+               res.end(err)
       else
          res.writeHead(410)
          res.end()
@@ -135,9 +136,10 @@ if Meteor.isServer
       stream = @upsertStream req.gridFS
       if stream
          req.pipe(stream)
-            .on 'close', () ->
-               res.writeHead(200)
-               res.end()
+            .on 'close', (retFile) ->
+               if retFile
+                  res.writeHead(200)
+                  res.end()
             .on 'error', (err) ->
                res.writeHead(500)
                res.end(err)
