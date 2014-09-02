@@ -1,6 +1,6 @@
 # file-collection
 
-*NOTE!* Prior to version v0.3 this package was called "fileCollection" As of Meteor v0.9 package names may not contain upper case characters, so the name had to be changed.
+*NOTE!* Prior to version v0.3 this package was called "fileCollection" As of Meteor v0.9, package names may not contain upper case characters, so the name had to be changed.
 
 ## Introduction
 
@@ -160,11 +160,11 @@ If you'd like to try out the sample app, you can clone the repo from github:
 git clone https://github.com/vsivsi/meteor-file-sample-app.git fcSample
 ```
 
-Then go to the `fcSample` subdirectory and run meteorite to launch:
+Then go to the `fcSample` subdirectory and run meteor to launch:
 
 ```
 cd fcSample
-mrt
+meteor
 ```
 
 You should now be able to point your browser to `http://localhost:3000/` and play with the sample app.
