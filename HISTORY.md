@@ -2,6 +2,8 @@
 
 ### v.NEXT
 
+* Documentation fixes.
+
 ### v0.3.0
 
 * Updated package name and information to conform with Meteor 0.9.0 package system. Thanks to @ryw for a PR that showed what needed to be done.
