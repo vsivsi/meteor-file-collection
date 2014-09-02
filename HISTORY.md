@@ -4,7 +4,7 @@
 
 ### v0.3.0
 
-* Updated package name and information to conform with Meteor 0.9.0 package system
+* Updated package name and information to conform with Meteor 0.9.0 package system. Thanks to @ryw for a PR that showed what needed to be done.
 * Added versions.json file
 * Documentation updates
 * Added additional error checking when receiving a 'close' event.
