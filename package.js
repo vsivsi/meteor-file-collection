@@ -17,13 +17,13 @@ Npm.depends({
   'gridfs-locks': '1.2.2',
   dicer: '0.2.3',
   async: '0.9.0',
-  express: '4.8.7',
-  'cookie-parser': '1.3.2'
+  express: '4.9.4',
+  'cookie-parser': '1.3.3'
 });
 
 Package.onUse(function(api) {
   api.use('coffeescript@1.0.3', ['server','client']);
-  api.use('webapp@1.0.2', 'server');
+  api.use('webapp@1.1.1', 'server');
   api.addFiles('gridFS.coffee', ['server','client']);
   api.addFiles('resumable/resumable.js', 'client')
   api.addFiles('server_shared.coffee', 'server');
