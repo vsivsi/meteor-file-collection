@@ -252,8 +252,6 @@ if Meteor.isServer
    # Express middleware to convert a Meteor access token provided in an HTTP request
    # to a Meteor userId attached to the request object as req.meteorUserId
 
-   tokenWarning = false
-
    handle_auth = (req, res, next) ->
       unless req.meteorUserId?
          # Lookup userId if token is provided in HTTP heder
@@ -262,6 +260,8 @@ if Meteor.isServer
          # Or as a URL query of the same name
          else if req.cookies?['X-Auth-Token']?
             req.meteorUserId = lookup_userId_by_token req.cookies['X-Auth-Token']
+         else
+            req.meteorUserId = null
       next()
 
    # Set up all of the middleware, including optional support for Resumable.js chunked uploads
