@@ -7,14 +7,14 @@
 Package.describe({
   summary: 'Collections that efficiently store files using MongoDB GridFS, with built-in HTTP support',
   name: 'vsivsi:file-collection',
-  version: '0.3.0',
+  version: '0.3.1',
   git: 'https://github.com/vsivsi/meteor-file-collection.git'
 });
 
 Npm.depends({
-  mongodb: '1.4.9',
-  'gridfs-locking-stream': '0.2.2',
-  'gridfs-locks': '1.2.1',
+  mongodb: '1.4.12',
+  'gridfs-locking-stream': '0.2.4',
+  'gridfs-locks': '1.2.2',
   dicer: '0.2.3',
   async: '0.9.0',
   express: '4.8.7',
@@ -22,8 +22,8 @@ Npm.depends({
 });
 
 Package.onUse(function(api) {
-  api.use('coffeescript@1.0.0', ['server','client']);
-  api.use('webapp@1.0.0', 'server');
+  api.use('coffeescript@1.0.3', ['server','client']);
+  api.use('webapp@1.0.2', 'server');
   api.addFiles('gridFS.coffee', ['server','client']);
   api.addFiles('resumable/resumable.js', 'client')
   api.addFiles('server_shared.coffee', 'server');

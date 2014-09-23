@@ -2,6 +2,9 @@
 
 ### v.NEXT
 
+### v0.3.1
+
+* Bumped versions of npm dependencies, including a fix for a rare gridfs file locking bug.
 * Documentation fixes.
 
 ### v0.3.0
