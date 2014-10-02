@@ -308,11 +308,9 @@ if Meteor.isClient
   Tinytest.addAsync 'Reject HTTP GET without true allow rule', subWrapper(noReadSub, (test, onComplete) ->
     _id = noReadColl.insert { filename: 'writefile', contentType: 'text/plain' }, (err, _id) ->
       test.fail(err) if err
-      console.log 'Inserted!'
       url = Meteor.absoluteUrl 'noread/' + _id
       HTTP.put url, { content: '0987654321'}, (err, res) ->
         test.fail(err) if err
-        console.log 'PUT!'
         req = $.get url
         req.done () ->
           test.fail new Error "Read without allow succeeded."
