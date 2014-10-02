@@ -26,7 +26,7 @@ if Meteor.isServer
 
          @chunkSize = options.chunkSize ? share.defaultChunkSize
 
-         @db = Meteor._wrapAsync(mongodb.MongoClient.connect)(process.env.MONGO_URL,{})
+         @db = Meteor.wrapAsync(mongodb.MongoClient.connect)(process.env.MONGO_URL,{})
 
          @lockOptions =
             timeOut: options.locks?.timeOut ? 360
@@ -192,7 +192,7 @@ if Meteor.isServer
          else
             @update { _id: file._id }, { $set: mods }
 
-         writeStream = Meteor._wrapAsync(@gfs.createWriteStream.bind(@gfs))
+         writeStream = Meteor.wrapAsync(@gfs.createWriteStream.bind(@gfs))
             root: @root
             _id: mongodb.ObjectID("#{file._id}")
             mode: options.mode ? 'w'
@@ -219,7 +219,7 @@ if Meteor.isServer
          opts.skip = options.skip if options.skip?
          file = @findOne selector, opts
          if file
-            readStream = Meteor._wrapAsync(@gfs.createReadStream.bind(@gfs))
+            readStream = Meteor.wrapAsync(@gfs.createReadStream.bind(@gfs))
                root: @root
                _id: mongodb.ObjectID("#{file._id}")
                timeOut: @lockOptions.timeOut
@@ -238,7 +238,7 @@ if Meteor.isServer
          callback = share.bind_env callback
          if selector?
             @find(selector).forEach (file) =>
-               ret = Meteor._wrapAsync(@gfs.remove.bind(@gfs))({ _id: mongodb.ObjectID("#{file._id}"), root: @root })
+               ret = Meteor.wrapAsync(@gfs.remove.bind(@gfs))({ _id: mongodb.ObjectID("#{file._id}"), root: @root })
             callback? and callback null, ret
          else
             callback? and callback new Error "Remove with an empty selector is not supported"
