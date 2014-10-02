@@ -2,6 +2,14 @@
 
 ### v.NEXT
 
+### v0.3.3
+
+* Added a polyfill for `Function.prototype.bind()` to enable compatibility with PhantomJS, which as of version 1.9.7 lacks support for `.bind()`
+
+### v0.3.2
+
+* Bumped versions of npm dependencies, including a fix for a bson build error in the npm mongodb driver.
+
 ### v0.3.1
 
 * Bumped versions of npm dependencies, including a fix for a rare gridfs file locking bug.
