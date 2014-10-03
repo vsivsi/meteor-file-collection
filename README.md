@@ -146,7 +146,7 @@ if (Meteor.isClient) {
 
 ## Installation
 
-I've only tested with Meteor v0.8. It may run on Meteor v0.7 as well, I don't know.
+I've only tested with Meteor v0.8 and v0.9. It may run on Meteor v0.7 as well, I don't know.
 
 Requires [meteorite](https://atmospherejs.com/docs/installing). To add to your project, run:
 
@@ -174,7 +174,7 @@ A more advanced example that implements a basic image gallery with upload and do
 To run tests (using Meteor tiny-test):
 
 ```
-git clone https://github.com/vsivsi/meteor-file-collection FileCollection
+git clone --recursive https://github.com/vsivsi/meteor-file-collection FileCollection
 cd FileCollection
 meteor test-packages ./
 ```
