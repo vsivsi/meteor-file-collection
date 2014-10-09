@@ -5,6 +5,7 @@
 ### v0.3.3
 
 * Added a polyfill for `Function.prototype.bind()` to enable compatibility with PhantomJS, which as of version 1.9.7 lacks support for `.bind()`
+* Bumped mongodb npm package version.
 
 ### v0.3.2
 
