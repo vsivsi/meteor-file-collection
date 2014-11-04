@@ -146,7 +146,7 @@ if (Meteor.isClient) {
 
 ## Installation
 
-I've only tested with Meteor v0.8 and v0.9. It may run on Meteor v0.7 as well, I don't know.
+I've only tested with Meteor v0.9.x and v1.0. Older versions run on Meteor v0.8 as well, but why would you want to do that?
 
 Requires [meteorite](https://atmospherejs.com/docs/installing). To add to your project, run:
 
@@ -480,7 +480,7 @@ fc.update(
 Since `fc.update()` only runs on the server, it is *not* subjected to any allow/deny rules.
 
 ### fc.allow(options)
-#### Allow client insert and remove, and HTTP data updates, subject to your limitations. - Server only
+#### Allow client insert and remove, and HTTP data accesses and updates, subject to your limitations. - Server only
 
 `fc.allow(options)` is essentially the same as [Meteor's `Collection.allow()`](http://docs.meteor.com/#allow), except that the Meteor Collection `fetch` and `transform` options are not supported by `FileCollection`.
 
