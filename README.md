@@ -148,7 +148,7 @@ if (Meteor.isClient) {
 
 I've only tested with Meteor v0.9.x and v1.0. Older versions run on Meteor v0.8 as well, but why would you want to do that?
 
-Requires [meteorite](https://atmospherejs.com/docs/installing). To add to your project, run:
+To add to your project, run:
 
     meteor add vsivsi:file-collection
 
