@@ -7,7 +7,7 @@
 Package.describe({
   summary: 'Collections that efficiently store files using MongoDB GridFS, with built-in HTTP support',
   name: 'vsivsi:file-collection',
-  version: '0.3.4',
+  version: '0.3.5',
   git: 'https://github.com/vsivsi/meteor-file-collection.git'
 });
 
