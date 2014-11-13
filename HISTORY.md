@@ -2,7 +2,14 @@
 
 ### v.NEXT
 
+### v0.3.5
+
+* Rebuilt/published previous version using actual Meteor 1.0 instead of a checkout of Meteor 1.0
+
+### v0.3.4
+
 * Documentation improvements
+* Dependent package version updates
 
 ### v0.3.3
 
