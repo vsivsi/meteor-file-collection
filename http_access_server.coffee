@@ -185,7 +185,9 @@ if Meteor.isServer
                req.query._id = safeObjectID(req.query._id) if req.query?._id?
 
                # Build the path lookup mongoDB query object for the gridFS files collection
-               lookup = r.lookup? req.params or {}, req.query or {}
+               # console.warn "Relative Path: #{Object.keys req}"
+               console.warn "Relative Path: '#{req.url}' '#{req.originalUrl}' '#{req.baseUrl}' '#{req.path}' #{req.params.path}"
+               lookup = r.lookup? req.params or {}, req.query or {}, req.url or ''
                unless lookup?
                   # No lookup returned, so bailing
                   res.writeHead(500)

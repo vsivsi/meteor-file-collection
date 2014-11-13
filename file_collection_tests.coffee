@@ -32,7 +32,7 @@ testColl = new FileCollection "test",
   chunkSize: 1024*1024
   resumable: true
   http: [
-     { method: 'get', path: '/:_id', lookup: (params, query) -> { _id: params._id }}
+     { method: 'get', path: ['/:_id', '/:_id/*:path?'], lookup: (params, query) -> { _id: params._id }}
      { method: 'post', path: '/:_id', lookup: (params, query) -> { _id: params._id }}
      { method: 'put', path: '/:_id', lookup: (params, query) -> { _id: params._id }}
      { method: 'delete', path: '/:_id', lookup: (params, query) -> { _id: params._id }}
@@ -262,7 +262,7 @@ Tinytest.addAsync 'REST API PUT/GET', (test, onComplete) ->
     url = Meteor.absoluteUrl 'test/' + _id
     HTTP.put url, { content: '0987654321'}, (err, res) ->
       test.fail(err) if err
-      HTTP.get url, (err, res) ->
+      HTTP.get url + '/other/path/info', (err, res) ->
         test.fail(err) if err
         test.equal res.content, '0987654321'
         onComplete()
