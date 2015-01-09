@@ -218,6 +218,15 @@ if Meteor.isServer
          opts.sort = options.sort if options.sort?
          opts.skip = options.skip if options.skip?
          file = @findOne selector, opts
+
+         # Init the start and end range, default to full file
+         range =
+           start: 0
+           end: file.length
+
+         # Check if this is a range request
+         range = options.range if options.range?
+
          if file
             readStream = Meteor.wrapAsync(@gfs.createReadStream.bind(@gfs))
                root: @root
@@ -225,6 +234,9 @@ if Meteor.isServer
                timeOut: @lockOptions.timeOut
                lockExpiration: @lockOptions.lockExpiration
                pollingInterval: @lockOptions.pollingInterval
+               range:
+                 startPos: range.start
+                 endPos: range.end
             if callback?
                readStream.on 'close', () ->
                   callback(null, file)

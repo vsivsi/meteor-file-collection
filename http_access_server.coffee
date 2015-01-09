@@ -89,27 +89,75 @@ if Meteor.isServer
 
    get = (req, res, next) ->
 
-      headers =
-         'Content-type': req.gridFS.contentType
-         'Content-MD5': req.gridFS.md5
-         'Content-Length': req.gridFS.length
-         'Last-Modified': req.gridFS.uploadDate.toUTCString()
+      # If range request in the header
+      if req.headers['range']
+        # Set status code to partial data
+        statusCode = 206
+
+        # Pick out the range required by the browser
+        parts = req.headers["range"].replace(/bytes=/, "").split("-")
+        start = parseInt(parts[0], 10)
+        end = (if parts[1] then parseInt(parts[1], 10) else req.gridFS.length - 1)
+
+        # Unable to handle range request
+        if (start < 0) or (end > req.gridFS.length) or (start > end) or isNaN(start) or isNaN(end)
+          res.writeHead 416
+          res.end()
+          return
+
+        # Determine the chunk size
+        chunksize = (end - start) + 1
+
+        # Construct the range request header
+        headers =
+            'Content-Range': 'bytes ' + start + '-' + end + '/' + req.gridFS.length
+            'Accept-Ranges': 'bytes'
+            'Content-type': req.gridFS.contentType
+            'Content-Length': chunksize
+            'Last-Modified': req.gridFS.uploadDate.toUTCString()
+
+        # Read the partial request from gridfs stream
+        stream = @findOneStream(
+          _id: req.gridFS._id
+        ,
+          range:
+            start: start
+            end: end
+        )
+
+      # Otherwise prepare to stream the whole file
+      else
+        # Set default status code
+        statusCode = 200
+
+        # Set default headers
+        headers =
+            'Content-type': req.gridFS.contentType
+            'Content-MD5': req.gridFS.md5
+            'Content-Length': req.gridFS.length
+            'Last-Modified': req.gridFS.uploadDate.toUTCString()
+
+        # Open file to stream
+        stream = @findOneStream { _id: req.gridFS._id }
 
       # Trigger download in browser, optionally specify filename.
-      if req.query.download or req.query.filename
-         filename = req.query.filename ? req.gridFS.filename
-         headers['Content-Disposition'] = "attachment; filename=\"#{filename}\""
+      if (req.query.download and req.query.download.toLowerCase() == 'true') or req.query.filename
+        filename = req.query.filename ? req.gridFS.filename
+        headers['Content-Disposition'] = "attachment; filename=\"#{filename}\""
+
+      # If specified in url query set cache to specified value, might want to add more options later.
+      if req.query.cache and not isNaN(parseInt(req.query.cache))
+        headers['Cache-Control'] = "max-age=" + parseInt(req.query.cache)+", private"
 
       # HEADs don't have a body
       if req.method is 'HEAD'
-         res.writeHead 204, headers
-         res.end()
-         return
+        res.writeHead 204, headers
+        res.end()
+        return
 
-      # Send the file
-      stream = @findOneStream { _id: req.gridFS._id }
+      # Stream file
       if stream
-         res.writeHead 200, headers
+         res.writeHead statusCode, headers
          stream.pipe(res)
             .on 'close', () ->
                res.end()
