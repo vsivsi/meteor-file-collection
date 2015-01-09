@@ -344,7 +344,7 @@ For non-Meteor clients that aren't logged-in humans using browsers, it is possib
 
 URLs used to HTTP GET file data within a browser can be configured to automatically trigger a "File SaveAs..." download by using the `?download=true` query in the request URL. Similarly, if the `?filename=[filename.ext]` query is used, a "File SaveAs..." download will be invoked, but using the specified filename as the default, rather than the GridFS `filename` as is the case with `?download=true`.
 
-You can also specify if the asset must be cached in your browser and for how long by using '?cache=172800' in the request URL. This wil set the header response information to 'cache-control:max-age=172800, private'. This is useful when streaming videos or audio files to avoid unwanted calls to the server.
+To cache files in the browser use '?cache=172800' query in the request URL, where 172800 (48h) is the time in seconds. This wil set the header response information to 'cache-control:max-age=172800, private'. Caching is useful when streaming videos or audio files to avoid unwanted calls to the server.
 
 HTTP PUT requests write the data from the request body directly into the file. By contrast, HTTP POST requests assume that the body is formatted as MIME multipart/form-data (as an old-school browser form based file upload would generate), and the data written to the file is taken from the part named `"file"`.  Below are example [cURL](`https://en.wikipedia.org/wiki/CURL#cURL`) commands that successfully invoke each of the four possible HTTP methods.
 
