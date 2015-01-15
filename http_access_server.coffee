@@ -100,7 +100,7 @@ if Meteor.isServer
         end = (if parts[1] then parseInt(parts[1], 10) else req.gridFS.length - 1)
 
         # Unable to handle range request
-        if (start < 0) or (end > req.gridFS.length) or (start > end) or isNaN(start) or isNaN(end)
+        if (start < 0) or (end >= req.gridFS.length) or (start > end) or isNaN(start) or isNaN(end)
           res.writeHead 416
           res.end()
           return
