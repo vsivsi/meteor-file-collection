@@ -290,16 +290,22 @@ Tinytest.addAsync 'REST API valid range requests', (test, onComplete) ->
       HTTP.get url, { headers: { 'Range': '0-'}},
         (err, res) ->
           test.fail(err) if err
+          test.equal res.headers['content-range'], 'bytes 0-9/10'
+          test.equal res.headers['accept-ranges'], 'bytes'
           test.equal res.statusCode, 206
           test.equal res.content, '0987654321'
           HTTP.get url, { headers: { 'Range': '0-9'}},
             (err, res) ->
               test.fail(err) if err
+              test.equal res.headers['content-range'], 'bytes 0-9/10'
+              test.equal res.headers['accept-ranges'], 'bytes'
               test.equal res.statusCode, 206
               test.equal res.content, '0987654321'
               HTTP.get url, { headers: { 'Range': '5-7'}},
                 (err, res) ->
                   test.fail(err) if err
+                  test.equal res.headers['content-range'], 'bytes 5-7/10'
+                  test.equal res.headers['accept-ranges'], 'bytes'
                   test.equal res.statusCode, 206
                   test.equal res.content, '543'
                   onComplete()
