@@ -1,5 +1,5 @@
 /***************************************************************************
-###     Copyright (C) 2014 by Vaughn Iverson
+###     Copyright (C) 2014-2015 by Vaughn Iverson
 ###     fileCollection is free software released under the MIT/X11 license.
 ###     See included LICENSE file for details.
 ***************************************************************************/
@@ -7,7 +7,7 @@
 Package.describe({
   summary: 'Collections that efficiently store files using MongoDB GridFS, with built-in HTTP support',
   name: 'vsivsi:file-collection',
-  version: '0.3.5',
+  version: '0.3.6',
   git: 'https://github.com/vsivsi/meteor-file-collection.git'
 });
 
