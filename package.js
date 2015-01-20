@@ -12,18 +12,18 @@ Package.describe({
 });
 
 Npm.depends({
-  mongodb: '1.4.19',
+  mongodb: '1.4.28',
   'gridfs-locking-stream': '0.2.5',
   'gridfs-locks': '1.2.2',
   dicer: '0.2.3',
   async: '0.9.0',
-  express: '4.10.1',
+  express: '4.11.0',
   'cookie-parser': '1.3.3'
 });
 
 Package.onUse(function(api) {
-  api.use('coffeescript@1.0.4', ['server','client']);
-  api.use('webapp@1.1.4', 'server');
+  api.use('coffeescript@1.0.5', ['server','client']);
+  api.use('webapp@1.1.5', 'server');
   api.addFiles('gridFS.coffee', ['server','client']);
   api.addFiles('resumable/resumable.js', 'client')
   api.addFiles('server_shared.coffee', 'server');
