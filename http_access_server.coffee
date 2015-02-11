@@ -99,9 +99,9 @@ if Meteor.isServer
         start = parseInt(parts[0], 10)
         end = (if parts[1] then parseInt(parts[1], 10) else req.gridFS.length - 1)
 
-        # Unable to handle range request
+        # Unable to handle range request - Send the valid range with status code 416
         if (start < 0) or (end >= req.gridFS.length) or (start > end) or isNaN(start) or isNaN(end)
-          res.writeHead 416
+          res.writeHead 416, 'Content-Range': 'bytes ' + '*/' + req.gridFS.length
           res.end()
           return
 

@@ -222,7 +222,7 @@ if Meteor.isServer
          # Init the start and end range, default to full file
          range =
            start: 0
-           end: file.length
+           end: file.length - 1
 
          # Check if this is a range request
          range = options.range if options.range?
