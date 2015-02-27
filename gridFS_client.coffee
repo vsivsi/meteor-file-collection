@@ -6,7 +6,7 @@
 
 if Meteor.isClient
 
-   class FileCollection extends Meteor.Collection
+   class FileCollection extends Mongo.Collection
 
       constructor: (@root = share.defaultRoot, options = {}) ->
          unless @ instanceof FileCollection
