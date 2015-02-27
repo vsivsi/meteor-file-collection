@@ -24,7 +24,7 @@ Npm.depends({
 Package.onUse(function(api) {
   api.use('coffeescript@1.0.5', ['server','client']);
   api.use('webapp@1.1.6', 'server');
-  api.use('mongo@1.0.11', 'server');
+  api.use('mongo@1.0.11', ['server', 'client']);
   api.addFiles('gridFS.coffee', ['server','client']);
   api.addFiles('resumable/resumable.js', 'client')
   api.addFiles('server_shared.coffee', 'server');
@@ -37,6 +37,6 @@ Package.onUse(function(api) {
 });
 
 Package.onTest(function (api) {
-  api.use(['vsivsi:file-collection', 'coffeescript', 'tinytest', 'test-helpers', 'http', 'mongo']);
+  api.use(['vsivsi:file-collection', 'coffeescript', 'tinytest', 'test-helpers', 'http']);
   api.addFiles('file_collection_tests.coffee', ['server', 'client']);
 });
