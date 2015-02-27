@@ -281,6 +281,73 @@ Tinytest.addAsync 'REST API POST/GET/DELETE', (test, onComplete) ->
             test.fail(err) if err
             onComplete()
 
+Tinytest.addAsync 'REST API valid range requests', (test, onComplete) ->
+  _id = testColl.insert { filename: 'writefile', contentType: 'text/plain' }, (err, _id) ->
+    test.fail(err) if err
+    url = Meteor.absoluteUrl 'test/' + _id
+    HTTP.put url, { content: '0987654321'}, (err, res) ->
+      test.fail(err) if err
+      HTTP.get url, { headers: { 'Range': '0-'}},
+        (err, res) ->
+          test.fail(err) if err
+          test.equal res.headers['content-range'], 'bytes 0-9/10'
+          test.equal res.headers['accept-ranges'], 'bytes'
+          test.equal res.statusCode, 206
+          test.equal res.content, '0987654321'
+          HTTP.get url, { headers: { 'Range': '0-9'}},
+            (err, res) ->
+              test.fail(err) if err
+              test.equal res.headers['content-range'], 'bytes 0-9/10'
+              test.equal res.headers['accept-ranges'], 'bytes'
+              test.equal res.statusCode, 206
+              test.equal res.content, '0987654321'
+              HTTP.get url, { headers: { 'Range': '5-7'}},
+                (err, res) ->
+                  test.fail(err) if err
+                  test.equal res.headers['content-range'], 'bytes 5-7/10'
+                  test.equal res.headers['accept-ranges'], 'bytes'
+                  test.equal res.statusCode, 206
+                  test.equal res.content, '543'
+                  onComplete()
+
+Tinytest.addAsync 'REST API invalid range requests', (test, onComplete) ->
+  _id = testColl.insert { filename: 'writefile', contentType: 'text/plain' }, (err, _id) ->
+    test.fail(err) if err
+    url = Meteor.absoluteUrl 'test/' + _id
+    HTTP.put url, { content: '0987654321'}, (err, res) ->
+      test.fail(err) if err
+      HTTP.get url, { headers: { 'Range': '0-10'}},
+        (err, res) ->
+          test.equal res.statusCode, 416
+          HTTP.get url, { headers: { 'Range': '5-3'}},
+            (err, res) ->
+              test.equal res.statusCode, 416
+              HTTP.get url, { headers: { 'Range': '-1-5'}},
+                (err, res) ->
+                  test.equal res.statusCode, 416
+                  HTTP.get url, { headers: { 'Range': '1-abc'}},
+                  (err, res) ->
+                    test.equal res.statusCode, 416
+                    onComplete()
+
+Tinytest.addAsync 'REST API requests header manipilation', (test, onComplete) ->
+  _id = testColl.insert { filename: 'writefile', contentType: 'text/plain' }, (err, _id) ->
+    test.fail(err) if err
+    url = Meteor.absoluteUrl 'test/' + _id
+    HTTP.put url, { content: '0987654321'}, (err, res) ->
+      test.fail(err) if err
+      HTTP.get url+'?download=true', (err, res) ->
+          test.equal res.headers['content-disposition'], 'attachment; filename="writefile"'
+          test.equal res.statusCode, 200
+          HTTP.get url+'?cache=123456', { headers: { 'Range': '1-5'}},
+            (err, res) ->
+              test.equal res.headers['cache-control'], 'max-age=123456, private'
+              test.equal res.statusCode, 206
+              HTTP.get url+'?cache=123', (err, res) ->
+                test.equal res.headers['cache-control'], 'max-age=123, private'
+                test.equal res.statusCode, 200
+                onComplete()
+
 if Meteor.isClient
 
   noAllowSub = Meteor.subscribe 'noAllowCollPub'

@@ -70,15 +70,18 @@ if Meteor.isServer
                   partlock.on 'error', (err) -> callback error
                (err) =>
                   return callback err if err
-                  files.update { _id: fileId }, { $set: { length: totalSize }},
-                     (err, res) =>
-                        return callback err if err
-                        lock.releaseLock()
-                        # Now open the file to update the md5 hash...
-                        @gfs.createWriteStream { _id: fileId, filename: file.metadata._Resumable.resumableFilename }, (err, stream) ->
-                           return callback err if err
-                           stream.write('')
-                           stream.end()
+                  # Build up the command for the md5 hash calculation
+                  md5Command =
+                    filemd5: fileId
+                    root: "#{@root}"
+                  # Send the command to calculate the md5 hash of the file
+                  @db.command md5Command, (err, results) ->
+                    return callback err if err
+                    # Update the size and md5 to the file data
+                    files.update { _id: fileId }, { $set: { length: totalSize, md5: results.md5 }},
+                       (err, res) =>
+                          return callback err if err
+                          lock.releaseLock()
 
       lock.on 'timed-out', () -> throw "File Lock timed out"
 
