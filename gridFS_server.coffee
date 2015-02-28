@@ -1,5 +1,5 @@
 ############################################################################
-#     Copyright (C) 2014 by Vaughn Iverson
+#     Copyright (C) 2014-2015 by Vaughn Iverson
 #     fileCollection is free software released under the MIT/X11 license.
 #     See included LICENSE file for details.
 ############################################################################
@@ -14,11 +14,14 @@ if Meteor.isServer
    dicer = Npm.require 'dicer'
    express = Npm.require 'express'
 
-   class FileCollection extends Meteor.Collection
+   class FileCollection extends Mongo.Collection
 
       constructor: (@root = share.defaultRoot, options = {}) ->
          unless @ instanceof FileCollection
             return new FileCollection(@root, options)
+
+         unless @ instanceof Mongo.Collection
+            throw new Error 'The global definition of Mongo.Collection has changed since the file-collection package was loaded. Please ensure that any packages that redefine Mongo.Collection are loaded before file-collection.'  
 
          if typeof @root is 'object'
             options = @root

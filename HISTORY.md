@@ -2,6 +2,10 @@
 
 ### v.NEXT
 
+### v0.3.6
+
+* Updated dependencies including resumable.js
+
 ### v0.3.5
 
 * Rebuilt/published previous version using actual Meteor 1.0 instead of a checkout of Meteor 1.0

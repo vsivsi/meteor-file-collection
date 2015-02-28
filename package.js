@@ -1,5 +1,5 @@
 /***************************************************************************
-###     Copyright (C) 2014 by Vaughn Iverson
+###     Copyright (C) 2014-2015 by Vaughn Iverson
 ###     fileCollection is free software released under the MIT/X11 license.
 ###     See included LICENSE file for details.
 ***************************************************************************/
@@ -7,23 +7,24 @@
 Package.describe({
   summary: 'Collections that efficiently store files using MongoDB GridFS, with built-in HTTP support',
   name: 'vsivsi:file-collection',
-  version: '0.3.5',
+  version: '1.0.0',
   git: 'https://github.com/vsivsi/meteor-file-collection.git'
 });
 
 Npm.depends({
-  mongodb: '2.0.15',
-  'gridfs-locking-stream': '0.2.5',
-  'gridfs-locks': '1.2.2',
+  mongodb: '2.0.16',
+  'gridfs-locking-stream': '1.0.0',
+  'gridfs-locks': '1.3.0',
   dicer: '0.2.3',
   async: '0.9.0',
-  express: '4.10.1',
+  express: '4.11.0',
   'cookie-parser': '1.3.3'
 });
 
 Package.onUse(function(api) {
-  api.use('coffeescript@1.0.4', ['server','client']);
-  api.use('webapp@1.1.4', 'server');
+  api.use('coffeescript@1.0.5', ['server','client']);
+  api.use('webapp@1.1.6', 'server');
+  api.use('mongo@1.0.11', ['server', 'client']);
   api.addFiles('gridFS.coffee', ['server','client']);
   api.addFiles('resumable/resumable.js', 'client')
   api.addFiles('server_shared.coffee', 'server');
