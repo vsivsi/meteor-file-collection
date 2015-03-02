@@ -1,6 +1,10 @@
 ## Revision history
 
-### v.NEXT
+### v0.4.0
+
+* Added support for HTTP range requests (thanks to @riaan53!)
+* Switched internally to using new style node.js streams for greatly improved flow-control when streaming large files
+* Updated all dependencies
 
 ### v0.3.6
 

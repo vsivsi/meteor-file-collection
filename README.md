@@ -1,10 +1,10 @@
 # file-collection
 
-*NOTE!* Prior to version v0.3 this package was called "fileCollection" As of Meteor v0.9, package names may not contain upper case characters, so the name had to be changed.
-
 ## Introduction
 
-file-collection is a [Meteor.js](https://www.meteor.com/) [package](https://atmospherejs.com/package/collectionFS) that cleanly extends Meteor's `Collection` metaphor for efficiently dealing with collections of files and their data. File Collections are fully reactive, so if you know how to use Meteor [Collections](http://docs.meteor.com/#collections), you already know most of what you need to begin working with this package.
+file-collection is a Meteor.js package that cleanly extends Meteor's Collection metaphor for efficiently dealing with collections of files and their data. File Collections are fully reactive, so if you know how to use Meteor Collections, you already know most of what you need to begin working with this package. It also fully supports HTTP upload and download including support for authentication.
+
+### Quick example
 
 ```js
 myFiles = new FileCollection('myFiles');
@@ -42,7 +42,7 @@ However, if you find your project needs all of the bells and whistles that colle
 
 Enough words, time for some more code...
 
-The block below implements a `FileCollection` on server, including support for owner-secured HTTP file upload using `Resumable.js` and HTTP download. It also sets up the client to provide drag and drop chunked file uploads to the collection. The only things missing here are UI templates and some helper functions. See the `sampleApp` subdirectory for a complete working version written in [CoffeeScript](http://coffeescript.org/).
+The block below implements a `FileCollection` on server, including support for owner-secured HTTP file upload using `Resumable.js` and HTTP download. It also sets up the client to provide drag and drop chunked file uploads to the collection. The only things missing here are UI templates and some helper functions. See the [meteor-file-sample-app](https://github.com/vsivsi/meteor-file-sample-app) project for a complete working version written in [CoffeeScript](http://coffeescript.org/).
 
 ```js
 // Create a file collection, and enable file upload and download using HTTP
