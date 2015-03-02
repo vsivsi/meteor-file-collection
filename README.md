@@ -26,17 +26,15 @@ Under the hood, file data is stored entirely within the Meteor MongoDB instance 
 
 ### Design philosophy
 
-My goal in writing this package was to stay true to the spirit of Meteor and build something that can be made efficient, secure and to "just work" with a minimum of fuss.
+My goal in writing this package was to stay true to the spirit of Meteor and build something efficient and secure that "just works" with a minimum of fuss.
 
-If you've been searching for ways to deal with file data on Meteor, you've probably also encountered [collectionFS](https://atmospherejs.com/package/collectionFS). If not, you should definitely check it out. It's a great set of packages written by smart people, and I even pitched in to help with a rewrite of their [gridFS support](https://atmospherejs.com/package/cfs-gridfs).
+If you've been searching for ways to deal with file data on Meteor, you've probably also encountered [collectionFS](https://atmospherejs.com/cfs/standard-packages). If not, you should definitely check it out. It's a great set of packages written by smart people, and I even pitched in to help with a rewrite of their MongoDB gridFS support.
 
 Here's the difference in a nutshell: collectionFS is a Ferrari, and file-collection is a Fiat.
 
 They do approximately the same thing using some of the same technologies, but reflect different design priorities. file-collection is much simpler and somewhat less flexible; but if it meets your needs you'll find it has a lot fewer moving parts and may be significantly more efficient to work with and use.
 
-If you're trying to quickly prototype an idea or you know that you just need a straightforward way of dealing with files, you should definitely try file-collection.
-
-However, if you find your project needs all of the bells and whistles that collectionFS offers, then you'll have your answer.
+If you're trying to quickly prototype an idea or you know that you just need a straightforward way of dealing with files, you should definitely try file-collection.  Because it is so much simpler, you may also find that it is easier to understand and customize to specific the needs of your project, if necessary.
 
 ## Example
 
