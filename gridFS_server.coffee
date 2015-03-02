@@ -222,15 +222,15 @@ if Meteor.isServer
          opts.skip = options.skip if options.skip?
          file = @findOne selector, opts
 
-         # Init the start and end range, default to full file
-         range =
-           start: 0
-           end: file.length - 1
-
-         # Check if this is a range request
-         range = options.range if options.range?
-
          if file
+            # Init the start and end range, default to full file
+            range =
+               start: 0
+               end: file.length - 1
+
+            # If range specified use it
+            range = options.range if options.range?
+
             readStream = Meteor.wrapAsync(@gfs.createReadStream.bind(@gfs))
                root: @root
                _id: mongodb.ObjectID("#{file._id}")
