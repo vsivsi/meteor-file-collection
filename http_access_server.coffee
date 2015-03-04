@@ -216,62 +216,57 @@ if Meteor.isServer
       for r in http
 
          # Add an express middleware for each application REST path
-         @router[r.method] r.path, do (r) =>
+         @router[r.method] r.path, (req, res, next) =>
 
-            getDep = true
+           safeObjectID = (s) ->
+              if s.match /^[0-9a-f]{24}$/i  # Validate that _id is a 12 byte hex string
+                 new Meteor.Collection.ObjectID s
+              else
+                 null
 
-            (req, res, next) =>
+           # params and queries literally named "_id" get converted to ObjectIDs automatically
+           req.params._id = safeObjectID(req.params._id) if req.params?._id?
+           req.query._id = safeObjectID(req.query._id) if req.query?._id?
 
-               safeObjectID = (s) ->
-                  if s.match /^[0-9a-f]{24}$/i  # Validate that _id is a 12 byte hex string
-                     new Meteor.Collection.ObjectID s
-                  else
-                     null
+           # Build the path lookup mongoDB query object for the gridFS files collection
+           lookup = r.lookup? req.params or {}, req.query or {}
+           unless lookup?
+              # No lookup returned, so bailing
+              res.writeHead(500)
+              res.end()
+              return
+           else
+              # Perform the collection query
+              req.gridFS = @findOne lookup
+              unless req.gridFS
+                 res.writeHead(404)
+                 res.end()
+                 return
 
-               # params and queries literally named "_id" get converted to ObjectIDs automatically
-               req.params._id = safeObjectID(req.params._id) if req.params?._id?
-               req.query._id = safeObjectID(req.query._id) if req.query?._id?
+              # Make sure that the requested method is permitted for this file in the allow/deny rules
+              switch req.method
+                 when 'HEAD', 'GET'
+                    unless share.check_allow_deny.bind(@) 'read', req.meteorUserId, req.gridFS
+                       res.writeHead(403)
+                       res.end()
+                       return
+                 when 'POST', 'PUT'
+                    unless share.check_allow_deny.bind(@) 'write', req.meteorUserId, req.gridFS
+                       res.writeHead(403)
+                       res.end()
+                       return
+                 when 'DELETE'
+                    unless share.check_allow_deny.bind(@) 'remove', req.meteorUserId, req.gridFS
+                       res.writeHead(403)
+                       res.end()
+                       return
+                 else
+                    res.writeHead(500)
+                    res.end()
+                    return
 
-               # Build the path lookup mongoDB query object for the gridFS files collection
-               lookup = r.lookup? req.params or {}, req.query or {}
-               unless lookup?
-                  # No lookup returned, so bailing
-                  res.writeHead(500)
-                  res.end()
-                  return
-               else
-                  # Perform the collection query
-                  req.gridFS = @findOne lookup
-                  unless req.gridFS
-                     res.writeHead(404)
-                     res.end()
-                     return
+              next()
 
-                  # Make sure that the requested method is permitted for this file in the allow/deny rules
-                  switch req.method
-                     when 'HEAD', 'GET'
-                        unless share.check_allow_deny.bind(@) 'read', req.meteorUserId, req.gridFS
-                           res.writeHead(403)
-                           res.end()
-                           return
-                     when 'POST', 'PUT'
-                        unless share.check_allow_deny.bind(@) 'write', req.meteorUserId, req.gridFS
-                           res.writeHead(403)
-                           res.end()
-                           return
-                     when 'DELETE'
-                        unless share.check_allow_deny.bind(@) 'remove', req.meteorUserId, req.gridFS
-                           res.writeHead(403)
-                           res.end()
-                           return
-                     else
-                        res.writeHead(500)
-                        res.end()
-                        return
-
-                  next()
-
-      # Add all of generic request handling methods to the express route
       @router.route('/*')
          .all (req, res, next) ->  # Make sure a file has been selected by some rule
             unless req.gridFS
@@ -279,6 +274,14 @@ if Meteor.isServer
                res.end()
                return
             next()
+
+      # Loop over the app supplied http paths
+      for r in http when typeof http.handler is 'function'
+         # Add an express middleware for each custom request handler
+         @router[r.method] r.path, http.handler
+
+      # Add all of generic request handling methods to the express route
+      @router.route('/*')
          .head(get.bind(@))   # Generic HTTP method handlers
          .get(get.bind(@))
          .put(put.bind(@))
@@ -322,7 +325,7 @@ if Meteor.isServer
 
          # Set up support for resumable.js if requested
          if options.resumable
-            share.setup_resumable.bind(@)()
+            options.http = share.resumable_paths.concat options.http
 
          # Setup application HTTP REST interface
          @router = express.Router()

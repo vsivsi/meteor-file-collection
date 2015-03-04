@@ -204,16 +204,10 @@ if Meteor.isServer
                res.end()
                return
 
-            file = @findOne { _id: ID }
+            file = @findOne { _id: req.gridFS._id }
 
             # File must exist to write to it
             unless file
-               res.writeHead(404)
-               res.end()
-               return
-
-            # Make sure we have permission
-            unless share.check_allow_deny.bind(@) 'write', req.meteorUserId, file, ['length', 'md5']
                res.writeHead(404)
                res.end()
                return
@@ -259,28 +253,10 @@ if Meteor.isServer
    resumable_get = (req, res, next) ->
 
       # Query to see if this entire file is already complete, or if this part is complete in the GridFS collection
-      file = @findOne(
-         $or: [
-            {
-               _id: req.query.resumableIdentifier
-               length: req.query.resumableTotalSize
-            }
-            {
-               length: req.query.resumableCurrentChunkSize
-               'metadata._Resumable.resumableIdentifier': req.query.resumableIdentifier
-               'metadata._Resumable.resumableChunkNumber': req.query.resumableChunkNumber
-            }
-         ]
-      )
+      file = @findOne { _id: req.gridFS._id }
 
       # If not, tell Resumable.js we don't have it yet
       unless file
-         res.writeHead(404)
-         res.end()
-         return
-
-      # Make sure we'll allow the POST that will come subsequently come from this...
-      unless share.check_allow_deny.bind(@) 'write', req.meteorUserId, file, ['length', 'md5']
          res.writeHead(404)
          res.end()
          return
@@ -290,12 +266,28 @@ if Meteor.isServer
       res.end()
 
    # Setup the GET and POST HTTP REST paths for Resumable.js in express
-   share.setup_resumable = () ->
-	    r = express.Router()
-	    r.route('/_resumable')
-	       .get(resumable_get.bind(@))
-	       .post(resumable_post.bind(@))
-	       .all((req, res, next) ->
-	          res.writeHead(500)
-	          res.end())
-	    WebApp.rawConnectHandlers.use(@baseURL, share.bind_env(r))
+   share.resumable_paths = [
+      {
+         method: 'post'
+         path: '/_resumable'
+         lookup: (params, query) -> { _id: query._id }
+         handler: resumable_post
+      }
+      {
+         method: 'get'
+         path: '/_resumable'
+         lookup: (params, query) ->
+            $or: [
+               {
+                  _id: query.resumableIdentifier
+                  length: query.resumableTotalSize
+               }
+               {
+                  length: query.resumableCurrentChunkSize
+                  'metadata._Resumable.resumableIdentifier': query.resumableIdentifier
+                  'metadata._Resumable.resumableChunkNumber': query.resumableChunkNumber
+               }
+            ]
+         handler: resumable_get
+      }
+   ]
