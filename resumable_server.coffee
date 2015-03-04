@@ -37,7 +37,7 @@ if Meteor.isServer
                   'metadata._Resumable.resumableChunkNumber': 1
             }
          )
-         
+
          cursor.count (err, count) =>
             if err
                lock.releaseLock()
@@ -115,7 +115,7 @@ if Meteor.isServer
                           (err, res) =>
                              lock.releaseLock()
                              return callback err if err
-      
+
       lock.on 'timed-out', () -> callback new Error "File Lock timed out"
       lock.on 'expired', () -> callback new Error "File Lock expired"
       lock.on 'error', (err) -> callback err
@@ -288,7 +288,6 @@ if Meteor.isServer
       # All is good
       res.writeHead(200)
       res.end()
-
 
    # Setup the GET and POST HTTP REST paths for Resumable.js in express
    share.setup_resumable = () ->
