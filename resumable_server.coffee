@@ -120,147 +120,73 @@ if Meteor.isServer
       lock.on 'expired', () -> callback new Error "File Lock expired"
       lock.on 'error', (err) -> callback err
 
-   # Fast MIME Multipart parsing of the Resumable.js HTTP POST request bodies
-
-   dice_resumable_multipart = (req, callback) ->
-      callback = share.bind_env callback
-      boundary = share.find_mime_boundary req
-
-      unless boundary
-         console.error 'No MIME multipart boundary found for dicer'
-         err = new Error('No MIME multipart boundary found for dicer')
-         return callback err
-
-      resumable = {}
-      resCount = 0
-      fileStream = null
-
-      d = new dicer { boundary: boundary }
-
-      d.on 'part', (p) ->
-         p.on 'header', (header) ->
-            RE_RESUMABLE = /^form-data; name="(resumable[^"]+)"/
-            RE_FILE = /^form-data; name="file"; filename="blob"/
-            RE_NUMBER = /Size|Chunk/
-            for k, v of header
-               if k is 'content-disposition'
-                  if resVar = RE_RESUMABLE.exec(v)?[1]
-                     resData = ''
-                     resCount++
-
-                     p.on 'data', (data) -> resData += data.toString()
-
-                     p.on 'end', () ->
-                        resCount--
-                        unless RE_NUMBER.test(resVar)
-                           resumable[resVar] = resData
-                        else
-                           resumable[resVar] = parseInt(resData)
-                        if resCount is 0 and fileStream
-                           callback(null, resumable, fileStream)
-
-                     p.on 'error', (err) ->
-                        console.error('Error in Dicer while streaming: \n', err)
-                        callback err
-
-                  else if RE_FILE.exec(v)
-                     fileStream = p
-                     if resCount is 0
-                        callback(null, resumable, fileStream)
-
-      d.on 'error', (err) ->
-        console.error('Error in Dicer: \n', err)
-        callback err
-
-      d.on 'finish', () ->
-         unless fileStream
-            callback(new Error "No file blob in multipart POST")
-
-      req.pipe(d)
-
    # Handle HTTP POST requests from Resumable.js
 
-   resumable_post = (req, res, next) ->
+   resumable_post_lookup = (params, query, multipart) ->
+      return { _id: new Mongo.ObjectID(multipart?.params?.resumableIdentifier) }
 
-      # Parse the multipart body
-      dice_resumable_multipart.bind(@) req, (err, resumable, fileStream) =>
-         # Error parsing
-         if err
-            res.writeHead(500)
-            res.end()
-            return
-         else
-            # This khas to be a resumable POST
-            unless resumable
-               res.writeHead(501)
-               res.end()
-               return
+   resumable_post_handler = (req, res, next) ->
 
-            # See if this file already exists in some form
-            try
-               ID = new Meteor.Collection.ObjectID(resumable.resumableIdentifier)
-            catch
-               res.writeHead(501)
-               res.end()
-               return
+      #    # This has to be a resumable POST
+      unless req.multipart?.params?.resumableIdentifier
+         console.error "Missing resumable.js multipart information"
+         res.writeHead(501)
+         res.end()
+         return
 
-            file = @findOne { _id: req.gridFS._id }
+      resumable = req.multipart.params
 
-            # File must exist to write to it
-            unless file
-               res.writeHead(404)
-               res.end()
-               return
+      # Sanity check the chunk sizes that are critical to reassembling the file from parts
+      unless ((req.gridFS.chunkSize is resumable.resumableChunkSize) and
+              (resumable.resumableCurrentChunkSize is resumable.resumableChunkSize) or
+              ((resumable.resumableChunkNumber is resumable.resumableTotalChunks) and
+               (resumable.resumableCurrentChunkSize < 2*resumable.resumableChunkSize)))
 
-            # Sanity check the chunk sizes that are critical to reassembling the file from parts
-            unless ((file.chunkSize is resumable.resumableChunkSize) and
-                    (resumable.resumableCurrentChunkSize is resumable.resumableChunkSize) or
-                    ((resumable.resumableChunkNumber is resumable.resumableTotalChunks) and
-                     (resumable.resumableCurrentChunkSize < 2*resumable.resumableChunkSize)))
+         res.writeHead(501)
+         res.end()
+         return
 
-               res.writeHead(501)
-               res.end()
-               return
+      # Everything looks good, so write this part
+      req.gridFS.metadata._Resumable = resumable
+      writeStream = @upsertStream
+         filename: "_Resumable_#{resumable.resumableIdentifier}_#{resumable.resumableChunkNumber}_#{resumable.resumableTotalChunks}"
+         metadata: req.gridFS.metadata
 
-            # Everything looks good, so write this part
-            file.metadata._Resumable = resumable
-            writeStream = @upsertStream
-               filename: "_Resumable_#{resumable.resumableIdentifier}_#{resumable.resumableChunkNumber}_#{resumable.resumableTotalChunks}"
-               metadata: file.metadata
-
-            unless writeStream
-               res.writeHead(404)
-               res.end()
-               return
-
-            fileStream.pipe(writeStream)
-               .on 'close', share.bind_env((retFile) =>
-                  if retFile
-                     res.writeHead(200)
-                     res.end()
-                     # Check to see if all of the parts are now available and can be reassembled
-                     check_order.bind(@)(file, (err) ->
-                        console.error "Error reassembling chunks of resumable.js upload", err
-                     )
-                  )
-               .on 'error', share.bind_env((err) =>
-                  console.error "Piping Error!", err
-                  res.writeHead(500)
-                  res.end())
-
-   # This handles Resumable.js "test GET" requests, that exist to determine if a part is already uploaded
-
-   resumable_get = (req, res, next) ->
-
-      # Query to see if this entire file is already complete, or if this part is complete in the GridFS collection
-      file = @findOne { _id: req.gridFS._id }
-
-      # If not, tell Resumable.js we don't have it yet
-      unless file
+      unless writeStream
          res.writeHead(404)
          res.end()
          return
 
+      req.multipart.fileStream.pipe(writeStream)
+         .on 'close', share.bind_env((retFile) =>
+            if retFile
+               res.writeHead(200)
+               res.end()
+               # Check to see if all of the parts are now available and can be reassembled
+               check_order.bind(@)(req.gridFS, (err) ->
+                  console.error "Error reassembling chunks of resumable.js upload", err
+               )
+            )
+         .on 'error', share.bind_env((err) =>
+            console.error "Piping Error!", err
+            res.writeHead(500)
+            res.end())
+
+   resumable_get_lookup = (params, query) ->
+      return $or: [
+            {
+               _id: query.resumableIdentifier
+               length: query.resumableTotalSize
+            }
+            {
+               length: query.resumableCurrentChunkSize
+               'metadata._Resumable.resumableIdentifier': query.resumableIdentifier
+               'metadata._Resumable.resumableChunkNumber': query.resumableChunkNumber
+            }
+         ]
+
+   # This handles Resumable.js "test GET" requests, that exist to determine if a part is already uploaded
+   resumable_get_handler = (req, res, next) ->
       # All is good
       res.writeHead(200)
       res.end()
@@ -270,24 +196,13 @@ if Meteor.isServer
       {
          method: 'post'
          path: '/_resumable'
-         lookup: (params, query) -> { _id: query._id }
-         handler: resumable_post
+         lookup: resumable_post_lookup
+         handler: resumable_post_handler
       }
       {
          method: 'get'
          path: '/_resumable'
-         lookup: (params, query) ->
-            $or: [
-               {
-                  _id: query.resumableIdentifier
-                  length: query.resumableTotalSize
-               }
-               {
-                  length: query.resumableCurrentChunkSize
-                  'metadata._Resumable.resumableIdentifier': query.resumableIdentifier
-                  'metadata._Resumable.resumableChunkNumber': query.resumableChunkNumber
-               }
-            ]
-         handler: resumable_get
+         lookup: resumable_get_lookup
+         handler: resumable_get_handler
       }
    ]
