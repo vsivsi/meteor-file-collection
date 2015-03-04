@@ -1,10 +1,10 @@
 ############################################################################
-#     Copyright (C) 2014 by Vaughn Iverson
+#     Copyright (C) 2014-2015 by Vaughn Iverson
 #     fileCollection is free software released under the MIT/X11 license.
 #     See included LICENSE file for details.
 ############################################################################
 
-share.defaultChunkSize = 2*1024*1024
+share.defaultChunkSize = 2*1024*1024 - 1
 share.defaultRoot = 'fs'
 
 share.insert_func = (file = {}, chunkSize) ->

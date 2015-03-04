@@ -18,60 +18,59 @@ if Meteor.isServer
 
    check_order = (file, callback) ->
       fileId = mongodb.ObjectID("#{file.metadata._Resumable.resumableIdentifier}")
-      console.log "Checking for completion of #{fileId}"
       lock = gridLocks.Lock(fileId, @locks, {}).obtainWriteLock()
       lock.on 'locked', () =>
 
-         console.log "Got write lock for #{fileId}"
-
          files = @db.collection "#{@root}.files"
 
-         cursor = files.find({ 'metadata._Resumable.resumableIdentifier': file.metadata._Resumable.resumableIdentifier },
-            { fields: { data: 0 }, sort: { 'metadata._Resumable.resumableChunkNumber': 1 }})
-               
-         console.log "Got here!!!"
+         cursor = files.find(
+            {
+               'metadata._Resumable.resumableIdentifier': file.metadata._Resumable.resumableIdentifier
+               length:
+                  $ne: 0
+            },
+            {
+               fields:
+                  length: 1
+                  metadata: 1
+               sort:
+                  'metadata._Resumable.resumableChunkNumber': 1
+            }
+         )
          
          cursor.count (err, count) =>
-            throw err if err
-            console.log "Cursor length:", count
+            if err
+               lock.releaseLock()
+               return callback err
 
-            # unless count >= 1
-            #    console.log "No parts yet"
-            #    return lock.releaseLock()
+            unless count >= 1
+               cursor.close()
+               return lock.releaseLock()
 
-            # unless count is file.metadata._Resumable.resumableTotalChunks
-            #    console.log "Not enough parts yet (#{count.length}/#{file.metadata._Resumable.resumableTotalChunks})"
-            #    return lock.releaseLock()
+            unless count is file.metadata._Resumable.resumableTotalChunks
+               cursor.close()
+               return lock.releaseLock()
 
-            cursor.toArray (err, goodParts) =>
+            # Manipulate the chunks and files collections directly under write lock
+            chunks = @db.collection "#{@root}.chunks"
 
-               throw err if err
- 
-               console.log "good parts length", goodParts.length
+            cursor.batchSize file.metadata._Resumable.resumableTotalChunks + 1
 
-               unless goodParts.length is file.metadata._Resumable.resumableTotalChunks
-                  console.log "Not enough parts yet (#{goodParts.length}/#{file.metadata._Resumable.resumableTotalChunks})"
-                  return lock.releaseLock()
+            cursor.toArray (err, parts) =>
 
-               # lastPart = 0
-               # goodParts = parts.filter (el) ->
-               #    l = lastPart
-               #    lastPart = el.metadata?._Resumable.resumableChunkNumber
-               #    return el.length is el.metadata?._Resumable.resumableCurrentChunkSize and lastPart is l + 1
+               if err
+                  lock.releaseLock()
+                  return callback err
 
-               # unless goodParts.length is goodParts[0].metadata._Resumable.resumableTotalChunks
-               #    console.log "Not enough parts yet... #{goodParts.length} : #{goodParts[0].metadata._Resumable.resumableTotalChunks}"
-               #    return lock.releaseLock()
-
-               # Manipulate the chunks and files collections directly under write lock
-               chunks = @db.collection "#{@root}.chunks"
-               totalSize = goodParts[0].metadata._Resumable.resumableTotalSize
-               async.eachLimit goodParts, 3,
+               async.eachLimit parts, 5,
                   (part, cb) =>
-                     console.log "Working on part #{part._id}"
+                     if err
+                        console.error "Error from cursor.next()", err
+                        cb err
+                     return cb new Error "Received null part" unless part
                      partId = mongodb.ObjectID("#{part._id}")
                      partlock = gridLocks.Lock(partId, @locks, {}).obtainWriteLock()
-                     partlock.on 'locked', () ->
+                     partlock.on 'locked', () =>
                         async.series [
                               # Move the chunks to the correct file
                               (cb) -> chunks.update { files_id: partId, n: 0 },
@@ -81,7 +80,7 @@ if Meteor.isServer
                               (cb) -> files.remove { _id: partId }, cb
                            ],
                            (err, res) =>
-                              return cb(err) if err
+                              return cb err if err
                               unless part.metadata._Resumable.resumableChunkNumber is part.metadata._Resumable.resumableTotalChunks
                                  partlock.removeLock()
                                  cb()
@@ -90,27 +89,33 @@ if Meteor.isServer
                                  chunks.update { files_id: partId, n: 1 },
                                     { $set: { files_id: fileId, n: part.metadata._Resumable.resumableChunkNumber }}
                                     (err, res) ->
-                                       return cb(err) if err
                                        partlock.removeLock()
+                                       return cb err if err
                                        cb()
-                     partlock.on 'timed-out', () -> callback new Error 'Partlock timed out!'
-                     partlock.on 'expired', () -> callback new Error 'Partlock expired!'
-                     partlock.on 'error', (err) -> callback err
+                     partlock.on 'timed-out', () -> cb new Error 'Partlock timed out!'
+                     partlock.on 'expired', () -> cb new Error 'Partlock expired!'
+                     partlock.on 'error', (err) ->
+                        console.error "Error obtaining partlock #{part._id}", err 
+                        cb err
                   (err) =>
-                     return callback err if err
+                     if err
+                        lock.releaseLock()
+                        return callback err
                      # Build up the command for the md5 hash calculation
                      md5Command =
                        filemd5: fileId
                        root: "#{@root}"
                      # Send the command to calculate the md5 hash of the file
                      @db.command md5Command, (err, results) ->
-                       return callback err if err
+                       if err
+                          lock.releaseLock()
+                          return callback err
                        # Update the size and md5 to the file data
-                       files.update { _id: fileId }, { $set: { length: totalSize, md5: results.md5 }},
+                       files.update { _id: fileId }, { $set: { length: file.metadata._Resumable.resumableTotalSize, md5: results.md5 }},
                           (err, res) =>
-                             return callback err if err
                              lock.releaseLock()
-
+                             return callback err if err
+      
       lock.on 'timed-out', () -> callback new Error "File Lock timed out"
       lock.on 'expired', () -> callback new Error "File Lock expired"
       lock.on 'error', (err) -> callback err
