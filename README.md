@@ -538,13 +538,13 @@ nyanStream = fc.upsertStream({ filename: 'nyancat.flv',
                              });
 ```
 
-`fc.upsertStream()` is a little bit like Meteor's `Collection.upsert()` only really not... If the `file` parameter contains an `_id` field, then the call will work on the file with that `_id`. If a file with that `_id` doesn't exist, or if no `_id` is provided, then a new file is `insert`ed into the file collection. Any application owned gridFS attributes (`filename`, `contentType`, `aliases`, `metadata`) that are present in the `file` parameter will be used for the file, whether it is being inserted, or updated.
+`fc.upsertStream()` is a little bit like Meteor's `Collection.upsert()` only really not... If the `file` parameter contains an `_id` field, then the call will work on the file with that `_id`. If a file with that `_id` doesn't exist, or if no `_id` is provided, then a new file is `insert`ed into the file collection. Any application owned gridFS attributes (`filename`, `contentType`, `aliases`, `metadata`) that are present in the `file` parameter will be used for the file.
 
 Once that is done, `fc.upsertStream()` returns a [writable stream](http://nodejs.org/api/stream.html#stream_class_stream_writable) for the file.
 
-The only available option is `options.mode` which has two valid values:
-*     `options.mode = 'w'` - Default. Overwrite the existing file data if any.
-*     `options.mode = 'w+'` - Append any written data to the existing file data if any.
+There are currently no valid options for `fc.upsertStream()`
+
+*NOTE! Breaking Change*! Prior to file-collection v1.0, it was possible to specify `options.mode = 'w+'` and append to an existing file. This option is now ignored, and all calls to `fc.upsertStream()` will overwrite any existing data in the file.
 
 The returned stream is a gridfs-locking-stream `writeStream`, which has some [special methods and events it emits](https://github.com/vsivsi/gridfs-locking-stream#locking-options). You probably won't need to use these, but the stream will emit `'expires-soon'` and `'expired'` events if its exclusive write lock is getting too old, and it has three methods that can be used to control locking:
 *     `stream.heldLock()` - Returns the gridfs-locks [`Lock` object](https://github.com/vsivsi/gridfs-locks#lock) held by the stream

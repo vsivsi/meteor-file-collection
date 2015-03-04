@@ -176,8 +176,6 @@ if Meteor.isServer
          if not callback? and typeof options is 'function'
             callback = options
             options = {}
-         unless options.mode is 'w' or options.mode is 'w+'
-            options.mode = 'w'
          callback = share.bind_env callback
          cbCalled = false
          mods = {}
@@ -185,6 +183,9 @@ if Meteor.isServer
          mods.aliases = file.aliases if file.aliases?
          mods.contentType = file.contentType if file.contentType?
          mods.metadata = file.metadata if file.metadata?
+
+         if options.mode is 'w+'
+            throw new Error "The ability to appeand file data in upsertStream() was removed in version 1.0.0"
 
          # Make sure that we have an ID and it's valid
          if file._id
@@ -198,7 +199,7 @@ if Meteor.isServer
          writeStream = Meteor.wrapAsync(@gfs.createWriteStream.bind(@gfs))
             root: @root
             _id: mongodb.ObjectID("#{file._id}")
-            mode: options.mode ? 'w'
+            mode: 'w'
             timeOut: @lockOptions.timeOut
             lockExpiration: @lockOptions.lockExpiration
             pollingInterval: @lockOptions.pollingInterval
