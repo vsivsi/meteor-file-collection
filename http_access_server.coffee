@@ -20,29 +20,60 @@ if Meteor.isServer
       boundary = share.find_mime_boundary req
 
       unless boundary
-        err = new Error('No MIME multipart boundary found for dicer')
-        return callback err
+         err = new Error('No MIME multipart boundary found for dicer')
+         return callback err
 
+      params = {}
+      param = ''
+      count = 0
       fileStream = null
+      fileType = 'text/plain'
+      fileName = 'blob'
+      data = ''
 
       d = new dicer { boundary: boundary }
 
       d.on 'part', (p) ->
+         console.log "Part!"
          p.on 'header', (header) ->
+            console.log "Header!"
             RE_FILE = /^form-data; name="file"; filename="([^"]+)"/
+            RE_PARAM = /^form-data; name="([^"]+)"/
             for k, v of header
+               console.log "K: #{k} V: #{v}"
                if k is 'content-type'
-                  ft = v
+                  fileType = v
                if k is 'content-disposition'
                   if re = RE_FILE.exec(v)
                      fileStream = p
-                     fn = re[1]
-            callback(null, fileStream, fn, ft)
+                     fileName = re[1]
+                     console.log "File stream!"
+                  else if param = RE_PARAM.exec(v)?[1]
+                     console.log "Param!", param
+                     data = ''
+                     count++
+                     p.on 'data', (d) ->
+                        console.log "Got some part data! #{d}"
+                        data += d.toString()
+                     p.on 'end', () ->
+                        count--
+                        console.log "End of part!"
+                        params[param] = data
+                     p.on 'error', (err) ->
+                        console.error('Error in Dicer while part streaming: \n', err)
+                        callback err
+
+            if count is 0 and fileStream
+               params._fileType = fileType
+               params._fileName = fileName
+               params._fileStream = fileStream
+               callback null, params
 
       d.on 'error', (err) ->
-        callback err
+         callback err
 
       d.on 'finish', () ->
+         console.log "Finishing!", params
          unless fileStream
             callback(new Error "No file in multipart POST")
 
@@ -57,7 +88,7 @@ if Meteor.isServer
    post = (req, res, next) ->
 
       # Parse MIME Multipart request body
-      dice_multipart req, (err, fileStream, filename, filetype) =>
+      dice_multipart req, (err, params) =>
          if err
             console.warn('Error parsing POST body', err)
             res.writeHead(500)
@@ -65,13 +96,13 @@ if Meteor.isServer
             return
 
          # Handle filename or filetype data when included
-         req.gridFS.contentType = filetype if filetype
-         req.gridFS.filename = filename if filename
+         req.gridFS.contentType = params._fileType if params._fileType
+         req.gridFS.filename = params._fileName if params._fileName
 
          # Write the file data.  No chunks here, this is the whole thing
          stream = @upsertStream req.gridFS
          if stream
-            fileStream.pipe(stream)
+            params._fileStream.pipe(stream)
                .on 'close', (retFile) ->
                   if retFile
                      res.writeHead(200)
