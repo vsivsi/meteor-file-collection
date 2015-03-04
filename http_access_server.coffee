@@ -1,5 +1,5 @@
 ############################################################################
-#     Copyright (C) 2014 by Vaughn Iverson
+#     Copyright (C) 2014-2015 by Vaughn Iverson
 #     fileCollection is free software released under the MIT/X11 license.
 #     See included LICENSE file for details.
 ############################################################################
@@ -17,6 +17,8 @@ if Meteor.isServer
 
    dice_multipart = (req, res, next) ->
 
+      next = share.bind_env next
+
       unless req.method is 'POST'
          next()
          return
@@ -27,52 +29,54 @@ if Meteor.isServer
          console.error "No MIME multipart boundary found for dicer"
          res.writeHead(500)
          res.end()
+         return
 
       params = {}
-      param = ''
       count = 0
       fileStream = null
       fileType = 'text/plain'
       fileName = 'blob'
-      data = ''
 
       d = new dicer { boundary: boundary }
 
       d.on 'part', (p) ->
-         console.log "Part!"
          p.on 'header', (header) ->
-            console.log "Header!"
             RE_FILE = /^form-data; name="file"; filename="([^"]+)"/
             RE_PARAM = /^form-data; name="([^"]+)"/
             for k, v of header
-               console.log "K: #{k} V: #{v}"
+               # console.log "K: #{k} V: #{v}"
                if k is 'content-type'
                   fileType = v
                if k is 'content-disposition'
                   if re = RE_FILE.exec(v)
                      fileStream = p
                      fileName = re[1]
-                     console.log "File stream!"
+                     # console.log "File stream!"
                   else if param = RE_PARAM.exec(v)?[1]
-                     console.log "Param!", param
                      data = ''
                      count++
                      p.on 'data', (d) ->
-                        console.log "Got some part data! #{d}"
                         data += d.toString()
                      p.on 'end', () ->
                         count--
-                        console.log "End of part!"
                         params[param] = data
+                        # console.log "Param: #{param} = #{data}"
+                        if count is 0 and fileStream
+                           # console.log "Done parsing Multipart in end!"
+                           req.multipart =
+                              fileStream: fileStream
+                              fileName: fileName
+                              fileType: fileType
+                              params: params
+                           next()
                      p.on 'error', (err) ->
                         console.error('Error in Dicer while part streaming: \n', err)
                         res.writeHead(500)
                         res.end()
 
+            # console.log "Looking into ending..."
             if count is 0 and fileStream
-               params._fileType = fileType
-               params._fileName = fileName
-               params._fileStream = fileStream
+               # console.log "Done parsing Multipart!"
                req.multipart =
                   fileStream: fileStream
                   fileName: fileName
@@ -86,7 +90,7 @@ if Meteor.isServer
          res.end()
 
       d.on 'finish', () ->
-         console.log "Finishing!", params
+         # console.log "Finishing!", params
          unless fileStream
             console.error "Error in Dicer, no file found in POST"
             res.writeHead(500)
@@ -252,57 +256,57 @@ if Meteor.isServer
       # Loop over the app supplied http paths
       for r in http
 
+         if r.method.toUpperCase() is 'POST'
+            @router.post r.path, dice_multipart
+
          # Add an express middleware for each application REST path
-         @router[r.method] r.path, (req, res, next) =>
+         @router[r.method] r.path, do (r) =>
 
-           safeObjectID = (s) ->
-              if s.match /^[0-9a-f]{24}$/i  # Validate that _id is a 12 byte hex string
-                 new Meteor.Collection.ObjectID s
-              else
-                 null
+            (req, res, next) =>
 
-           # params and queries literally named "_id" get converted to ObjectIDs automatically
-           req.params._id = safeObjectID(req.params._id) if req.params?._id?
-           req.query._id = safeObjectID(req.query._id) if req.query?._id?
+               # params and queries literally named "_id" get converted to ObjectIDs automatically
+               req.params._id = share.safeObjectID(req.params._id) if req.params?._id?
+               req.query._id = share.safeObjectID(req.query._id) if req.query?._id?
 
-           # Build the path lookup mongoDB query object for the gridFS files collection
-           lookup = r.lookup? req.params or {}, req.query or {}, req.multipart
-           unless lookup?
-              # No lookup returned, so bailing
-              res.writeHead(500)
-              res.end()
-              return
-           else
-              # Perform the collection query
-              req.gridFS = @findOne lookup
-              unless req.gridFS
-                 res.writeHead(404)
-                 res.end()
-                 return
+               # Build the path lookup mongoDB query object for the gridFS files collection
+               lookup = r.lookup? req.params or {}, req.query or {}, req.multipart
+               # console.log "Lookup results:", lookup
+               unless lookup?
+                  # No lookup returned, so bailing
+                  res.writeHead(500)
+                  res.end()
+                  return
+               else
+                  # Perform the collection query
+                  req.gridFS = @findOne lookup
+                  unless req.gridFS
+                     res.writeHead(404)
+                     res.end()
+                     return
 
-              # Make sure that the requested method is permitted for this file in the allow/deny rules
-              switch req.method
-                 when 'HEAD', 'GET'
-                    unless share.check_allow_deny.bind(@) 'read', req.meteorUserId, req.gridFS
-                       res.writeHead(403)
-                       res.end()
-                       return
-                 when 'POST', 'PUT'
-                    unless share.check_allow_deny.bind(@) 'write', req.meteorUserId, req.gridFS
-                       res.writeHead(403)
-                       res.end()
-                       return
-                 when 'DELETE'
-                    unless share.check_allow_deny.bind(@) 'remove', req.meteorUserId, req.gridFS
-                       res.writeHead(403)
-                       res.end()
-                       return
-                 else
-                    res.writeHead(500)
-                    res.end()
-                    return
+                  # Make sure that the requested method is permitted for this file in the allow/deny rules
+                  switch req.method
+                     when 'HEAD', 'GET'
+                        unless share.check_allow_deny.bind(@) 'read', req.meteorUserId, req.gridFS
+                           res.writeHead(403)
+                           res.end()
+                           return
+                     when 'POST', 'PUT'
+                        unless share.check_allow_deny.bind(@) 'write', req.meteorUserId, req.gridFS
+                           res.writeHead(403)
+                           res.end()
+                           return
+                     when 'DELETE'
+                        unless share.check_allow_deny.bind(@) 'remove', req.meteorUserId, req.gridFS
+                           res.writeHead(403)
+                           res.end()
+                           return
+                     else
+                        res.writeHead(500)
+                        res.end()
+                        return
 
-              next()
+                  next()
 
       @router.route('/*')
          .all (req, res, next) ->  # Make sure a file has been selected by some rule
@@ -311,12 +315,11 @@ if Meteor.isServer
                res.end()
                return
             next()
-         .post
 
       # Loop over the app supplied http paths
-      for r in http when typeof http.handler is 'function'
-         # Add an express middleware for each custom request handler
-         @router[r.method] r.path, http.handler.bind(@)
+      for r in http when typeof r.handler is 'function'
+            # Add an express middleware for each custom request handler
+            @router[r.method] r.path, r.handler.bind(@)
 
       # Add all of generic request handling methods to the express route
       @router.route('/*')
@@ -359,12 +362,13 @@ if Meteor.isServer
       r.use express.query()   # Parse URL query strings
       r.use cookieParser()    # Parse cookies
       r.use handle_auth       # Turn x-auth-tokens into Meteor userIds
-      r.use dice_multipart   # Pre-parse the multipart body of POST requests
+      # r.use dice_multipart    # Pre-parse the multipart body of POST requests
       WebApp.rawConnectHandlers.use(@baseURL, share.bind_env(r))
 
       # Set up support for resumable.js if requested
       if options.resumable
          options.http = share.resumable_paths.concat options.http
+         # console.log "Options!", options.http
 
       # Setup application HTTP REST interface
       @router = express.Router()

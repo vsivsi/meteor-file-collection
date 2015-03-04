@@ -27,3 +27,9 @@ if Meteor.isServer
       RE_BOUNDARY = /^multipart\/.+?(?:; boundary=(?:(?:"(.+)")|(?:([^\s]+))))$/i
       result = RE_BOUNDARY.exec req.headers['content-type']
       result?[1] or result?[2]
+
+   share.safeObjectID = (s) ->
+      if s.match /^[0-9a-f]{24}$/i  # Validate that _id is a 12 byte hex string
+         new Mongo.ObjectID s
+      else
+            null

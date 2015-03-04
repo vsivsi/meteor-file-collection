@@ -123,11 +123,10 @@ if Meteor.isServer
    # Handle HTTP POST requests from Resumable.js
 
    resumable_post_lookup = (params, query, multipart) ->
-      return { _id: new Mongo.ObjectID(multipart?.params?.resumableIdentifier) }
+      return { _id: share.safeObjectID(multipart?.params?.resumableIdentifier) }
 
    resumable_post_handler = (req, res, next) ->
-
-      #    # This has to be a resumable POST
+      # This has to be a resumable POST
       unless req.multipart?.params?.resumableIdentifier
          console.error "Missing resumable.js multipart information"
          res.writeHead(501)
@@ -140,6 +139,8 @@ if Meteor.isServer
       resumable.resumableChunkNumber = parseInt resumable.resumableChunkNumber
       resumable.resumableChunkSize = parseInt resumable.resumableChunkSize
       resumable.resumableCurrentChunkSize = parseInt resumable.resumableCurrentChunkSize
+
+      console.log "Handling resumable.js POST!", resumable
 
       # Sanity check the chunk sizes that are critical to reassembling the file from parts
       unless ((req.gridFS.chunkSize is resumable.resumableChunkSize) and
