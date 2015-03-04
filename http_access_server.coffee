@@ -44,14 +44,12 @@ if Meteor.isServer
             RE_FILE = /^form-data; name="file"; filename="([^"]+)"/
             RE_PARAM = /^form-data; name="([^"]+)"/
             for k, v of header
-               # console.log "K: #{k} V: #{v}"
                if k is 'content-type'
                   fileType = v
                if k is 'content-disposition'
                   if re = RE_FILE.exec(v)
                      fileStream = p
                      fileName = re[1]
-                     # console.log "File stream!"
                   else if param = RE_PARAM.exec(v)?[1]
                      data = ''
                      count++
@@ -60,9 +58,7 @@ if Meteor.isServer
                      p.on 'end', () ->
                         count--
                         params[param] = data
-                        # console.log "Param: #{param} = #{data}"
                         if count is 0 and fileStream
-                           # console.log "Done parsing Multipart in end!"
                            req.multipart =
                               fileStream: fileStream
                               fileName: fileName
@@ -74,9 +70,7 @@ if Meteor.isServer
                         res.writeHead(500)
                         res.end()
 
-            # console.log "Looking into ending..."
             if count is 0 and fileStream
-               # console.log "Done parsing Multipart!"
                req.multipart =
                   fileStream: fileStream
                   fileName: fileName
@@ -90,7 +84,6 @@ if Meteor.isServer
          res.end()
 
       d.on 'finish', () ->
-         # console.log "Finishing!", params
          unless fileStream
             console.error "Error in Dicer, no file found in POST"
             res.writeHead(500)
@@ -362,13 +355,11 @@ if Meteor.isServer
       r.use express.query()   # Parse URL query strings
       r.use cookieParser()    # Parse cookies
       r.use handle_auth       # Turn x-auth-tokens into Meteor userIds
-      # r.use dice_multipart    # Pre-parse the multipart body of POST requests
       WebApp.rawConnectHandlers.use(@baseURL, share.bind_env(r))
 
       # Set up support for resumable.js if requested
       if options.resumable
          options.http = share.resumable_paths.concat options.http
-         # console.log "Options!", options.http
 
       # Setup application HTTP REST interface
       @router = express.Router()

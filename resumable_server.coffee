@@ -140,8 +140,6 @@ if Meteor.isServer
       resumable.resumableChunkSize = parseInt resumable.resumableChunkSize
       resumable.resumableCurrentChunkSize = parseInt resumable.resumableCurrentChunkSize
 
-      console.log "Handling resumable.js POST!", resumable
-
       # Sanity check the chunk sizes that are critical to reassembling the file from parts
       unless ((req.gridFS.chunkSize is resumable.resumableChunkSize) and
               (resumable.resumableCurrentChunkSize is resumable.resumableChunkSize) or
