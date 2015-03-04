@@ -32,4 +32,4 @@ if Meteor.isServer
       if s.match /^[0-9a-f]{24}$/i  # Validate that _id is a 12 byte hex string
          new Mongo.ObjectID s
       else
-            null
+         null
