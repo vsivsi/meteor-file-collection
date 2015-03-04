@@ -4,7 +4,7 @@
 
 * Added support for HTTP range requests (thanks to @riaan53!)
 * Switched internally to using new style node.js streams for greatly improved flow-control when streaming large files
-* HTTP access definitions may now include an optional custom express.js request handler
+* HTTP access definitions may now include an optional custom express.js request handler function
 * HTTP access file lookup functions may now access parsed MIME/multipart parameters for POST requests
 * Updated all dependencies
 * *BREAKING CHANGE:* `fc.upsertStream` may no longer append (mode 'w+') to existing files. This is a restriction added to the underlying node.js gridFS driver, and was a little used feature that was traded-off for node.js 0.10 new stream support

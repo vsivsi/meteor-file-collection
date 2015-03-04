@@ -24,6 +24,12 @@ thatFileStream = myFiles.findOneStream({ filename: 'lolcat.gif' });
 
 Under the hood, file data is stored entirely within the Meteor MongoDB instance using a Mongo technology called [gridFS](http://docs.mongodb.org/manual/reference/gridfs/). Your file collection and the underlying gridFS collection remain perfectly in sync because they *are* the same collection; and file collections are automatically safe for concurrent read/write access to files via [MongoDB based locking](https://github.com/vsivsi/gridfs-locks). The file-collection package also provides a simple way to enable secure HTTP (GET, POST, PUT, DELETE) interfaces to your files, and additionally has built-in support for robust and resumable file uploads using the excellent [Resumable.js](http://www.resumablejs.com/) library.
 
+### What's new in v1.0
+
+There is one breaking change in v1.0.0. `fc.upsertStream()` may no longer append (mode 'w+') to existing files. This is due to a new limitation added to the underlying node.js mongodb/gridFS driver. Appending was a little used feature that was traded-off for node.js 0.10 new stream support. For safety, any attempt to use `options.mode = 'w+'` in `fc.upsertStream()` will now throw an error.
+
+Other exiciting new features in v1.0 are listed in the HISTORY file.
+
 ### Design philosophy
 
 My goal in writing this package was to stay true to the spirit of Meteor and build something efficient and secure that "just works" with a minimum of fuss.
@@ -285,7 +291,8 @@ Each object in the `option.http` array defines one HTTP request interface on the
 
 *    `obj.method` - `<string>`  The HTTP request method to define, one of `get`, `post`, `put`, or `delete`.
 *    `obj.path` - `<string>`  An [express.js style](http://expressjs.com/4x/api.html#req.params) route path with parameters.  This path will be added to the path specified by `options.baseURL`.
-*    `obj.lookup` - `<function>`  A function that is called when an HTTP request matches the `method` and `path`. It is provided with the values of the route parameters and any URL query parameters, and it should return a mongoDB query object which can be used to find a file that matches those parameters.
+*    `obj.lookup` - `<function>`  A function that is called when an HTTP request matches the `method` and `path`. It is provided with the values of the route parameters and any URL query parameters, and it should return a mongoDB query object which can be used to find a file that matches those parameters. For POST requests, it is also provided any with MIME/multipart parameters and other file information from the multipart headers.
+*    `obj.handler` - `<function>` OPTIONAL! This is an advanced feature that allows the developer to provide a custom "express.js style" request handler to satisfy requests for this specific request interface. For an example of how this works, please see the resumable.js upload support implementation in the source file `resumable_server.coffee`.
 
 When arranging http interface definition objects in the array provided to `options.http`, be sure to put more specific paths for a given HTTP method before more general ones. For example: `\hash\:md5` should come before `\:filename\:_id` because `"hash"` would match to filename, and so `\hash\:md5` would never match if it came second. Obviously this is a contrived example to demonstrate that order is significant.
 
@@ -321,6 +328,14 @@ Here are some example HTTP interface definition objects to get you started:
   path:   '/write/:_id',
   lookup: function (params, query) {
     return { _id: params._id, "metadata.secret": query.secret} }}
+
+
+// POST data to a file based on _id and a secret value stored as metadata
+// where the secret is supplied as a MIME/Multipart parameter
+{ method: 'post',
+  path:   '/post/:_id',
+  lookup: function (params, query, multipart) {
+    return { _id: params._id, "metadata.secret": multipart.params.secret} }}
 
 // GET a file based on a query type and numeric coordinates metadata
 { method: 'get',
