@@ -278,7 +278,7 @@ if Meteor.isServer
       # Loop over the app supplied http paths
       for r in http when typeof http.handler is 'function'
          # Add an express middleware for each custom request handler
-         @router[r.method] r.path, http.handler
+         @router[r.method] r.path, http.handler.bind(@)
 
       # Add all of generic request handling methods to the express route
       @router.route('/*')
