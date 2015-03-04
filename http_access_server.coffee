@@ -13,8 +13,12 @@ if Meteor.isServer
    gridLocks = Npm.require 'gridfs-locks'
    dicer = Npm.require 'dicer'
 
-   # Fast MIME Multipart parsing of generic HTTP POST request bodies
+   find_mime_boundary = (req) ->
+      RE_BOUNDARY = /^multipart\/.+?(?:; boundary=(?:(?:"(.+)")|(?:([^\s]+))))$/i
+      result = RE_BOUNDARY.exec req.headers['content-type']
+      result?[1] or result?[2]
 
+   # Fast MIME Multipart parsing of generic HTTP POST request bodies
    dice_multipart = (req, res, next) ->
 
       next = share.bind_env next
@@ -23,7 +27,7 @@ if Meteor.isServer
          next()
          return
 
-      boundary = share.find_mime_boundary req
+      boundary = find_mime_boundary req
 
       unless boundary
          console.error "No MIME multipart boundary found for dicer"
