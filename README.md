@@ -40,7 +40,7 @@ Here's the difference in a nutshell: collectionFS is a Ferrari, and file-collect
 
 They do approximately the same thing using some of the same technologies, but reflect different design priorities. file-collection is much simpler and somewhat less flexible; but if it meets your needs you'll find it has a lot fewer moving parts and may be significantly more efficient to work with and use.
 
-If you're trying to quickly prototype an idea or you know that you just need a straightforward way of dealing with files, you should definitely try file-collection.  Because it is so much simpler, you may also find that it is easier to understand and customize to specific the needs of your project, if necessary.
+If you're trying to quickly prototype an idea or you know that you just need a straightforward way of dealing with files, you should definitely try file-collection.  Because it is so much simpler, you may also find that it is easier to understand and customize for the specific needs of your project.
 
 ## Example
 
