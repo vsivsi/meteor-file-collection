@@ -13,8 +13,8 @@ Package.describe({
 
 Npm.depends({
   mongodb: '2.0.19',
-  'gridfs-locking-stream': '1.0.0',
-  'gridfs-locks': '1.3.0',
+  'gridfs-locking-stream': '1.0.1',
+  'gridfs-locks': '1.3.1',
   dicer: '0.2.3',
   async: '0.9.0',
   express: '4.12.1',
