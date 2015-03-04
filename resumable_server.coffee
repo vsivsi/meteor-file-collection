@@ -135,6 +135,11 @@ if Meteor.isServer
          return
 
       resumable = req.multipart.params
+      resumable.resumableTotalSize = parseInt resumable.resumableTotalSize
+      resumable.resumableTotalChunks = parseInt resumable.resumableTotalChunks
+      resumable.resumableChunkNumber = parseInt resumable.resumableChunkNumber
+      resumable.resumableChunkSize = parseInt resumable.resumableChunkSize
+      resumable.resumableCurrentChunkSize = parseInt resumable.resumableCurrentChunkSize
 
       # Sanity check the chunk sizes that are critical to reassembling the file from parts
       unless ((req.gridFS.chunkSize is resumable.resumableChunkSize) and
