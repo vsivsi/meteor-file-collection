@@ -15,13 +15,18 @@ if Meteor.isServer
 
    # Fast MIME Multipart parsing of generic HTTP POST request bodies
 
-   dice_multipart = (req, callback) ->
-      callback = share.bind_env callback
+   dice_multipart = (req, res, next) ->
+
+      unless req.method is 'POST'
+         next()
+         return
+
       boundary = share.find_mime_boundary req
 
       unless boundary
-         err = new Error('No MIME multipart boundary found for dicer')
-         return callback err
+         console.error "No MIME multipart boundary found for dicer"
+         res.writeHead(500)
+         res.end()
 
       params = {}
       param = ''
@@ -61,21 +66,31 @@ if Meteor.isServer
                         params[param] = data
                      p.on 'error', (err) ->
                         console.error('Error in Dicer while part streaming: \n', err)
-                        callback err
+                        res.writeHead(500)
+                        res.end()
 
             if count is 0 and fileStream
                params._fileType = fileType
                params._fileName = fileName
                params._fileStream = fileStream
-               callback null, params
+               req.multipart =
+                  fileStream: fileStream
+                  fileName: fileName
+                  fileType: fileType
+                  params: params
+               next()
 
       d.on 'error', (err) ->
-         callback err
+         console.error('Error in Dicer while parsing parts: \n', err)
+         res.writeHead(500)
+         res.end()
 
       d.on 'finish', () ->
          console.log "Finishing!", params
          unless fileStream
-            callback(new Error "No file in multipart POST")
+            console.error "Error in Dicer, no file found in POST"
+            res.writeHead(500)
+            res.end()
 
       req.pipe(d)
 
@@ -86,33 +101,24 @@ if Meteor.isServer
    #        -F 'file=@"universe.png";type=image/png' -H 'X-Auth-Token: zrtrotHrDzwA4nC5'
 
    post = (req, res, next) ->
+      # Handle filename or filetype data when included
+      req.gridFS.contentType = req.multipart.fileType if req.multipart.fileType
+      req.gridFS.filename = req.multipart.fileName if req.multipart.fileName
 
-      # Parse MIME Multipart request body
-      dice_multipart req, (err, params) =>
-         if err
-            console.warn('Error parsing POST body', err)
-            res.writeHead(500)
-            res.end()
-            return
-
-         # Handle filename or filetype data when included
-         req.gridFS.contentType = params._fileType if params._fileType
-         req.gridFS.filename = params._fileName if params._fileName
-
-         # Write the file data.  No chunks here, this is the whole thing
-         stream = @upsertStream req.gridFS
-         if stream
-            params._fileStream.pipe(stream)
-               .on 'close', (retFile) ->
-                  if retFile
-                     res.writeHead(200)
-                     res.end()
-               .on 'error', (err) ->
-                  res.writeHead(500)
+      # Write the file data.  No chunks here, this is the whole thing
+      stream = @upsertStream req.gridFS
+      if stream
+         req.multipart.fileStream.pipe(stream)
+            .on 'close', (retFile) ->
+               if retFile
+                  res.writeHead(200)
                   res.end()
-         else
-            res.writeHead(410)
-            res.end()
+            .on 'error', (err) ->
+               res.writeHead(500)
+               res.end()
+      else
+         res.writeHead(410)
+         res.end()
 
    # Handle a generic HTTP GET request
    # This also handles HEAD requests
@@ -305,6 +311,7 @@ if Meteor.isServer
                res.end()
                return
             next()
+         .post
 
       # Loop over the app supplied http paths
       for r in http when typeof http.handler is 'function'
@@ -348,17 +355,18 @@ if Meteor.isServer
 
    # Set up all of the middleware, including optional support for Resumable.js chunked uploads
    share.setupHttpAccess = (options) ->
-         r = express.Router()
-         r.use express.query()   # Parse URL query strings
-         r.use cookieParser()    # Parse cookies
-         r.use handle_auth       # Turn x-auth-tokens into Meteor userIds
-         WebApp.rawConnectHandlers.use(@baseURL, share.bind_env(r))
+      r = express.Router()
+      r.use express.query()   # Parse URL query strings
+      r.use cookieParser()    # Parse cookies
+      r.use handle_auth       # Turn x-auth-tokens into Meteor userIds
+      r.use dice_multipart   # Pre-parse the multipart body of POST requests
+      WebApp.rawConnectHandlers.use(@baseURL, share.bind_env(r))
 
-         # Set up support for resumable.js if requested
-         if options.resumable
-            options.http = share.resumable_paths.concat options.http
+      # Set up support for resumable.js if requested
+      if options.resumable
+         options.http = share.resumable_paths.concat options.http
 
-         # Setup application HTTP REST interface
-         @router = express.Router()
-         build_access_point.bind(@)(options.http, @router)
-         WebApp.rawConnectHandlers.use(@baseURL, share.bind_env(@router))
+      # Setup application HTTP REST interface
+      @router = express.Router()
+      build_access_point.bind(@)(options.http, @router)
+      WebApp.rawConnectHandlers.use(@baseURL, share.bind_env(@router))
