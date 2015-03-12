@@ -1,5 +1,10 @@
 ## Revision history
 
+### v1.0.1
+
+* Fixes potential race condition in the underlying gridfs-locks package
+* Updates npm package versions
+
 ### v1.0.0
 
 * Added support for HTTP range requests (thanks to @riaan53!)
