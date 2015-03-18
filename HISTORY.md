@@ -1,5 +1,12 @@
 ## Revision history
 
+### v1.0.2
+
+* Fixes failed unit test caused by null $set update query when using Meteor 1.0.4
+* Update version of resumable.js
+* Update mongodb npm package version
+* Update meteor core package versions
+
 ### v1.0.1
 
 * Fixes potential race condition in the underlying gridfs-locks package

@@ -193,7 +193,7 @@ if Meteor.isServer
 
          unless file._id and found
             file._id = @insert mods
-         else
+         else if Object.keys(mods).length > 0
             @update { _id: file._id }, { $set: mods }
 
          writeStream = Meteor.wrapAsync(@gfs.createWriteStream.bind(@gfs))
