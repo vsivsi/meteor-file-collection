@@ -1,5 +1,9 @@
 ## Revision history
 
+### v1.0.3
+
+* Add automatic indexing for resumable.js queries, to improve uploading performance
+
 ### v1.0.2
 
 * Fixes failed unit test caused by null $set update query when using Meteor 1.0.4
