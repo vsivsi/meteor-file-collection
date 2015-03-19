@@ -57,6 +57,10 @@ if Meteor.isServer
          # Call super's constructor
          super @root + '.files', { idGeneration: 'MONGO' }
 
+         # Default indexes
+         if options.resumable
+            @._ensureIndex { 'metadata._Resumable.resumableIdentifier': 1, length: 1 }
+
          # Setup specific allow/deny rules for gridFS, and tie-in the application settings
 
          FileCollection.__super__.allow.bind(@)
