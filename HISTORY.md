@@ -3,6 +3,7 @@
 ### v1.0.3
 
 * Add automatic indexing for resumable.js queries, to improve uploading performance
+* Bumped version of mongodb native driver
 
 ### v1.0.2
 
