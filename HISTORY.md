@@ -1,5 +1,13 @@
 ## Revision history
 
+### v1.0.5
+
+* Version bump to enable publishing Windows platform build for Meteor 1.1
+
+### v1.0.4
+
+* Updated npm package dependencies
+
 ### v1.0.3
 
 * Add automatic indexing for resumable.js queries, to improve uploading performance
