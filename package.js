@@ -7,15 +7,15 @@
 Package.describe({
   summary: 'Collections that efficiently store files using MongoDB GridFS, with built-in HTTP support',
   name: 'vsivsi:file-collection',
-  version: '1.0.3',
+  version: '1.0.4',
   git: 'https://github.com/vsivsi/meteor-file-collection.git'
 });
 
 Npm.depends({
-  mongodb: '2.0.23',
+  mongodb: '2.0.25',
   'gridfs-locking-stream': '1.0.2',
   'gridfs-locks': '1.3.2',
-  dicer: '0.2.3',
+  dicer: '0.2.4',
   async: '0.9.0',
   express: '4.12.3',
   'cookie-parser': '1.3.4'
