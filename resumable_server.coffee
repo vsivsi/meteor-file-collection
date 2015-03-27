@@ -7,7 +7,8 @@
 if Meteor.isServer
 
    express = Npm.require 'express'
-   mongodb = Npm.require 'mongodb'
+   # mongodb = Npm.require 'mongodb'
+   mongodb = MongoInternals.NpmModules.mongodb.module
    grid = Npm.require 'gridfs-locking-stream'
    gridLocks = Npm.require 'gridfs-locks'
    dicer = Npm.require 'dicer'
@@ -17,7 +18,7 @@ if Meteor.isServer
    # Collection. If so, it completes the file by moving all of the chunks to the correct file and cleans up
 
    check_order = (file, callback) ->
-      fileId = mongodb.ObjectID("#{file.metadata._Resumable.resumableIdentifier}")
+      fileId = Mongo.ObjectID("#{file.metadata._Resumable.resumableIdentifier}")
       lock = gridLocks.Lock(fileId, @locks, {}).obtainWriteLock()
       lock.on 'locked', () =>
 

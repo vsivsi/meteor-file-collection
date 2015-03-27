@@ -6,7 +6,9 @@
 
 if Meteor.isServer
 
-   mongodb = Npm.require 'mongodb'
+   # mongodb = Npm.require 'mongodb'
+   mongodb = MongoInternals.NpmModules.mongodb.module
+   console.log "mongodb version:", MongoInternals.NpmModules.mongodb.version
    grid = Npm.require 'gridfs-locking-stream'
    gridLocks = Npm.require 'gridfs-locks'
    fs = Npm.require 'fs'
@@ -27,16 +29,20 @@ if Meteor.isServer
             options = @root
             @root = share.defaultRoot
 
+         # Call super's constructor
+         super @root + '.files', { idGeneration: 'MONGO' }
+
          @chunkSize = options.chunkSize ? share.defaultChunkSize
 
-         @db = Meteor.wrapAsync(mongodb.MongoClient.connect)(process.env.MONGO_URL,{})
+         @db = @rawDatabase()
+         # @db = Meteor.wrapAsync(mongodb.MongoClient.connect)(process.env.MONGO_URL,{})
 
          @lockOptions =
             timeOut: options.locks?.timeOut ? 360
             lockExpiration: options.locks?.lockExpiration ? 90
             pollingInterval: options.locks?.pollingInterval ? 5
 
-         @locks = gridLocks.LockCollection @db,
+         @locks = gridLocks.LockCollection @rawDatabase(),
             root: @root
             timeOut: @lockOptions.timeOut
             lockExpiration: @lockOptions.lockExpiration
@@ -53,9 +59,6 @@ if Meteor.isServer
          # Default client allow/deny permissions
          @allows = { read: [], insert: [], write: [], remove: [] }
          @denys = { read: [], insert: [], write: [], remove: [] }
-
-         # Call super's constructor
-         super @root + '.files', { idGeneration: 'MONGO' }
 
          # Default indexes
          if options.resumable
