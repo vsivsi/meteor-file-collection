@@ -337,7 +337,7 @@ Tinytest.addAsync 'REST API requests header manipilation', (test, onComplete) ->
     HTTP.put url, { content: '0987654321'}, (err, res) ->
       test.fail(err) if err
       HTTP.get url+'?download=true', (err, res) ->
-          test.equal res.headers['content-disposition'], 'attachment; filename="writefile"'
+          test.equal res.headers['content-disposition'], "attachment; filename=\"writefile\"; filename*=UTF-8''writefile"
           test.equal res.statusCode, 200
           HTTP.get url+'?cache=123456', { headers: { 'Range': '1-5'}},
             (err, res) ->
