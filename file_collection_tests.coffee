@@ -348,6 +348,24 @@ Tinytest.addAsync 'REST API requests header manipilation', (test, onComplete) ->
                 test.equal res.statusCode, 200
                 onComplete()
 
+Tinytest.addAsync 'REST API requests header manipilation, UTF-8', (test, onComplete) ->
+  _id = testColl.insert { filename: '中文指南.txt', contentType: 'text/plain' }, (err, _id) ->
+    test.fail(err) if err
+    url = Meteor.absoluteUrl 'test/' + _id
+    HTTP.put url, { content: '0987654321'}, (err, res) ->
+      test.fail(err) if err
+      HTTP.get url+'?download=true', (err, res) ->
+          test.equal res.headers['content-disposition'], "attachment; filename=\"%E4%B8%AD%E6%96%87%E6%8C%87%E5%8D%97.txt\"; filename*=UTF-8''%E4%B8%AD%E6%96%87%E6%8C%87%E5%8D%97.txt"
+          test.equal res.statusCode, 200
+          HTTP.get url+'?cache=123456', { headers: { 'Range': '1-5'}},
+            (err, res) ->
+              test.equal res.headers['cache-control'], 'max-age=123456, private'
+              test.equal res.statusCode, 206
+              HTTP.get url+'?cache=123', (err, res) ->
+                test.equal res.headers['cache-control'], 'max-age=123, private'
+                test.equal res.statusCode, 200
+                onComplete()
+
 if Meteor.isClient
 
   noAllowSub = Meteor.subscribe 'noAllowCollPub'
