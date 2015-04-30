@@ -180,8 +180,8 @@ if Meteor.isServer
 
       # Trigger download in browser, optionally specify filename.
       if (req.query.download and req.query.download.toLowerCase() == 'true') or req.query.filename
-        filename = req.query.filename ? req.gridFS.filename
-        headers['Content-Disposition'] = "attachment; filename=\"#{filename}\""
+        filename = encodeURIComponent(req.query.filename ? req.gridFS.filename)
+        headers['Content-Disposition'] = "attachment; filename=\"#{filename}\"; filename*=UTF-8''#{filename}"
 
       # If specified in url query set cache to specified value, might want to add more options later.
       if req.query.cache and not isNaN(parseInt(req.query.cache))

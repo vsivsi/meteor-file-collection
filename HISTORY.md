@@ -1,5 +1,10 @@
 ## Revision history
 
+### v1.0.6
+
+* Fixes #48, which caused unicode filenames to be corrupted in download SaveAs... dialogs
+* Bump versions of dependencies
+
 ### v1.0.5
 
 * Version bump to enable publishing Windows platform build for Meteor 1.1
