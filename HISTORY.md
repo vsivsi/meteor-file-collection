@@ -2,7 +2,7 @@
 
 ### v1.0.6
 
-* Fixes #48, which caused unicode filenames to be corrupted in download SaveAs... dialogs
+* Fixes #48, which caused unicode filenames to be corrupted in download SaveAs... dialogs. Thanks to @xurwxj for reporting.
 * Bump versions of dependencies
 
 ### v1.0.5
