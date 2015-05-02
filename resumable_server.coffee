@@ -150,31 +150,44 @@ if Meteor.isServer
          res.end()
          return
 
-      # Everything looks good, so write this part
-      req.gridFS.metadata._Resumable = resumable
-      writeStream = @upsertStream
-         filename: "_Resumable_#{resumable.resumableIdentifier}_#{resumable.resumableChunkNumber}_#{resumable.resumableTotalChunks}"
-         metadata: req.gridFS.metadata
+      chunkQuery =
+         length: resumable.resumableCurrentChunkSize
+         'metadata._Resumable.resumableIdentifier': resumable.resumableIdentifier
+         'metadata._Resumable.resumableChunkNumber': resumable.resumableChunkNumber
 
-      unless writeStream
-         res.writeHead(404)
+      # This is to handle duplicate chunk uploads in case of network weirdness
+      findResult = @fineOne chunkQuery, { fields: { _id: 1 }}
+
+      if findResult
+         # Duplicate chunk... Don't rewrite it.
+         res.writeHead(200)
          res.end()
-         return
+      else
+         # Everything looks good, so write this part
+         req.gridFS.metadata._Resumable = resumable
+         writeStream = @upsertStream
+            filename: "_Resumable_#{resumable.resumableIdentifier}_#{resumable.resumableChunkNumber}_#{resumable.resumableTotalChunks}"
+            metadata: req.gridFS.metadata
 
-      req.multipart.fileStream.pipe(writeStream)
-         .on 'close', share.bind_env((retFile) =>
-            if retFile
-               res.writeHead(200)
-               res.end()
-               # Check to see if all of the parts are now available and can be reassembled
-               check_order.bind(@)(req.gridFS, (err) ->
-                  console.error "Error reassembling chunks of resumable.js upload", err
+         unless writeStream
+            res.writeHead(404)
+            res.end()
+            return
+
+         req.multipart.fileStream.pipe(writeStream)
+            .on 'close', share.bind_env((retFile) =>
+               if retFile
+                  res.writeHead(200)
+                  res.end()
+                  # Check to see if all of the parts are now available and can be reassembled
+                  check_order.bind(@)(req.gridFS, (err) ->
+                     console.error "Error reassembling chunks of resumable.js upload", err
+                  )
                )
-            )
-         .on 'error', share.bind_env((err) =>
-            console.error "Piping Error!", err
-            res.writeHead(500)
-            res.end())
+            .on 'error', share.bind_env((err) =>
+               console.error "Piping Error!", err
+               res.writeHead(500)
+               res.end())
 
    resumable_get_lookup = (params, query) ->
       return { _id: query.resumableIdentifier }
