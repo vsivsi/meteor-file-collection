@@ -294,7 +294,6 @@ Tinytest.addAsync 'REST API POST/GET/DELETE', (test, onComplete) ->
 
 Tinytest.addAsync 'Basic resumable.js REST interface POST/GET/DELETE', (test, onComplete) ->
   _id = testColl.insert { filename: 'writeresumablefile', contentType: 'text/plain' }, (err, _id) ->
-    console.log "ID! #{_id}"
     test.fail(err) if err
     url = Meteor.absoluteUrl "test/_resumable"
     content = """

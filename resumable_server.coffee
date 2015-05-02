@@ -45,11 +45,13 @@ if Meteor.isServer
 
             unless count >= 1
                cursor.close()
-               return lock.releaseLock()
+               lock.releaseLock()
+               return callback()
 
             unless count is file.metadata._Resumable.resumableTotalChunks
                cursor.close()
-               return lock.releaseLock()
+               lock.releaseLock()
+               return callback()
 
             # Manipulate the chunks and files collections directly under write lock
             chunks = @db.collection "#{@root}.chunks"
@@ -114,7 +116,7 @@ if Meteor.isServer
                        files.update { _id: fileId }, { $set: { length: file.metadata._Resumable.resumableTotalSize, md5: results.md5 }},
                           (err, res) =>
                              lock.releaseLock()
-                             return callback err if err
+                             callback err
 
       lock.on 'timed-out', () -> callback new Error "File Lock timed out"
       lock.on 'expired', () -> callback new Error "File Lock expired"
@@ -156,7 +158,7 @@ if Meteor.isServer
          'metadata._Resumable.resumableChunkNumber': resumable.resumableChunkNumber
 
       # This is to handle duplicate chunk uploads in case of network weirdness
-      findResult = @fineOne chunkQuery, { fields: { _id: 1 }}
+      findResult = @findOne chunkQuery, { fields: { _id: 1 }}
 
       if findResult
          # Duplicate chunk... Don't rewrite it.
@@ -177,13 +179,21 @@ if Meteor.isServer
          req.multipart.fileStream.pipe(writeStream)
             .on 'close', share.bind_env((retFile) =>
                if retFile
-                  res.writeHead(200)
-                  res.end()
                   # Check to see if all of the parts are now available and can be reassembled
                   check_order.bind(@)(req.gridFS, (err) ->
-                     console.error "Error reassembling chunks of resumable.js upload", err
+                     if err
+                        console.error "Error reassembling chunks of resumable.js upload", err
+                        res.writeHead(500)
+                     else
+                        res.writeHead(200)
+                     res.end()
                   )
+               else
+                  console.error "Missing retFile on pipe close"
+                  res.writeHead(500)
+                  res.end()                  
                )
+
             .on 'error', share.bind_env((err) =>
                console.error "Piping Error!", err
                res.writeHead(500)
