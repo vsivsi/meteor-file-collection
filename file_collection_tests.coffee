@@ -32,10 +32,10 @@ testColl = new FileCollection "test",
   chunkSize: 1024*1024
   resumable: true
   http: [
-     { method: 'get', path: '/:_id', lookup: (params, query) -> { _id: params._id }}
-     { method: 'post', path: '/:_id', lookup: (params, query) -> { _id: params._id }}
-     { method: 'put', path: '/:_id', lookup: (params, query) -> { _id: params._id }}
-     { method: 'delete', path: '/:_id', lookup: (params, query) -> { _id: params._id }}
+     { method: 'get', path: '/byid/:_id', lookup: (params, query) -> { _id: params._id }}
+     { method: 'post', path: '/byid/:_id', lookup: (params, query) -> { _id: params._id }}
+     { method: 'put', path: '/byid/:_id', lookup: (params, query) -> { _id: params._id }}
+     { method: 'delete', path: '/byid/:_id', lookup: (params, query) -> { _id: params._id }}
   ]
 
 noReadColl = new FileCollection "noReadColl",
@@ -43,10 +43,10 @@ noReadColl = new FileCollection "noReadColl",
   chunkSize: 1024*1024
   resumable: false
   http: [
-     { method: 'get', path: '/:_id', lookup: (params, query) -> { _id: params._id }}
-     { method: 'post', path: '/:_id', lookup: (params, query) -> { _id: params._id }}
-     { method: 'put', path: '/:_id', lookup: (params, query) -> { _id: params._id }}
-     { method: 'delete', path: '/:_id', lookup: (params, query) -> { _id: params._id }}
+     { method: 'get', path: '/byid/:_id', lookup: (params, query) -> { _id: params._id }}
+     { method: 'post', path: '/byid/:_id', lookup: (params, query) -> { _id: params._id }}
+     { method: 'put', path: '/byid/:_id', lookup: (params, query) -> { _id: params._id }}
+     { method: 'delete', path: '/byid/:_id', lookup: (params, query) -> { _id: params._id }}
   ]
 
 noAllowColl = new FileCollection "noAllowColl"
@@ -110,11 +110,9 @@ if Meteor.isServer
   Tinytest.add 'check server REST API', (test) ->
     test.equal typeof testColl.router, 'function'
 
-if Meteor.isClient
 
+if Meteor.isClient
   sub = Meteor.subscribe 'everything'
-  Tinytest.add 'Client has Resumable', (test) ->
-    test.instanceOf testColl.resumable, Resumable, "Resumable object not found"
 
 Tinytest.add 'FileCollection constructor with options', (test) ->
   test.instanceOf testColl, FileCollection, "FileCollection constructor failed"
@@ -259,7 +257,7 @@ if Meteor.isServer
 Tinytest.addAsync 'REST API PUT/GET', (test, onComplete) ->
   _id = testColl.insert { filename: 'writefile', contentType: 'text/plain' }, (err, _id) ->
     test.fail(err) if err
-    url = Meteor.absoluteUrl 'test/' + _id
+    url = Meteor.absoluteUrl 'test/byid/' + _id
     HTTP.put url, { content: '0987654321'}, (err, res) ->
       test.fail(err) if err
       HTTP.get url, (err, res) ->
@@ -270,10 +268,93 @@ Tinytest.addAsync 'REST API PUT/GET', (test, onComplete) ->
 Tinytest.addAsync 'REST API POST/GET/DELETE', (test, onComplete) ->
   _id = testColl.insert { filename: 'writefile', contentType: 'text/plain' }, (err, _id) ->
     test.fail(err) if err
-    url = Meteor.absoluteUrl 'test/' + _id
-    HTTP.post url, { headers: { 'Content-Type': 'multipart/form-data; boundary="AaB03x"'}, content: '--AaB03x\r\nContent-Disposition: form-data; name="file"; filename="foobar"\r\nContent-Type: text/plain\r\n\r\nABCDEFGHIJ\r\n--AaB03x--'},
+    url = Meteor.absoluteUrl 'test/byid/' + _id
+    content = """
+      --AaB03x\r
+      Content-Disposition: form-data; name="blahBlahBlah"\r
+      Content-Type: text/plain\r
+      \r
+      BLAH\r
+      --AaB03x\r
+      Content-Disposition: form-data; name="file"; filename="foobar"\r
+      Content-Type: text/plain\r
+      \r
+      ABCDEFGHIJ\r
+      --AaB03x--\r
+    """
+    HTTP.post url, { headers: { 'Content-Type': 'multipart/form-data; boundary="AaB03x"'}, content: content},
       (err, res) ->
         test.fail(err) if err
+        HTTP.get url, (err, res) ->
+          test.fail(err) if err
+          test.equal res.content,'ABCDEFGHIJ'
+          HTTP.del url, (err, res) ->
+            test.fail(err) if err
+            onComplete()
+
+Tinytest.addAsync 'Basic resumable.js REST interface POST/GET/DELETE', (test, onComplete) ->
+  _id = testColl.insert { filename: 'writeresumablefile', contentType: 'text/plain' }, (err, _id) ->
+    console.log "ID! #{_id}"
+    test.fail(err) if err
+    url = Meteor.absoluteUrl "test/_resumable"
+    content = """
+      --AaB03x\r
+      Content-Disposition: form-data; name="resumableChunkNumber"\r
+      Content-Type: text/plain\r
+      \r
+      1\r
+      --AaB03x\r
+      Content-Disposition: form-data; name="resumableChunkSize"\r
+      Content-Type: text/plain\r
+      \r
+      #{testColl.chunkSize}\r
+      --AaB03x\r
+      Content-Disposition: form-data; name="resumableCurrentChunkSize"\r
+      Content-Type: text/plain\r
+      \r
+      10\r
+      --AaB03x\r
+      Content-Disposition: form-data; name="resumableTotalSize"\r
+      Content-Type: text/plain\r
+      \r
+      10\r
+      --AaB03x\r
+      Content-Disposition: form-data; name="resumableType"\r
+      Content-Type: text/plain\r
+      \r
+      text/plain\r
+      --AaB03x\r
+      Content-Disposition: form-data; name="resumableIdentifier"\r
+      Content-Type: text/plain\r
+      \r
+      #{_id}\r
+      --AaB03x\r
+      Content-Disposition: form-data; name="resumableFilename"\r
+      Content-Type: text/plain\r
+      \r
+      writeresumablefile\r
+      --AaB03x\r
+      Content-Disposition: form-data; name="resumableRelativePath"\r
+      Content-Type: text/plain\r
+      \r
+      writeresumablefile\r
+      --AaB03x\r
+      Content-Disposition: form-data; name="resumableTotalChunks"\r
+      Content-Type: text/plain\r
+      \r
+      1\r
+      --AaB03x\r
+      Content-Disposition: form-data; name="file"; filename="writeresumablefile"\r
+      Content-Type: text/plain\r
+      \r
+      ABCDEFGHIJ\r
+      --AaB03x--\r
+    """
+
+    HTTP.post url, { headers: { 'Content-Type': 'multipart/form-data; boundary="AaB03x"'}, content: content },
+      (err, res) ->
+        test.fail(err) if err
+        url = Meteor.absoluteUrl 'test/byid/' + _id
         HTTP.get url, (err, res) ->
           test.fail(err) if err
           test.equal res.content,'ABCDEFGHIJ'
@@ -284,7 +365,7 @@ Tinytest.addAsync 'REST API POST/GET/DELETE', (test, onComplete) ->
 Tinytest.addAsync 'REST API valid range requests', (test, onComplete) ->
   _id = testColl.insert { filename: 'writefile', contentType: 'text/plain' }, (err, _id) ->
     test.fail(err) if err
-    url = Meteor.absoluteUrl 'test/' + _id
+    url = Meteor.absoluteUrl 'test/byid/' + _id
     HTTP.put url, { content: '0987654321'}, (err, res) ->
       test.fail(err) if err
       HTTP.get url, { headers: { 'Range': '0-'}},
@@ -313,7 +394,7 @@ Tinytest.addAsync 'REST API valid range requests', (test, onComplete) ->
 Tinytest.addAsync 'REST API invalid range requests', (test, onComplete) ->
   _id = testColl.insert { filename: 'writefile', contentType: 'text/plain' }, (err, _id) ->
     test.fail(err) if err
-    url = Meteor.absoluteUrl 'test/' + _id
+    url = Meteor.absoluteUrl 'test/byid/' + _id
     HTTP.put url, { content: '0987654321'}, (err, res) ->
       test.fail(err) if err
       HTTP.get url, { headers: { 'Range': '0-10'}},
@@ -333,7 +414,7 @@ Tinytest.addAsync 'REST API invalid range requests', (test, onComplete) ->
 Tinytest.addAsync 'REST API requests header manipilation', (test, onComplete) ->
   _id = testColl.insert { filename: 'writefile', contentType: 'text/plain' }, (err, _id) ->
     test.fail(err) if err
-    url = Meteor.absoluteUrl 'test/' + _id
+    url = Meteor.absoluteUrl 'test/byid/' + _id
     HTTP.put url, { content: '0987654321'}, (err, res) ->
       test.fail(err) if err
       HTTP.get url+'?download=true', (err, res) ->
@@ -351,7 +432,7 @@ Tinytest.addAsync 'REST API requests header manipilation', (test, onComplete) ->
 Tinytest.addAsync 'REST API requests header manipilation, UTF-8', (test, onComplete) ->
   _id = testColl.insert { filename: '中文指南.txt', contentType: 'text/plain' }, (err, _id) ->
     test.fail(err) if err
-    url = Meteor.absoluteUrl 'test/' + _id
+    url = Meteor.absoluteUrl 'test/byid/' + _id
     HTTP.put url, { content: '0987654321'}, (err, res) ->
       test.fail(err) if err
       HTTP.get url+'?download=true', (err, res) ->
@@ -393,7 +474,7 @@ if Meteor.isClient
   Tinytest.addAsync 'Reject HTTP GET without true allow rule', subWrapper(noReadSub, (test, onComplete) ->
     _id = noReadColl.insert { filename: 'writefile', contentType: 'text/plain' }, (err, _id) ->
       test.fail(err) if err
-      url = Meteor.absoluteUrl 'noread/' + _id
+      url = Meteor.absoluteUrl 'noread/byid/' + _id
       HTTP.put url, { content: '0987654321'}, (err, res) ->
         test.fail(err) if err
         req = $.get url
@@ -404,4 +485,9 @@ if Meteor.isClient
           test.equal err, 'Forbidden', 'Test was not forbidden'
           onComplete()
   )
+
+  # Resumable.js tests
+
+  Tinytest.add 'Client has Resumable', (test) ->
+    test.instanceOf testColl.resumable, Resumable, "Resumable object not found"
 

@@ -21,19 +21,19 @@ if Meteor.isServer
    # Fast MIME Multipart parsing of generic HTTP POST request bodies
    dice_multipart = (req, res, next) ->
 
-      errorSent = false
-      handleFailure = (msg, err = "", retCode = 500) ->
-         console.error "#{msg} \n", err
-         unless errorSent
-            errorSent = true
-            res.writeHead retCode
-            res.end()
-
       next = share.bind_env next
 
       unless req.method is 'POST'
          next()
          return
+
+      responseSent = false
+      handleFailure = (msg, err = "", retCode = 500) ->
+         console.error "#{msg} \n", err
+         unless responseSent
+            responseSent = true
+            res.writeHead retCode
+            res.end()
 
       boundary = find_mime_boundary req
 
@@ -74,11 +74,10 @@ if Meteor.isServer
                               fileName: fileName
                               fileType: fileType
                               params: params
+                           responseSent = true   
                            next()
-                     p.on 'error', (err) ->
-                        console.error('Error in Dicer while part streaming:', err)
-                        res.writeHead(500)
-                        res.end()
+                  else
+                     console.warn "Dicer part", v
 
             if count is 0 and fileStream
                req.multipart =
@@ -86,6 +85,7 @@ if Meteor.isServer
                   fileName: fileName
                   fileType: fileType
                   params: params
+               responseSent = true   
                next()
 
          p.on 'error', (err) ->
