@@ -24,7 +24,7 @@ if Meteor.isServer
          return func
 
    share.safeObjectID = (s) ->
-      if s.match /^[0-9a-f]{24}$/i  # Validate that _id is a 12 byte hex string
+      if s?.match /^[0-9a-f]{24}$/i  # Validate that _id is a 12 byte hex string
          new Mongo.ObjectID s
       else
          null
