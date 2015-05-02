@@ -1,5 +1,9 @@
 ## Revision history
 
+### v1.0.7
+
+* Changed the resumable.js server support to return status 204 for testChunk GET requests, rather than 404, which causes undesirable log entries in the client console. 
+
 ### v1.0.6
 
 * Fixes #48, which caused unicode filenames to be corrupted in download SaveAs... dialogs. Thanks to @xurwxj for reporting.

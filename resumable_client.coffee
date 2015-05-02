@@ -1,5 +1,5 @@
 ############################################################################
-#     Copyright (C) 2014 by Vaughn Iverson
+#     Copyright (C) 2014-2015 by Vaughn Iverson
 #     fileCollection is free software released under the MIT/X11 license.
 #     See included LICENSE file for details.
 ############################################################################
@@ -31,6 +31,7 @@ if Meteor.isClient
          fileParameterName: 'file'
          chunkSize: @chunkSize
          testChunks: true
+         permanentErrors: [204, 404, 415, 500, 501]
          simultaneousUploads: 3
          maxFiles: undefined
          maxFilesErrorCallback: undefined

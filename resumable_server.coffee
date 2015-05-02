@@ -177,7 +177,13 @@ if Meteor.isServer
             res.end())
 
    resumable_get_lookup = (params, query) ->
-      return $or: [
+      return { _id: query.resumableIdentifier }
+
+   # This handles Resumable.js "test GET" requests, that exist to determine if a part is already uploaded
+   resumable_get_handler = (req, res, next) ->
+      query = req.query
+      chunkQuery = 
+         $or: [
             {
                _id: query.resumableIdentifier
                length: query.resumableTotalSize
@@ -189,10 +195,15 @@ if Meteor.isServer
             }
          ]
 
-   # This handles Resumable.js "test GET" requests, that exist to determine if a part is already uploaded
-   resumable_get_handler = (req, res, next) ->
-      # All is good
-      res.writeHead(200)
+      result = @findOne chunkQuery, { fields: { _id: 1 }}
+
+      if result
+         # Chunk is present
+         res.writeHead(200)
+      else
+         # Chunk is missing
+         res.writeHead(204)
+
       res.end()
 
    # Setup the GET and POST HTTP REST paths for Resumable.js in express
