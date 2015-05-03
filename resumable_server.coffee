@@ -162,6 +162,7 @@ if Meteor.isServer
 
       if findResult
          # Duplicate chunk... Don't rewrite it.
+         # console.warn "Duplicate chunk detected: #{resumable.resumableChunkNumber}, #{resumable.resumableIdentifier}"
          res.writeHead(200)
          res.end()
       else

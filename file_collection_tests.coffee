@@ -292,74 +292,191 @@ Tinytest.addAsync 'REST API POST/GET/DELETE', (test, onComplete) ->
             test.fail(err) if err
             onComplete()
 
+createContent = (_id, data, name, chunkNum, chunkSize = 16) ->
+  totalChunks = Math.floor(data.length / chunkSize)
+  totalChunks = 1 if totalChunks is 0
+  throw new Error "Bad chunkNum" if chunkNum > totalChunks
+  begin = (chunkNum - 1) * chunkSize
+  end = if chunkNum is totalChunks then data.length else chunkNum * chunkSize
+
+  """
+    --AaB03x\r
+    Content-Disposition: form-data; name="resumableChunkNumber"\r
+    Content-Type: text/plain\r
+    \r
+    #{chunkNum}\r
+    --AaB03x\r
+    Content-Disposition: form-data; name="resumableChunkSize"\r
+    Content-Type: text/plain\r
+    \r
+    #{chunkSize}\r
+    --AaB03x\r
+    Content-Disposition: form-data; name="resumableCurrentChunkSize"\r
+    Content-Type: text/plain\r
+    \r
+    #{end - begin}\r
+    --AaB03x\r
+    Content-Disposition: form-data; name="resumableTotalSize"\r
+    Content-Type: text/plain\r
+    \r
+    #{data.length}\r
+    --AaB03x\r
+    Content-Disposition: form-data; name="resumableType"\r
+    Content-Type: text/plain\r
+    \r
+    text/plain\r
+    --AaB03x\r
+    Content-Disposition: form-data; name="resumableIdentifier"\r
+    Content-Type: text/plain\r
+    \r
+    #{_id}\r
+    --AaB03x\r
+    Content-Disposition: form-data; name="resumableFilename"\r
+    Content-Type: text/plain\r
+    \r
+    #{name}\r
+    --AaB03x\r
+    Content-Disposition: form-data; name="resumableRelativePath"\r
+    Content-Type: text/plain\r
+    \r
+    #{name}\r
+    --AaB03x\r
+    Content-Disposition: form-data; name="resumableTotalChunks"\r
+    Content-Type: text/plain\r
+    \r
+    #{totalChunks}\r
+    --AaB03x\r
+    Content-Disposition: form-data; name="file"; filename="#{name}"\r
+    Content-Type: text/plain\r
+    \r
+    #{data.substring(begin, end)}\r
+    --AaB03x--\r
+  """
+
 Tinytest.addAsync 'Basic resumable.js REST interface POST/GET/DELETE', (test, onComplete) ->
-  _id = testColl.insert { filename: 'writeresumablefile', contentType: 'text/plain' }, (err, _id) ->
+  testColl.insert { filename: 'writeresumablefile', contentType: 'text/plain' }, (err, _id) ->
     test.fail(err) if err
     url = Meteor.absoluteUrl "test/_resumable"
-    content = """
-      --AaB03x\r
-      Content-Disposition: form-data; name="resumableChunkNumber"\r
-      Content-Type: text/plain\r
-      \r
-      1\r
-      --AaB03x\r
-      Content-Disposition: form-data; name="resumableChunkSize"\r
-      Content-Type: text/plain\r
-      \r
-      #{testColl.chunkSize}\r
-      --AaB03x\r
-      Content-Disposition: form-data; name="resumableCurrentChunkSize"\r
-      Content-Type: text/plain\r
-      \r
-      10\r
-      --AaB03x\r
-      Content-Disposition: form-data; name="resumableTotalSize"\r
-      Content-Type: text/plain\r
-      \r
-      10\r
-      --AaB03x\r
-      Content-Disposition: form-data; name="resumableType"\r
-      Content-Type: text/plain\r
-      \r
-      text/plain\r
-      --AaB03x\r
-      Content-Disposition: form-data; name="resumableIdentifier"\r
-      Content-Type: text/plain\r
-      \r
-      #{_id}\r
-      --AaB03x\r
-      Content-Disposition: form-data; name="resumableFilename"\r
-      Content-Type: text/plain\r
-      \r
-      writeresumablefile\r
-      --AaB03x\r
-      Content-Disposition: form-data; name="resumableRelativePath"\r
-      Content-Type: text/plain\r
-      \r
-      writeresumablefile\r
-      --AaB03x\r
-      Content-Disposition: form-data; name="resumableTotalChunks"\r
-      Content-Type: text/plain\r
-      \r
-      1\r
-      --AaB03x\r
-      Content-Disposition: form-data; name="file"; filename="writeresumablefile"\r
-      Content-Type: text/plain\r
-      \r
-      ABCDEFGHIJ\r
-      --AaB03x--\r
-    """
-
+    data = 'ABCDEFGHIJ'
+    content = createContent _id, data, "writeresumablefile", 1
     HTTP.post url, { headers: { 'Content-Type': 'multipart/form-data; boundary="AaB03x"'}, content: content },
       (err, res) ->
         test.fail(err) if err
         url = Meteor.absoluteUrl 'test/byid/' + _id
         HTTP.get url, (err, res) ->
           test.fail(err) if err
-          test.equal res.content,'ABCDEFGHIJ'
+          test.equal res.content, data
           HTTP.del url, (err, res) ->
             test.fail(err) if err
             onComplete()
+
+Tinytest.addAsync 'Basic resumable.js REST interface POST/GET/DELETE, multiple chunks', (test, onComplete) ->
+
+  data = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+
+  testColl.insert { filename: 'writeresumablefile', contentType: 'text/plain' }, (err, _id) ->
+    test.fail(err) if err
+    url = Meteor.absoluteUrl "test/_resumable"
+    content = createContent _id, data, "writeresumablefile", 1
+    content2 = createContent _id, data, "writeresumablefile", 2
+    HTTP.post url, { headers: { 'Content-Type': 'multipart/form-data; boundary="AaB03x"'}, content: content },
+      (err, res) ->
+        test.fail(err) if err
+        HTTP.post url, { headers: { 'Content-Type': 'multipart/form-data; boundary="AaB03x"'}, content: content2 },
+          (err, res) ->
+            test.fail(err) if err
+            url = Meteor.absoluteUrl 'test/byid/' + _id
+            HTTP.get url, (err, res) ->
+              test.fail(err) if err
+              test.equal res.content, data
+              HTTP.del url, (err, res) ->
+                test.fail(err) if err
+                onComplete()
+
+Tinytest.addAsync 'Basic resumable.js REST interface POST/GET/DELETE, duplicate chunks', (test, onComplete) ->
+
+  data = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+
+  testColl.insert { filename: 'writeresumablefile', contentType: 'text/plain' }, (err, _id) ->
+    test.fail(err) if err
+    url = Meteor.absoluteUrl "test/_resumable"
+    content = createContent _id, data, "writeresumablefile", 1
+    content2 = createContent _id, data, "writeresumablefile", 2
+    HTTP.post url, { headers: { 'Content-Type': 'multipart/form-data; boundary="AaB03x"'}, content: content2 },
+      (err, res) ->
+        test.fail(err) if err
+        HTTP.post url, { headers: { 'Content-Type': 'multipart/form-data; boundary="AaB03x"'}, content: content2 },
+          (err, res) ->
+            test.fail(err) if err
+            HTTP.post url, { headers: { 'Content-Type': 'multipart/form-data; boundary="AaB03x"'}, content: content },
+              (err, res) ->
+                test.fail(err) if err
+                url = Meteor.absoluteUrl 'test/byid/' + _id
+                HTTP.get url, (err, res) ->
+                  test.fail(err) if err
+                  test.equal res.content, data
+                  HTTP.del url, (err, res) ->
+                    test.fail(err) if err
+                    onComplete()
+
+Tinytest.addAsync 'Basic resumable.js REST interface POST/GET/DELETE, duplicate chunks 2', (test, onComplete) ->
+
+  data = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+
+  testColl.insert { filename: 'writeresumablefile', contentType: 'text/plain' }, (err, _id) ->
+    test.fail(err) if err
+    url = Meteor.absoluteUrl "test/_resumable"
+    content = createContent _id, data, "writeresumablefile", 1
+    content2 = createContent _id, data, "writeresumablefile", 2
+    HTTP.post url, { headers: { 'Content-Type': 'multipart/form-data; boundary="AaB03x"'}, content: content },
+      (err, res) ->
+        test.fail(err) if err
+        HTTP.post url, { headers: { 'Content-Type': 'multipart/form-data; boundary="AaB03x"'}, content: content2 },
+          (err, res) ->
+            test.fail(err) if err
+            HTTP.post url, { headers: { 'Content-Type': 'multipart/form-data; boundary="AaB03x"'}, content: content },
+              (err, res) ->
+                test.fail(err) if err
+                url = Meteor.absoluteUrl 'test/byid/' + _id
+                HTTP.get url, (err, res) ->
+                  test.fail(err) if err
+                  test.equal res.content, data
+                  HTTP.del url, (err, res) ->
+                    test.fail(err) if err
+                    onComplete()
+
+Tinytest.addAsync 'Basic resumable.js REST interface POST/GET/DELETE, duplicate chunks 3', (test, onComplete) ->
+
+  data = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnopqrstuvwxyz'
+
+  testColl.insert { filename: 'writeresumablefile', contentType: 'text/plain' }, (err, _id) ->
+    test.fail(err) if err
+    url = Meteor.absoluteUrl "test/_resumable"
+    content = createContent _id, data, "writeresumablefile", 1
+    content2 = createContent _id, data, "writeresumablefile", 2
+    content3 = createContent _id, data, "writeresumablefile", 3
+    HTTP.post url, { headers: { 'Content-Type': 'multipart/form-data; boundary="AaB03x"'}, content: content2 },
+      (err, res) ->
+        test.fail(err) if err
+        HTTP.post url, { headers: { 'Content-Type': 'multipart/form-data; boundary="AaB03x"'}, content: content },
+          (err, res) ->
+            test.fail(err) if err
+            HTTP.post url, { headers: { 'Content-Type': 'multipart/form-data; boundary="AaB03x"'}, content: content2 },
+              (err, res) ->
+                test.fail(err) if err
+                HTTP.post url, { headers: { 'Content-Type': 'multipart/form-data; boundary="AaB03x"'}, content: content },
+                  (err, res) ->
+                    test.fail(err) if err
+                    HTTP.post url, { headers: { 'Content-Type': 'multipart/form-data; boundary="AaB03x"'}, content: content3 },
+                      (err, res) ->
+                        test.fail(err) if err
+                        url = Meteor.absoluteUrl 'test/byid/' + _id
+                        HTTP.get url, (err, res) ->
+                          test.fail(err) if err
+                          test.equal res.content, data
+                          HTTP.del url, (err, res) ->
+                            test.fail(err) if err
+                            onComplete()
 
 Tinytest.addAsync 'REST API valid range requests', (test, onComplete) ->
   _id = testColl.insert { filename: 'writefile', contentType: 'text/plain' }, (err, _id) ->
