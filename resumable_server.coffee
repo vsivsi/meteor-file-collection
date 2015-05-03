@@ -200,7 +200,8 @@ if Meteor.isServer
                res.end())
 
    resumable_get_lookup = (params, query) ->
-      return { _id: query.resumableIdentifier }
+      q = { _id: share.safeObjectID(query.resumableIdentifier) }
+      return q
 
    # This handles Resumable.js "test GET" requests, that exist to determine if a part is already uploaded
    resumable_get_handler = (req, res, next) ->
@@ -208,7 +209,7 @@ if Meteor.isServer
       chunkQuery = 
          $or: [
             {
-               _id: query.resumableIdentifier
+               _id: share.safeObjectID(query.resumableIdentifier)
                length: query.resumableTotalSize
             }
             {

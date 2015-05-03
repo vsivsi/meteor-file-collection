@@ -1,5 +1,5 @@
 ############################################################################
-#     Copyright (C) 2014 by Vaughn Iverson
+#     Copyright (C) 2014-2015 by Vaughn Iverson
 #     fileCollection is free software released under the MIT/X11 license.
 #     See included LICENSE file for details.
 ############################################################################
@@ -29,7 +29,7 @@ Tinytest.add 'FileCollection default constructor', (test) ->
 
 testColl = new FileCollection "test",
   baseURL: "/test"
-  chunkSize: 1024*1024
+  chunkSize: 16
   resumable: true
   http: [
      { method: 'get', path: '/byid/:_id', lookup: (params, query) -> { _id: params._id }}
@@ -117,7 +117,7 @@ if Meteor.isClient
 Tinytest.add 'FileCollection constructor with options', (test) ->
   test.instanceOf testColl, FileCollection, "FileCollection constructor failed"
   test.equal testColl.root, 'test', "root collection not properly set"
-  test.equal testColl.chunkSize, 1024*1024, "chunkSize not set properly"
+  test.equal testColl.chunkSize, 16, "chunkSize not set properly"
   test.equal testColl.baseURL, "/test", "base URL not set properly"
 
 Tinytest.add 'FileCollection insert and findOne', (test) ->
@@ -130,7 +130,7 @@ Tinytest.add 'FileCollection insert and findOne', (test) ->
   test.equal file.length, 0
   test.equal file.md5, 'd41d8cd98f00b204e9800998ecf8427e'
   test.instanceOf file.uploadDate, Date
-  test.equal file.chunkSize, 1024*1024
+  test.equal file.chunkSize, 16
   test.equal file.filename, ''
   test.equal typeof file.metadata, "object"
   test.instanceOf file.aliases, Array
@@ -150,7 +150,7 @@ Tinytest.addAsync 'FileCollection insert and findOne in callback', subWrapper(su
     test.equal file.length, 0
     test.equal file.md5, 'd41d8cd98f00b204e9800998ecf8427e'
     test.instanceOf file.uploadDate, Date
-    test.equal file.chunkSize, 1024*1024
+    test.equal file.chunkSize, 16
     test.equal file.filename, ''
     test.equal typeof file.metadata, "object"
     test.instanceOf file.aliases, Array
@@ -168,7 +168,7 @@ Tinytest.add 'FileCollection insert and find with options', (test) ->
   test.equal file.length, 0
   test.equal file.md5, 'd41d8cd98f00b204e9800998ecf8427e'
   test.instanceOf file.uploadDate, Date
-  test.equal file.chunkSize, 1024*1024
+  test.equal file.chunkSize, 16
   test.equal file.filename, 'testfile'
   test.equal typeof file.metadata, "object"
   test.equal file.metadata.x, 1
@@ -190,7 +190,7 @@ Tinytest.addAsync 'FileCollection insert and find with options in callback', sub
     test.equal file.length, 0
     test.equal file.md5, 'd41d8cd98f00b204e9800998ecf8427e'
     test.instanceOf file.uploadDate, Date
-    test.equal file.chunkSize, 1024*1024
+    test.equal file.chunkSize, 16
     test.equal file.filename, 'testfile'
     test.equal typeof file.metadata, "object"
     test.equal file.metadata.x, 1
@@ -490,3 +490,56 @@ if Meteor.isClient
   Tinytest.add 'Client has Resumable', (test) ->
     test.instanceOf testColl.resumable, Resumable, "Resumable object not found"
 
+  Tinytest.addAsync 'Client resumable.js Upload', (test, onComplete) ->
+    thisId = null
+
+    testColl.resumable.on 'fileAdded', (file) ->
+      testColl.insert { _id: file.uniqueIdentifier, filename: file.fileName, contentType: file.file.type }, (err, _id) ->
+        test.fail(err) if err
+        thisId = "#{_id}"
+        testColl.resumable.upload()
+
+    testColl.resumable.on 'fileSuccess', (file) ->
+      test.equal thisId, file.uniqueIdentifier
+      url = Meteor.absoluteUrl 'test/byid/' + file.uniqueIdentifier
+      HTTP.get url, (err, res) ->
+        test.fail(err) if err
+        test.equal res.content,'ABCDEFGHIJ'
+        HTTP.del url, (err, res) ->
+          test.fail(err) if err
+          testColl.resumable.events = []
+          onComplete()
+
+    testColl.resumable.on 'error', (msg, err) ->
+      test.fail err
+
+    myBlob = new Blob [ 'ABCDEFGHIJ' ], { type: 'text/plain' }
+    myBlob.name = 'resumablefile'
+    testColl.resumable.addFile myBlob
+
+  Tinytest.addAsync 'Client resumable.js Upload, Multichunk', (test, onComplete) ->
+    thisId = null
+
+    testColl.resumable.on 'fileAdded', (file) ->
+      testColl.insert { _id: file.uniqueIdentifier, filename: file.fileName, contentType: file.file.type }, (err, _id) ->
+        test.fail(err) if err
+        thisId = "#{_id}"
+        testColl.resumable.upload()
+
+    testColl.resumable.on 'fileSuccess', (file) ->
+      test.equal thisId, file.uniqueIdentifier
+      url = Meteor.absoluteUrl 'test/byid/' + file.uniqueIdentifier
+      HTTP.get url, (err, res) ->
+        test.fail(err) if err
+        test.equal res.content,'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+        HTTP.del url, (err, res) ->
+          test.fail(err) if err
+          testColl.resumable.events = []
+          onComplete()
+
+    testColl.resumable.on 'error', (msg, err) ->
+      test.fail err
+
+    myBlob = new Blob [ 'ABCDEFGHIJ', 'KLMNOPQRSTUVWXYZ', '0123456789' ], { type: 'text/plain' }
+    myBlob.name = 'resumablefile'
+    testColl.resumable.addFile myBlob

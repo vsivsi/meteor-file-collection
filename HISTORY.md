@@ -1,11 +1,11 @@
 ## Revision history
 
-### v1.0.7
+### v1.1.0
 
 * Changed the resumable.js server-side support to return status 204 for testChunk GET requests, rather than 404, which causes undesirable log entries in the client console. 
-* Fixed issue where received duplicate chunks could mistakenly both be written during resumable.js uploads
+* Fixed bug where received duplicate chunks could mistakenly both be written during resumable.js uploads
 * Made multipart parsing more resistent to malformed requests
-* Added unit tests for resumable server-side support
+* Added unit tests for resumable client and server-side support
 
 ### v1.0.6
 

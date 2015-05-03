@@ -272,7 +272,6 @@ if Meteor.isServer
 
                # Build the path lookup mongoDB query object for the gridFS files collection
                lookup = r.lookup? req.params or {}, req.query or {}, req.multipart
-               # console.log "Lookup results:", lookup
                unless lookup?
                   # No lookup returned, so bailing
                   res.writeHead(500)
