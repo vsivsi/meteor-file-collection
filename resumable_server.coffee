@@ -97,7 +97,7 @@ if Meteor.isServer
                      partlock.on 'timed-out', () -> cb new Error 'Partlock timed out!'
                      partlock.on 'expired', () -> cb new Error 'Partlock expired!'
                      partlock.on 'error', (err) ->
-                        console.error "Error obtaining partlock #{part._id}", err 
+                        console.error "Error obtaining partlock #{part._id}", err
                         cb err
                   (err) =>
                      if err
@@ -128,10 +128,11 @@ if Meteor.isServer
       return { _id: share.safeObjectID(multipart?.params?.resumableIdentifier) }
 
    resumable_post_handler = (req, res, next) ->
+
       # This has to be a resumable POST
       unless req.multipart?.params?.resumableIdentifier
          console.error "Missing resumable.js multipart information"
-         res.writeHead(501)
+         res.writeHead(501, {'Content-Type':'text/plain'})
          res.end()
          return
 
@@ -148,7 +149,7 @@ if Meteor.isServer
               ((resumable.resumableChunkNumber is resumable.resumableTotalChunks) and
                (resumable.resumableCurrentChunkSize < 2*resumable.resumableChunkSize)))
 
-         res.writeHead(501)
+         res.writeHead(501, {'Content-Type':'text/plain'})
          res.end()
          return
 
@@ -163,7 +164,7 @@ if Meteor.isServer
       if findResult
          # Duplicate chunk... Don't rewrite it.
          # console.warn "Duplicate chunk detected: #{resumable.resumableChunkNumber}, #{resumable.resumableIdentifier}"
-         res.writeHead(200)
+         res.writeHead(200, {'Content-Type':'text/plain'})
          res.end()
       else
          # Everything looks good, so write this part
@@ -173,7 +174,7 @@ if Meteor.isServer
             metadata: req.gridFS.metadata
 
          unless writeStream
-            res.writeHead(404)
+            res.writeHead(404, {'Content-Type':'text/plain'})
             res.end()
             return
 
@@ -184,20 +185,20 @@ if Meteor.isServer
                   check_order.bind(@)(req.gridFS, (err) ->
                      if err
                         console.error "Error reassembling chunks of resumable.js upload", err
-                        res.writeHead(500)
+                        res.writeHead(500, {'Content-Type':'text/plain'})
                      else
-                        res.writeHead(200)
+                        res.writeHead(200, {'Content-Type':'text/plain'})
                      res.end()
                   )
                else
                   console.error "Missing retFile on pipe close"
-                  res.writeHead(500)
-                  res.end()                  
+                  res.writeHead(500, {'Content-Type':'text/plain'})
+                  res.end()
                )
 
             .on 'error', share.bind_env((err) =>
                console.error "Piping Error!", err
-               res.writeHead(500)
+               res.writeHead(500, {'Content-Type':'text/plain'})
                res.end())
 
    resumable_get_lookup = (params, query) ->
@@ -207,7 +208,7 @@ if Meteor.isServer
    # This handles Resumable.js "test GET" requests, that exist to determine if a part is already uploaded
    resumable_get_handler = (req, res, next) ->
       query = req.query
-      chunkQuery = 
+      chunkQuery =
          $or: [
             {
                _id: share.safeObjectID(query.resumableIdentifier)
@@ -224,10 +225,10 @@ if Meteor.isServer
 
       if result
          # Chunk is present
-         res.writeHead(200)
+         res.writeHead(200, {'Content-Type':'text/plain'})
       else
          # Chunk is missing
-         res.writeHead(204)
+         res.writeHead(204, {'Content-Type':'text/plain'})
 
       res.end()
 

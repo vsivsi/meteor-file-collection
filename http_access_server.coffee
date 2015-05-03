@@ -32,7 +32,7 @@ if Meteor.isServer
          console.error "#{msg} \n", err
          unless responseSent
             responseSent = true
-            res.writeHead retCode
+            res.writeHead retCode, {'Content-Type':'text/plain'}
             res.end()
 
       boundary = find_mime_boundary req
@@ -74,7 +74,7 @@ if Meteor.isServer
                               fileName: fileName
                               fileType: fileType
                               params: params
-                           responseSent = true   
+                           responseSent = true
                            next()
                   else
                      console.warn "Dicer part", v
@@ -85,7 +85,7 @@ if Meteor.isServer
                   fileName: fileName
                   fileType: fileType
                   params: params
-               responseSent = true   
+               responseSent = true
                next()
 
          p.on 'error', (err) ->
@@ -117,13 +117,13 @@ if Meteor.isServer
          req.multipart.fileStream.pipe(stream)
             .on 'close', (retFile) ->
                if retFile
-                  res.writeHead(200)
+                  res.writeHead(200, {'Content-Type':'text/plain'})
                   res.end()
             .on 'error', (err) ->
-               res.writeHead(500)
+               res.writeHead(500, {'Content-Type':'text/plain'})
                res.end()
       else
-         res.writeHead(410)
+         res.writeHead(410, {'Content-Type':'text/plain'})
          res.end()
 
    # Handle a generic HTTP GET request
@@ -144,7 +144,7 @@ if Meteor.isServer
 
         # Unable to handle range request - Send the valid range with status code 416
         if (start < 0) or (end >= req.gridFS.length) or (start > end) or isNaN(start) or isNaN(end)
-          res.writeHead 416, 'Content-Range': 'bytes ' + '*/' + req.gridFS.length
+          res.writeHead 416, { 'Content-Type':'text/plain', 'Content-Range': 'bytes ' + '*/' + req.gridFS.length }
           res.end()
           return
 
@@ -155,7 +155,7 @@ if Meteor.isServer
         headers =
             'Content-Range': 'bytes ' + start + '-' + end + '/' + req.gridFS.length
             'Accept-Ranges': 'bytes'
-            'Content-type': req.gridFS.contentType
+            'Content-Type': req.gridFS.contentType
             'Content-Length': chunksize
             'Last-Modified': req.gridFS.uploadDate.toUTCString()
 
@@ -205,10 +205,10 @@ if Meteor.isServer
             .on 'close', () ->
                res.end()
             .on 'error', (err) ->
-               res.writeHead(500)
+               res.writeHead(500, {'Content-Type':'text/plain'})
                res.end(err)
       else
-         res.writeHead(410)
+         res.writeHead(410, {'Content-Type':'text/plain'})
          res.end()
 
    # Handle a generic HTTP PUT request
@@ -229,13 +229,13 @@ if Meteor.isServer
          req.pipe(stream)
             .on 'close', (retFile) ->
                if retFile
-                  res.writeHead(200)
+                  res.writeHead(200, {'Content-Type':'text/plain'})
                   res.end()
             .on 'error', (err) ->
-               res.writeHead(500)
+               res.writeHead(500, {'Content-Type':'text/plain'})
                res.end(err)
       else
-         res.writeHead(404)
+         res.writeHead(404, {'Content-Type':'text/plain'})
          res.end("#{req.url} Not found!")
 
    # Handle a generic HTTP DELETE request
@@ -247,7 +247,7 @@ if Meteor.isServer
    del = (req, res, next) ->
 
       @remove req.gridFS
-      res.writeHead(204)
+      res.writeHead(204, {'Content-Type':'text/plain'})
       res.end()
 
    # Setup all of the application specified paths and file lookups in express
@@ -274,14 +274,14 @@ if Meteor.isServer
                lookup = r.lookup? req.params or {}, req.query or {}, req.multipart
                unless lookup?
                   # No lookup returned, so bailing
-                  res.writeHead(500)
+                  res.writeHead(500, {'Content-Type':'text/plain'})
                   res.end()
                   return
                else
                   # Perform the collection query
                   req.gridFS = @findOne lookup
                   unless req.gridFS
-                     res.writeHead(404)
+                     res.writeHead(404, {'Content-Type':'text/plain'})
                      res.end()
                      return
 
@@ -289,21 +289,21 @@ if Meteor.isServer
                   switch req.method
                      when 'HEAD', 'GET'
                         unless share.check_allow_deny.bind(@) 'read', req.meteorUserId, req.gridFS
-                           res.writeHead(403)
+                           res.writeHead(403, {'Content-Type':'text/plain'})
                            res.end()
                            return
                      when 'POST', 'PUT'
                         unless share.check_allow_deny.bind(@) 'write', req.meteorUserId, req.gridFS
-                           res.writeHead(403)
+                           res.writeHead(403, {'Content-Type':'text/plain'})
                            res.end()
                            return
                      when 'DELETE'
                         unless share.check_allow_deny.bind(@) 'remove', req.meteorUserId, req.gridFS
-                           res.writeHead(403)
+                           res.writeHead(403, {'Content-Type':'text/plain'})
                            res.end()
                            return
                      else
-                        res.writeHead(500)
+                        res.writeHead(500, {'Content-Type':'text/plain'})
                         res.end()
                         return
 
@@ -312,7 +312,7 @@ if Meteor.isServer
       @router.route('/*')
          .all (req, res, next) ->  # Make sure a file has been selected by some rule
             unless req.gridFS
-               res.writeHead(404)
+               res.writeHead(404, {'Content-Type':'text/plain'})
                res.end()
                return
             next()
@@ -330,7 +330,7 @@ if Meteor.isServer
          .post(post.bind(@))
          .delete(del.bind(@))
          .all (req, res, next) ->   # Unkown methods are denied
-            res.writeHead(500)
+            res.writeHead(500, {'Content-Type':'text/plain'})
             res.end()
 
    # Performs a meteor userId lookup by hased access token
