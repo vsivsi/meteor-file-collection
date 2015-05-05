@@ -19,6 +19,9 @@ if Meteor.isServer
    check_order = (file, callback) ->
       fileId = mongodb.ObjectID("#{file.metadata._Resumable.resumableIdentifier}")
       lock = gridLocks.Lock(fileId, @locks, {}).obtainWriteLock()
+      lock.on 'expires-soon', () ->
+         console.log "Renewing lock!"
+         lock.renewLock()  # Attempt to renew the lock
       lock.on 'locked', () =>
 
          files = @db.collection "#{@root}.files"

@@ -208,6 +208,14 @@ if Meteor.isServer
             lockExpiration: @lockOptions.lockExpiration
             pollingInterval: @lockOptions.pollingInterval
 
+         writeStream.on 'expires-soon', () =>
+            console.log "Renewing expiring gridfs write lock"
+            readStream.renewLock (e) ->
+               if e
+                  console.warn "Lock renewal failed"
+               else
+                  console.log "Lock renewal succeeded"
+
          if callback?
             writeStream.on 'close', (retFile) ->
                callback(null, retFile) if retFile
@@ -245,6 +253,15 @@ if Meteor.isServer
                range:
                  startPos: range.start
                  endPos: range.end
+
+            readStream.on 'expires-soon', () =>
+               console.log "Renewing expiring gridfs read lock"
+               readStream.renewLock (e) ->
+                  if e
+                     console.warn "Lock renewal failed"
+                  else
+                     console.log "Lock renewal succeeded"
+
             if callback?
                readStream.on 'close', () ->
                   callback(null, file)
