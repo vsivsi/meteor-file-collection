@@ -271,7 +271,7 @@ if Meteor.isServer
                req.query._id = share.safeObjectID(req.query._id) if req.query?._id?
 
                # Build the path lookup mongoDB query object for the gridFS files collection
-               lookup = r.lookup? req.params or {}, req.query or {}, req.multipart
+               lookup = r.lookup?.bind(@)(req.params or {}, req.query or {}, req.multipart)
                unless lookup?
                   # No lookup returned, so bailing
                   res.writeHead(500, {'Content-Type':'text/plain'})
