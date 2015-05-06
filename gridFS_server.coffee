@@ -188,6 +188,8 @@ if Meteor.isServer
          mods.contentType = file.contentType if file.contentType?
          mods.metadata = file.metadata if file.metadata?
 
+         options.autoRenewLock ?= true
+
          if options.mode is 'w+'
             throw new Error "The ability to appeand file data in upsertStream() was removed in version 1.0.0"
 
@@ -208,13 +210,12 @@ if Meteor.isServer
             lockExpiration: @lockOptions.lockExpiration
             pollingInterval: @lockOptions.pollingInterval
 
-         writeStream.on 'expires-soon', () =>
-            console.log "Renewing expiring gridfs write lock"
-            readStream.renewLock (e) ->
-               if e
-                  console.warn "Lock renewal failed"
-               else
-                  console.log "Lock renewal succeeded"
+         if options.autoRenewLock
+            writeStream.on 'expires-soon', () =>
+               console.log "Renewing expiring gridfs write lock"
+               readStream.renewLock (e) ->
+                  if e
+                     console.warn "Automatic Write Lock Renewal Failed: #{file._id}"
 
          if callback?
             writeStream.on 'close', (retFile) ->
@@ -236,13 +237,12 @@ if Meteor.isServer
          file = @findOne selector, opts
 
          if file
-            # Init the start and end range, default to full file
-            range =
-               start: 0
-               end: file.length - 1
+            options.autoRenewLock ?= true
 
-            # If range specified use it
-            range = options.range if options.range?
+            # Init the start and end range, default to full file or start/end as specified
+            range =
+               start: options.range?.start ? 0
+               end: options.range?.end ? file.length - 1
 
             readStream = Meteor.wrapAsync(@gfs.createReadStream.bind(@gfs))
                root: @root
@@ -254,13 +254,12 @@ if Meteor.isServer
                  startPos: range.start
                  endPos: range.end
 
-            readStream.on 'expires-soon', () =>
-               console.log "Renewing expiring gridfs read lock"
-               readStream.renewLock (e) ->
-                  if e
-                     console.warn "Lock renewal failed"
-                  else
-                     console.log "Lock renewal succeeded"
+            if options.autoRenewLock
+               readStream.on 'expires-soon', () =>
+                  console.log "Renewing expiring gridfs read lock"
+                  readStream.renewLock (e) ->
+                     if e
+                        console.warn "Automatic Read Lock Renewal Failed: #{file._id}"
 
             if callback?
                readStream.on 'close', () ->

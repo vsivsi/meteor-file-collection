@@ -4,9 +4,10 @@
 
 * Changed the resumable.js server-side support to return status 204 for testChunk GET requests, rather than 404, which causes undesirable log entries in the client console.
 * Fixed bug where received duplicate chunks could mistakenly both be written during resumable.js uploads
-* Made multipart parsing more resistent to malformed requests
+* Made POST body MIME/multipart parsing more resistent to malformed requests
 * Added unit tests for resumable client and server-side support
-* Auto lock renewal support ...
+* Automatic lock renewal support, can be controlled with `autoRenewLock` option on `fc.upsertStream()` and `fc.findOneStream()`
+* `range` option to `fc.findOneStream()` now allows `start` or `end` to be safely omitted.
 
 ### v1.0.6
 

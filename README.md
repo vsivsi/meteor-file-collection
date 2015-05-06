@@ -24,7 +24,13 @@ thatFileStream = myFiles.findOneStream({ filename: 'lolcat.gif' });
 
 Under the hood, file data is stored entirely within the Meteor MongoDB instance using a Mongo technology called [gridFS](http://docs.mongodb.org/manual/reference/gridfs/). Your file collection and the underlying gridFS collection remain perfectly in sync because they *are* the same collection; and file collections are automatically safe for concurrent read/write access to files via [MongoDB based locking](https://github.com/vsivsi/gridfs-locks). The file-collection package also provides a simple way to enable secure HTTP (GET, POST, PUT, DELETE) interfaces to your files, and additionally has built-in support for robust and resumable file uploads using the excellent [Resumable.js](http://www.resumablejs.com/) library.
 
-### What's new in v1.0
+### What's new in v1.1?
+
+* Automatic lock renewal support, can be controlled with `autoRenewLock` option on `fc.upsertStream()` and `fc.findOneStream()`
+* `range` option to `fc.findOneStream()` now allows `start` or `end` attributes to be safely omitted.
+* Major improvements to resumable.js upload server-side support. See HISTORY for details.
+
+### What's new in v1.0?
 
 There is one breaking change in v1.0.0. `fc.upsertStream()` may no longer append (mode 'w+') to existing files. This is due to a new limitation added to the underlying node.js mongodb/gridFS driver. Appending was a little used feature that was traded-off for node.js 0.10 new stream support. For safety, any attempt to use `options.mode = 'w+'` in `fc.upsertStream()` will now throw an error.
 
@@ -524,7 +530,15 @@ lolStream = fc.findOneStream({ 'filename': 'lolcat.gif'});
 
 `fc.findOneStream()` is like `fc.findOne()` except instead of returning the `files` document for the found file, it returns a [Readable stream](http://nodejs.org/api/stream.html#stream_class_stream_readable) for the found file's data.
 
-The only available options are `options.sort` and `options.skip` which have the same behavior as they do for Meteor's [`Collection.findOne()`](http://docs.meteor.com/#findone).
+`options.range` -- To get partial data from the file, use the `range` option to spicify an object with `start` and `end` attributes:
+
+```js
+stream = fc.findOneStream({ 'filename': 'lolcat.gif'}, { range: { start: 100, end: 200 }})
+```
+
+`options.autoRenewLock` -- When true, the read lock on the underlying gridFS file will automatically be renewed before it expires, potentially multiple times. If you need more control over lock expiration behavior in your application, set this option to `false`.  Default: `true`
+
+Other available options are `options.sort` and `options.skip` which have the same behavior as they do for Meteor's [`Collection.findOne()`](http://docs.meteor.com/#findone).
 
 The returned stream is a gridfs-locking-stream `readStream`, which has some [special methods and events it emits](https://github.com/vsivsi/gridfs-locking-stream#locking-options). You probably won't need to use these, but the stream will emit `'expires-soon'` and `'expired'` events if its read lock is getting too old, and it has three methods that can be used to control locking:
 *     `stream.heldLock()` - Returns the gridfs-locks [`Lock` object](https://github.com/vsivsi/gridfs-locks#lock) held by the stream
@@ -550,7 +564,7 @@ nyanStream = fc.upsertStream({ filename: 'nyancat.flv',
 
 Once that is done, `fc.upsertStream()` returns a [writable stream](http://nodejs.org/api/stream.html#stream_class_stream_writable) for the file.
 
-There are currently no valid options for `fc.upsertStream()`
+`options.autoRenewLock` -- Default: `true`. When true, the write lock on the underlying gridFS file will automatically be renewed before it expires, potentially multiple times. If you need more control over lock expiration behavior in your application, set this option to `false`.
 
 *NOTE! Breaking Change*! Prior to file-collection v1.0, it was possible to specify `options.mode = 'w+'` and append to an existing file. This option is now ignored, and all calls to `fc.upsertStream()` will overwrite any existing data in the file.
 
