@@ -152,14 +152,14 @@ if Meteor.isServer
             options = {}
 
          if options.upsert?
-            err = new Error("Update does not support the upsert option")
+            err = new Error "Update does not support the upsert option"
             if callback?
                return callback err
             else
                throw err
 
          if reject_file_modifier(modifier) and not options.force
-            err = new Error("Modifying gridFS read-only document elements is a very bad idea!")
+            err = new Error "Modifying gridFS read-only document elements is a very bad idea!"
             if callback?
                return callback err
             else
@@ -174,7 +174,7 @@ if Meteor.isServer
          if callback?
             callback err
          else
-            throw new Error "File Collections do not support 'upsert'"
+            throw err
 
       upsertStream: (file, options = {}, callback = undefined) ->
          if not callback? and typeof options is 'function'
