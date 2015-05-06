@@ -215,7 +215,9 @@ if Meteor.isServer
                console.log "Renewing expiring gridfs write lock"
                writeStream.renewLock (e) ->
                   if e
-                     console.warn "Automatic Write Lock Renewal Failed: #{file._id}"
+                     console.warn "Automatic Write Lock Renewal Failed: #{file._id}", e
+                  else
+                     console.log "Lock renewed"
 
          if callback?
             writeStream.on 'close', (retFile) ->
@@ -259,7 +261,9 @@ if Meteor.isServer
                   console.log "Renewing expiring gridfs read lock"
                   readStream.renewLock (e) ->
                      if e
-                        console.warn "Automatic Read Lock Renewal Failed: #{file._id}"
+                        console.warn "Automatic Read Lock Renewal Failed: #{file._id}", e
+                     else
+                        console.log "Lock renewed"
 
             if callback?
                readStream.on 'close', () ->
