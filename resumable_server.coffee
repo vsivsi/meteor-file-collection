@@ -119,12 +119,9 @@ if Meteor.isServer
                              callback err
 
       lock.on 'expires-soon', () ->
-         console.log "Renewing lock!"
          lock.renewLock().once 'renewed', (ld) ->
-            if ld
-               console.log "Lock renewed"
-            else
-               console.log "Renewal failed!"
+            unless ld
+               console.warn "Resumable upload lock renewal failed!"
       lock.on 'expired', () -> callback new Error "File Lock expired"
       lock.on 'timed-out', () -> callback new Error "File Lock timed out"
       lock.on 'error', (err) -> callback err
