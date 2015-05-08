@@ -120,7 +120,7 @@ if Meteor.isServer
 
       lock.on 'expires-soon', () ->
          console.log "Renewing lock!"
-         lock.renewLock().on 'renewed', (ld) ->
+         lock.renewLock().once 'renewed', (ld) ->
             if ld
                console.log "Lock renewed"
             else
