@@ -29,6 +29,7 @@ Under the hood, file data is stored entirely within the Meteor MongoDB instance 
 * Automatic lock renewal support, can be controlled with `autoRenewLock` option on `fc.upsertStream()` and `fc.findOneStream()`
 * `range` option to `fc.findOneStream()` now allows `start` or `end` attributes to be safely omitted.
 * Major improvements to resumable.js upload server-side support. See HISTORY for details.
+* For perfromance reasons, the default `chunkSize` has changed to 8MB - 1KB. As always, this can be specified for each collection.
 
 ### What's new in v1.0?
 
