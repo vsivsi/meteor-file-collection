@@ -19,9 +19,6 @@ if Meteor.isServer
    check_order = (file, callback) ->
       fileId = mongodb.ObjectID("#{file.metadata._Resumable.resumableIdentifier}")
       lock = gridLocks.Lock(fileId, @locks, {}).obtainWriteLock()
-      lock.on 'expires-soon', () ->
-         console.log "Renewing lock!"
-         lock.renewLock()  # Attempt to renew the lock
       lock.on 'locked', () =>
 
          files = @db.collection "#{@root}.files"
@@ -121,8 +118,15 @@ if Meteor.isServer
                              lock.releaseLock()
                              callback err
 
-      lock.on 'timed-out', () -> callback new Error "File Lock timed out"
+      lock.on 'expires-soon', () ->
+         console.log "Renewing lock!"
+         lock.renewLock().on 'renewed', (ld) ->
+            if ld
+               console.log "Lock renewed"
+            else
+               console.log "Renewal failed!"
       lock.on 'expired', () -> callback new Error "File Lock expired"
+      lock.on 'timed-out', () -> callback new Error "File Lock timed out"
       lock.on 'error', (err) -> callback err
 
    # Handle HTTP POST requests from Resumable.js
@@ -181,7 +185,7 @@ if Meteor.isServer
             res.end()
             return
 
-         req.multipart.fileStream.pipe(writeStream)
+         req.multipart.fileStream.pipe(share.streamChunker(@chunkSize)).pipe(writeStream)
             .on 'close', share.bind_env((retFile) =>
                if retFile
                   # Check to see if all of the parts are now available and can be reassembled

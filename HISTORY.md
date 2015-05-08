@@ -8,6 +8,9 @@
 * Added unit tests for resumable client and server-side support
 * Automatic lock renewal support, can be controlled with `autoRenewLock` option on `fc.upsertStream()` and `fc.findOneStream()`
 * `range` option to `fc.findOneStream()` now allows `start` or `end` to be safely omitted.
+* Default `chunkSize` changed to 8MB - 1KB, which yields suprising performance gains for 1GB plus files without harming smaller files or wasting any space.
+* General performance improvements writing data to gridFS
+* Updated mongodb, gridfs-locks and gridfs-locking-stream to newest versions
 
 ### v1.0.6
 

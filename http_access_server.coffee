@@ -114,7 +114,7 @@ if Meteor.isServer
       # Write the file data.  No chunks here, this is the whole thing
       stream = @upsertStream req.gridFS
       if stream
-         req.multipart.fileStream.pipe(stream)
+         req.multipart.fileStream.pipe(share.streamChunker(@chunkSize)).pipe(stream)
             .on 'close', (retFile) ->
                if retFile
                   res.writeHead(200, {'Content-Type':'text/plain'})
@@ -226,7 +226,7 @@ if Meteor.isServer
       # Write the file
       stream = @upsertStream req.gridFS
       if stream
-         req.pipe(stream)
+         req.pipe(share.streamChunker(@chunkSize)).pipe(stream)
             .on 'close', (retFile) ->
                if retFile
                   res.writeHead(200, {'Content-Type':'text/plain'})

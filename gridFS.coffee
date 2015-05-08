@@ -4,7 +4,7 @@
 #     See included LICENSE file for details.
 ############################################################################
 
-share.defaultChunkSize = 2*1024*1024 - 1
+share.defaultChunkSize = 8*1024*1024 - 1024
 share.defaultRoot = 'fs'
 
 share.insert_func = (file = {}, chunkSize) ->

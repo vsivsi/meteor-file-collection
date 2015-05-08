@@ -59,7 +59,10 @@ if Meteor.isServer
 
          # Default indexes
          if options.resumable
-            @._ensureIndex { 'metadata._Resumable.resumableIdentifier': 1, length: 1 }
+            @._ensureIndex
+               'metadata._Resumable.resumableIdentifier': 1
+               'metadata._Resumable.resumableChunkNumber': 1
+               length: 1
 
          # Setup specific allow/deny rules for gridFS, and tie-in the application settings
 
@@ -213,8 +216,8 @@ if Meteor.isServer
          if options.autoRenewLock
             writeStream.on 'expires-soon', () =>
                console.log "Renewing expiring gridfs write lock"
-               writeStream.renewLock (e) ->
-                  if e
+               writeStream.renewLock (e, d) ->
+                  if e or not d
                      console.warn "Automatic Write Lock Renewal Failed: #{file._id}", e
                   else
                      console.log "Lock renewed"
@@ -259,8 +262,8 @@ if Meteor.isServer
             if options.autoRenewLock
                readStream.on 'expires-soon', () =>
                   console.log "Renewing expiring gridfs read lock"
-                  readStream.renewLock (e) ->
-                     if e
+                  readStream.renewLock (e, d) ->
+                     if e or not d
                         console.warn "Automatic Read Lock Renewal Failed: #{file._id}", e
                      else
                         console.log "Lock renewed"
@@ -290,7 +293,7 @@ if Meteor.isServer
          file.filename ?= path.basename filePath
          readStream = fs.createReadStream filePath
          writeStream = @upsertStream file
-         readStream.pipe(writeStream)
+         readStream.pipe(share.streamChunker(@chunkSize)).pipe(writeStream)
             .on('close', share.bind_env((d) -> callback(null, d)))
             .on('error', share.bind_env(callback))
 

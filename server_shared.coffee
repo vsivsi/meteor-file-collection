@@ -6,6 +6,8 @@
 
 if Meteor.isServer
 
+   through2 = Npm.require 'through2'
+
    share.check_allow_deny = (type, userId, file, fields) ->
 
       checkRules = (rules) ->
@@ -28,3 +30,30 @@ if Meteor.isServer
          new Mongo.ObjectID s
       else
          null
+
+   share.streamChunker = (size = share.defaultChunkSize) ->
+      makeFuncs = (size) ->
+         bufferList = [ new Buffer(0) ]
+         total = 0
+         flush = (cb) ->
+            outSize = if total > size then size else total
+            if outSize > 0
+               outputBuffer = Buffer.concat bufferList, outSize
+               this.push outputBuffer
+               total -= outSize
+            lastBuffer = bufferList.pop()
+            newBuffer = lastBuffer.slice(lastBuffer.length - total)
+            bufferList = [ newBuffer ]
+            if total < size
+               cb()
+            else
+               flush.bind(this) cb
+         transform = (chunk, enc, cb) ->
+            bufferList.push chunk
+            total += chunk.length
+            if total < size
+               cb()
+            else
+               flush.bind(this) cb
+         return [transform, flush]
+      return through2.apply this, makeFuncs(size)
