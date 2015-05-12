@@ -29,7 +29,7 @@ Under the hood, file data is stored entirely within the Meteor MongoDB instance 
 * Automatic lock renewal support, can be controlled with `autoRenewLock` option on `fc.upsertStream()` and `fc.findOneStream()`
 * `range` option to `fc.findOneStream()` now allows `start` or `end` attributes to be safely omitted.
 * Major improvements to resumable.js upload server-side support. See HISTORY for details.
-* For perfromance reasons, the default `chunkSize` has changed to 8MB - 1KB. As always, this can be specified for each collection.
+* For perfromance reasons, the default `chunkSize` has changed to 2MB - 1KB. As always, other valus for this can be specified for each collection (any value less than 8MB.)
 
 ### What's new in v1.0?
 
@@ -261,7 +261,7 @@ The big loser is `upsert()`, it's gone in `FileCollection`. If you try to call i
 
 fc = new FileCollection('fs',  // base name of collection
   { resumable: false,          // Disable resumable.js upload support
-    chunkSize: 2*1024*1024,    // Use 2MB chunks for gridFS and resumable
+    chunkSize: 2*1024*1024 - 1024,    // Use 2MB chunks for gridFS and resumable
     baseURL: '\gridfs\fs',     // Default base URL for all HTTP methods
     locks: {                   // Parameters for gridfs-locks
       timeOut: 360,            // Seconds to wait for an unavailable lock
@@ -287,7 +287,8 @@ Meteor Collections support `connection`, `idGeneration` and `transform` options.
 Here are the options `FileCollection` does support:
 
 *    `options.resumable` - `<boolean>`  When `true`, exposes the [Resumable.js API](http://www.resumablejs.com/) on the client and the matching resumable HTTP support on the server.
-*    `options.chunkSize` - `<integer>`  Sets the gridFS and Resumable.js chunkSize in bytes. Values of 1 MB or greater are probably best with a maximum of 8 MB. Partial chunks are not padded, so there is no storage space benefit to using smaller chunk sizes.
+*    `options.chunkSize` - `<integer>`  Sets the gridFS and Resumable.js chunkSize in bytes. The default value of a little less than 2MB is probably a good compromise for most applications, with the maximum being 8MB - 1. Partial chunks are not padded, so there is no storage space benefit to using small chunk sizes. If you are uploading very large files over a fast network and upload spped matters, then a `chunkSize` of 8MB - 1KB (= 8387584) will likly optimize upload speed. However, if you elect to use such large `chunkSize` values, make sure that the replication oplog of your MongoDB instance is large enough to handle this, or you will risk having your client and server collections lose synchronization during uploads. Meteor's development mode only uses an oplog of 8 MB, which will almost certainly cause problems for high speed uploads to apps using a large `chunkSize`.
+For more information on Meteor's use of the MongoDB oplog, see: [Meteor livequery](https://www.meteor.com/livequery).
 *    `options.baseURL` - `<string>`  Sets the base route for all HTTP interfaces defined on this collection. Default value is `/gridfs/[name]`
 *    `options.locks` - `<object>`  Locking parameters, the defaults should be fine and you shouldn't need to set this, but see the `gridfs-locks` [`LockCollection` docs](https://github.com/vsivsi/gridfs-locks#lockcollectiondb-options) for more information.
 *    `option.http` - <array of objects>  HTTP interface configuration objects, described below:
