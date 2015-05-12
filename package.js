@@ -12,7 +12,7 @@ Package.describe({
 });
 
 Npm.depends({
-  mongodb: '2.0.30',
+  mongodb: '2.0.31',
   'gridfs-locking-stream': '1.0.4',
   'gridfs-locks': '1.3.3',
   dicer: '0.2.4',
