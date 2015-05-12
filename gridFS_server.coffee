@@ -213,19 +213,23 @@ if Meteor.isServer
             lockExpiration: @lockOptions.lockExpiration
             pollingInterval: @lockOptions.pollingInterval
 
-         if options.autoRenewLock
-            writeStream.on 'expires-soon', () =>
-               writeStream.renewLock (e, d) ->
-                  if e or not d
-                     console.warn "Automatic Write Lock Renewal Failed: #{file._id}", e
+         if writeStream
 
-         if callback?
-            writeStream.on 'close', (retFile) ->
-               callback(null, retFile) if retFile
-            writeStream.on 'error', (err) ->
-               callback(err)
+            if options.autoRenewLock
+               writeStream.on 'expires-soon', () =>
+                  writeStream.renewLock (e, d) ->
+                     if e or not d
+                        console.warn "Automatic Write Lock Renewal Failed: #{file._id}", e
 
-         return writeStream
+            if callback?
+               writeStream.on 'close', (retFile) ->
+                  callback(null, retFile) if retFile
+               writeStream.on 'error', (err) ->
+                  callback(err)
+
+            return writeStream
+
+         return null
 
       findOneStream: (selector, options = {}, callback = undefined) ->
          if not callback? and typeof options is 'function'
@@ -256,20 +260,21 @@ if Meteor.isServer
                  startPos: range.start
                  endPos: range.end
 
-            if options.autoRenewLock
-               readStream.on 'expires-soon', () =>
-                  readStream.renewLock (e, d) ->
-                     if e or not d
-                        console.warn "Automatic Read Lock Renewal Failed: #{file._id}", e
+            if readStream
+               if options.autoRenewLock
+                  readStream.on 'expires-soon', () =>
+                     readStream.renewLock (e, d) ->
+                        if e or not d
+                           console.warn "Automatic Read Lock Renewal Failed: #{file._id}", e
 
-            if callback?
-               readStream.on 'close', () ->
-                  callback(null, file)
-               readStream.on 'error', (err) ->
-                  callback(err)
-            return readStream
-         else
-            return null
+               if callback?
+                  readStream.on 'close', () ->
+                     callback(null, file)
+                  readStream.on 'error', (err) ->
+                     callback(err)
+               return readStream
+
+         return null
 
       remove: (selector, callback = undefined) ->
          callback = share.bind_env callback
