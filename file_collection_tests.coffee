@@ -24,7 +24,7 @@ defaultColl = new FileCollection()
 Tinytest.add 'FileCollection default constructor', (test) ->
   test.instanceOf defaultColl, FileCollection, "FileCollection constructor failed"
   test.equal defaultColl.root, 'fs', "default root isn't 'fs'"
-  test.equal defaultColl.chunkSize, 2*1024*1024 - 1, "bad default chunksize"
+  test.equal defaultColl.chunkSize, 2*1024*1024 - 1024, "bad default chunksize"
   test.equal defaultColl.baseURL, "/gridfs/fs", "bad default base URL"
 
 testColl = new FileCollection "test",
