@@ -3,6 +3,7 @@
 ### v.NEXT
 
 * Moved to current resumable.js master
+* Bumped npm dependencies to latest versions
 
 ### v1.1.0
 
