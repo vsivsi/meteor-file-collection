@@ -1,5 +1,9 @@
 ## Revision history
 
+### v.NEXT
+
+* Moved to current resumable.js master
+
 ### v1.1.0
 
 * Changed the resumable.js server-side support to return status 204 for testChunk GET requests, rather than 404, which causes undesirable log entries in the client console.
