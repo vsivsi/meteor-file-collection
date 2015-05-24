@@ -1,7 +1,8 @@
 ## Revision history
 
-### v.NEXT
+### v1.1.1
 
+* Added informative `throw` when server-only methods are erroneously called on the client
 * Moved to current resumable.js master
 * Bumped npm dependencies to latest versions
 

@@ -13,7 +13,7 @@ if Meteor.isClient
             return new FileCollection(root, options)
 
          unless @ instanceof Mongo.Collection
-            throw new Error 'The global definition of Mongo.Collection has changed since the file-collection package was loaded. Please ensure that any packages that redefine Mongo.Collection are loaded before file-collection.'  
+            throw new Error 'The global definition of Mongo.Collection has changed since the file-collection package was loaded. Please ensure that any packages that redefine Mongo.Collection are loaded before file-collection.'
 
          if typeof @root is 'object'
             options = @root
@@ -31,12 +31,6 @@ if Meteor.isClient
 
       # remove works as-is. No modifications necessary so it currently goes straight to super
 
-      upsert: () ->
-         throw new Error "File Collections do not support 'upsert'"
-
-      update: () ->
-         throw new Error "File Collections do not support 'update' on client, use method calls instead"
-
       # Insert only creates an empty (but valid) gridFS file. To put data into it from a client,
       # you need to use an HTTP POST or PUT after the record is inserted. For security reasons,
       # you shouldn't be able to POST or PUT to a file that hasn't been inserted.
@@ -46,3 +40,27 @@ if Meteor.isClient
          # gets built from whatever is provided
          file = share.insert_func file, @chunkSize
          super file, callback
+
+      allow: () ->
+        throw new Error "File Collection Allow rules may not be set in client code."
+
+      deny: () ->
+        throw new Error "File Collection Deny rules may not be set in client code."
+
+      upsert: () ->
+         throw new Error "File Collections do not support 'upsert'"
+
+      update: () ->
+         throw new Error "File Collections do not support 'update' on client, use method calls instead"
+
+      findOneStream: () ->
+         throw new Error "File Collections do not support 'findOneStream' in client code."
+
+      upsertStream: () ->
+         throw new Error "File Collections do not support 'upsertStream' in client code."
+
+      importFile: () ->
+         throw new Error "File Collections do not support 'importFile' in client code."
+
+      exportFile: () ->
+         throw new Error "File Collections do not support 'exportFile' in client code."

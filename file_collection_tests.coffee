@@ -110,9 +110,18 @@ if Meteor.isServer
   Tinytest.add 'check server REST API', (test) ->
     test.equal typeof testColl.router, 'function'
 
-
 if Meteor.isClient
   sub = Meteor.subscribe 'everything'
+
+  Tinytest.add 'Server-only methods throw on client', (test) ->
+    test.throws () -> testColl.allow({})
+    test.throws () -> testColl.deny({})
+    test.throws () -> testColl.upsert({})
+    test.throws () -> testColl.update({})
+    test.throws () -> testColl.findOneStream({})
+    test.throws () -> testColl.upsertStream({})
+    test.throws () -> testColl.importFile({})
+    test.throws () -> testColl.exportFile({})
 
 Tinytest.add 'FileCollection constructor with options', (test) ->
   test.instanceOf testColl, FileCollection, "FileCollection constructor failed"
