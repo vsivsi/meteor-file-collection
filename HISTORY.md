@@ -5,6 +5,7 @@
 * Added informative `throw` when server-only methods are erroneously called on the client
 * Moved to current resumable.js master
 * Bumped npm dependencies to latest versions
+* Added explicit package version to `onTest()` call to work around a Meteor issue when running `meteor test-packages` within an app.
 
 ### v1.1.0
 

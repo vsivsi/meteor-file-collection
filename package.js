@@ -4,10 +4,12 @@
 ###     See included LICENSE file for details.
 ***************************************************************************/
 
+var currentVersion = '1.1.1';
+
 Package.describe({
   summary: 'Collections that efficiently store files using MongoDB GridFS, with built-in HTTP support',
   name: 'vsivsi:file-collection',
-  version: '1.1.1',
+  version: currentVersion,
   git: 'https://github.com/vsivsi/meteor-file-collection.git'
 });
 
@@ -38,6 +40,10 @@ Package.onUse(function(api) {
 });
 
 Package.onTest(function (api) {
-  api.use(['vsivsi:file-collection', 'coffeescript', 'tinytest', 'test-helpers', 'http']);
+  api.use('vsivsi:file-collection@' + currentVersion, ['server', 'client']);
+  api.use('coffeescript@1.0.6', ['server', 'client']);
+  api.use('tinytest@1.0.5', ['server', 'client']);
+  api.use('test-helpers@1.0.4', ['server','client']);
+  api.use('http@1.1.0', ['server','client']);
   api.addFiles('file_collection_tests.coffee', ['server', 'client']);
 });
