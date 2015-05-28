@@ -524,16 +524,20 @@ Tinytest.addAsync 'REST API invalid range requests', (test, onComplete) ->
       test.fail(err) if err
       HTTP.get url, { headers: { 'Range': '0-10'}},
         (err, res) ->
-          test.equal res.statusCode, 416
+          test.fail(new Error "Expected Error 416") unless err
+          test.equal res.statusCode, 416 if res?
           HTTP.get url, { headers: { 'Range': '5-3'}},
             (err, res) ->
-              test.equal res.statusCode, 416
+              test.fail(new Error "Expected Error 416") unless err
+              test.equal res.statusCode, 416 if res?
               HTTP.get url, { headers: { 'Range': '-1-5'}},
                 (err, res) ->
-                  test.equal res.statusCode, 416
+                  test.fail(new Error "Expected Error 416") unless err
+                  test.equal res.statusCode, 416 if res?
                   HTTP.get url, { headers: { 'Range': '1-abc'}},
                   (err, res) ->
-                    test.equal res.statusCode, 416
+                    test.fail(new Error "Expected Error 416") unless err
+                    test.equal res.statusCode, 416 if res?
                     onComplete()
 
 Tinytest.addAsync 'REST API requests header manipilation', (test, onComplete) ->
@@ -602,16 +606,36 @@ if Meteor.isClient
       url = Meteor.absoluteUrl 'noread/byid/' + _id
       HTTP.put url, { content: '0987654321'}, (err, res) ->
         test.fail(err) if err
-        req = $.get url
-        req.done () ->
-          test.fail new Error "Read without allow succeeded."
-          onComplete()
-        req.fail (jqXHR, status, err) ->
-          test.equal err, 'Forbidden', 'Test was not forbidden'
+        HTTP.get url, (err, res) ->
+          test.fail(new Error "Read without allow succeeded.") unless err
+          test.fail(new Error "Content returned") if res?.content
+          test.equal res.statusCode, 403 if res?
           onComplete()
   )
 
   # Resumable.js tests
+
+  # This is necessary to support older phantomJS test environments (eg SpaceJam)
+  makeBlob = (data, type = 'text/plain') ->
+    blob = null
+    BlobBuilder = window.BlobBuilder or window.WebKitBlobBuilder or window.MozBlobBuilder or window.MSBlobBuilder
+    if (((typeof Blob isnt "function") and (typeof Blob isnt "object")) or
+        (BlobBuilder and Blob and Blob.toString() is '[object BlobConstructor]'))
+      console.log "using BlobBuilder"
+      builder = new BlobBuilder()
+      builder.append data
+      blob = builder.getBlob type
+    else
+      console.log "Using Blob!"
+      blob = new Blob [ data ], { type: type }
+    blob.name = 'resumablefile'
+    console.log "Blob size: #{blob.size}, type: #{blob.type}, name: #{blob.name}"
+    reader = new FileReader()
+    console.log "reader", JSON.stringify(reader)
+    reader.loadend = () ->
+      console.log "BLOB data: '#{reader.result}'"
+    reader.readAsText(blob)
+    return blob
 
   Tinytest.add 'Client has Resumable', (test) ->
     test.instanceOf testColl.resumable, Resumable, "Resumable object not found"
@@ -638,9 +662,12 @@ if Meteor.isClient
 
     testColl.resumable.on 'error', (msg, err) ->
       test.fail err
+      testColl.resumable.events = []
+      onComplete()
 
-    myBlob = new Blob [ 'ABCDEFGHIJ' ], { type: 'text/plain' }
-    myBlob.name = 'resumablefile'
+    # myBlob = new Blob [ 'ABCDEFGHIJ' ], { type: 'text/plain' }
+    myBlob = makeBlob 'ABCDEFGHIJ', 'text/plain'
+
     testColl.resumable.addFile myBlob
 
   Tinytest.addAsync 'Client resumable.js Upload, Multichunk', (test, onComplete) ->
@@ -655,17 +682,25 @@ if Meteor.isClient
     testColl.resumable.on 'fileSuccess', (file) ->
       test.equal thisId, file.uniqueIdentifier
       url = Meteor.absoluteUrl 'test/byid/' + file.uniqueIdentifier
-      HTTP.get url, (err, res) ->
-        test.fail(err) if err
-        test.equal res.content,'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
-        HTTP.del url, (err, res) ->
+      Meteor.setTimeout(() ->
+        HTTP.get url, (err, res) ->
           test.fail(err) if err
-          testColl.resumable.events = []
-          onComplete()
+          console.log "Response: ", JSON.stringify(res)
+          test.equal res.content, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+          HTTP.del url, (err, res) ->
+            test.fail(err) if err
+            testColl.resumable.events = []
+            onComplete()
+      ,
+        5000
+      )
 
     testColl.resumable.on 'error', (msg, err) ->
       test.fail err
+      testColl.resumable.events = []
+      onComplete()
 
-    myBlob = new Blob [ 'ABCDEFGHIJ', 'KLMNOPQRSTUVWXYZ', '0123456789' ], { type: 'text/plain' }
+    # myBlob = new Blob [ 'ABCDEFGHIJ', 'KLMNOPQRSTUVWXYZ', '0123456789' ], { type: 'text/plain' }
+    myBlob = makeBlob 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', 'text/plain'
     myBlob.name = 'resumablefile'
     testColl.resumable.addFile myBlob

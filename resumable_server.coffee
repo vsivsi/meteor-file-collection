@@ -12,6 +12,7 @@ if Meteor.isServer
    gridLocks = Npm.require 'gridfs-locks'
    dicer = Npm.require 'dicer'
    async = Npm.require 'async'
+   through2 = Npm.require 'through2'
 
    # This function checks to see if all of the parts of a Resumable.js uploaded file are now in the gridFS
    # Collection. If so, it completes the file by moving all of the chunks to the correct file and cleans up
@@ -26,8 +27,8 @@ if Meteor.isServer
          cursor = files.find(
             {
                'metadata._Resumable.resumableIdentifier': file.metadata._Resumable.resumableIdentifier
-               length:
-                  $ne: 0
+               # length:
+               #    $ne: 0
             },
             {
                fields:
@@ -41,20 +42,25 @@ if Meteor.isServer
          cursor.count (err, count) =>
             if err
                lock.releaseLock()
+               console.error "Count error"
                return callback err
 
             unless count >= 1
                cursor.close()
                lock.releaseLock()
+               console.log "Count is zero"
                return callback()
 
             unless count is file.metadata._Resumable.resumableTotalChunks
                cursor.close()
                lock.releaseLock()
+               console.log "Count is wrong:", count, file.metadata._Resumable.resumableTotalChunks
                return callback()
 
             # Manipulate the chunks and files collections directly under write lock
             chunks = @db.collection "#{@root}.chunks"
+
+            console.log("Reassembling!")
 
             cursor.batchSize file.metadata._Resumable.resumableTotalChunks + 1
 
@@ -116,6 +122,7 @@ if Meteor.isServer
                        files.update { _id: fileId }, { $set: { length: file.metadata._Resumable.resumableTotalSize, md5: results.md5 }},
                           (err, res) =>
                              lock.releaseLock()
+                             console.log("Done Reassembling!", err)
                              callback err
 
       lock.on 'expires-soon', () ->
@@ -146,6 +153,8 @@ if Meteor.isServer
       resumable.resumableChunkNumber = parseInt resumable.resumableChunkNumber
       resumable.resumableChunkSize = parseInt resumable.resumableChunkSize
       resumable.resumableCurrentChunkSize = parseInt resumable.resumableCurrentChunkSize
+
+      console.log "resumable: ", resumable.resumableTotalSize, resumable.resumableCurrentChunkSize
 
       # Sanity check the chunk sizes that are critical to reassembling the file from parts
       unless ((req.gridFS.chunkSize is resumable.resumableChunkSize) and
@@ -182,7 +191,17 @@ if Meteor.isServer
             res.end()
             return
 
-         req.multipart.fileStream.pipe(share.streamChunker(@chunkSize)).pipe(writeStream)
+         spy = through2((chunk, enc, cb) ->
+            this.push chunk
+            console.log "Spy chunk: #{chunk.length}"
+            cb()
+         ,
+            (cb) ->
+               console.log "Flushing!"
+               cb()
+         )
+
+         req.multipart.fileStream.pipe(share.streamChunker(@chunkSize)).pipe(spy).pipe(writeStream)
             .on 'close', share.bind_env((retFile) =>
                if retFile
                   # Check to see if all of the parts are now available and can be reassembled
@@ -191,6 +210,7 @@ if Meteor.isServer
                         console.error "Error reassembling chunks of resumable.js upload", err
                         res.writeHead(500, {'Content-Type':'text/plain'})
                      else
+                        console.log "Check order finished well!"
                         res.writeHead(200, {'Content-Type':'text/plain'})
                      res.end()
                   )
