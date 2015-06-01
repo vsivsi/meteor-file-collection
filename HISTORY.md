@@ -6,7 +6,7 @@
 * Moved to current resumable.js master
 * Bumped npm dependencies to latest versions
 * Added explicit package version to `onTest()` call to work around a Meteor issue when running `meteor test-packages` within an app.
-* Added ablity to set the resumable.js server side support MongoDB index name, via the `resumableIndexName` option to `new FileCollection()`. This fixes issues related to [issue 55](https://github.com/vsivsi/meteor-file-collection/issues/55)
+* Added ablity to set the resumable.js server side support MongoDB index name, via the `resumableIndexName` option to `new FileCollection()`. This fixes problems related to [issue 55](https://github.com/vsivsi/meteor-file-collection/issues/55). Thanks to @poojabansal for reporting.
 
 ### v1.1.0
 
