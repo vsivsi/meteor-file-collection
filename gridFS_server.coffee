@@ -60,7 +60,7 @@ if Meteor.isServer
          # Default indexes
          if options.resumable
             indexOptions = {}
-            if typeof options.resumableIndexName? is 'string'
+            if typeof options.resumableIndexName is 'string'
                indexOptions.name = options.resumableIndexName
             @._ensureIndex({
                   'metadata._Resumable.resumableIdentifier': 1
