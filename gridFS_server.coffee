@@ -21,7 +21,7 @@ if Meteor.isServer
             return new FileCollection(@root, options)
 
          unless @ instanceof Mongo.Collection
-            throw new Error 'The global definition of Mongo.Collection has changed since the file-collection package was loaded. Please ensure that any packages that redefine Mongo.Collection are loaded before file-collection.'  
+            throw new Error 'The global definition of Mongo.Collection has changed since the file-collection package was loaded. Please ensure that any packages that redefine Mongo.Collection are loaded before file-collection.'
 
          if typeof @root is 'object'
             options = @root
@@ -59,10 +59,14 @@ if Meteor.isServer
 
          # Default indexes
          if options.resumable
-            @._ensureIndex
-               'metadata._Resumable.resumableIdentifier': 1
-               'metadata._Resumable.resumableChunkNumber': 1
-               length: 1
+            indexOptions = {}
+            if typeof options.resumableIndexName is 'string'
+               indexOptions.name = options.resumableIndexName
+            @._ensureIndex({
+                  'metadata._Resumable.resumableIdentifier': 1
+                  'metadata._Resumable.resumableChunkNumber': 1
+                  length: 1
+               }, indexOptions)
 
          # Setup specific allow/deny rules for gridFS, and tie-in the application settings
 
