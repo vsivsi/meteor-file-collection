@@ -47,7 +47,7 @@ Here's the difference in a nutshell: collectionFS is a Ferrari, and file-collect
 
 They do approximately the same thing using some of the same technologies, but reflect different design priorities. file-collection is much simpler and somewhat less flexible; but if it meets your needs you'll find it has a lot fewer moving parts and may be significantly more efficient to work with and use.
 
-If you're trying to quickly prototype an idea or you know that you just need a straightforward way of dealing with files, you should definitely try file-collection.  Because it is so much simpler, you may also find that it is easier to understand and customize for the specific needs of your project.
+If you're trying to quickly prototype an idea or you know that you just need a straightforward way of dealing with files, you should definitely try file-collection. Because it is so much simpler, you may also find that it is easier to understand and customize for the specific needs of your project.
 
 ## Example
 
@@ -300,7 +300,7 @@ For more information on Meteor's use of the MongoDB oplog, see: [Meteor livequer
 Each object in the `option.http` array defines one HTTP request interface on the server, and has these three attributes:
 
 *    `obj.method` - `<string>`  The HTTP request method to define, one of `get`, `post`, `put`, or `delete`.
-*    `obj.path` - `<string>`  An [express.js style](http://expressjs.com/4x/api.html#req.params) route path with parameters.  This path will be added to the path specified by `options.baseURL`.
+*    `obj.path` - `<string>`  An [express.js style](http://expressjs.com/4x/api.html#req.params) route path with parameters. This path will be added to the path specified by `options.baseURL`.
 *    `obj.lookup` - `<function>`  A function that is called when an HTTP request matches the `method` and `path`. It is provided with the values of the route parameters and any URL query parameters, and it should return a mongoDB query object which can be used to find a file that matches those parameters. For POST requests, it is also provided any with MIME/multipart parameters and other file information from the multipart headers.
 *    `obj.handler` - `<function>` OPTIONAL! This is an advanced feature that allows the developer to provide a custom "express.js style" request handler to satisfy requests for this specific request interface. For an example of how this works, please see the resumable.js upload support implementation in the source file `resumable_server.coffee`.
 
@@ -369,7 +369,7 @@ URLs used to HTTP GET file data within a browser can be configured to automatica
 
 To cache files in the browser use the `?cache=172800` query in the request URL, where 172800 (48h) is the time in seconds. This will set the header response information to `cache-control:max-age=172800, private`. Caching is useful when streaming videos or audio files to avoid unwanted calls to the server.
 
-HTTP PUT requests write the data from the request body directly into the file. By contrast, HTTP POST requests assume that the body is formatted as MIME multipart/form-data (as an old-school browser form based file upload would generate), and the data written to the file is taken from the part named `"file"`.  Below are example [cURL](`https://en.wikipedia.org/wiki/CURL#cURL`) commands that successfully invoke each of the four possible HTTP methods.
+HTTP PUT requests write the data from the request body directly into the file. By contrast, HTTP POST requests assume that the body is formatted as MIME multipart/form-data (as an old-school browser form based file upload would generate), and the data written to the file is taken from the part named `"file"`. Below are example [cURL](`https://en.wikipedia.org/wiki/CURL#cURL`) commands that successfully invoke each of the four possible HTTP methods.
 
 ```sh
 
@@ -540,7 +540,7 @@ lolStream = fc.findOneStream({ 'filename': 'lolcat.gif'});
 stream = fc.findOneStream({ 'filename': 'lolcat.gif'}, { range: { start: 100, end: 200 }})
 ```
 
-`options.autoRenewLock` -- When true, the read lock on the underlying gridFS file will automatically be renewed before it expires, potentially multiple times. If you need more control over lock expiration behavior in your application, set this option to `false`.  Default: `true`
+`options.autoRenewLock` -- When true, the read lock on the underlying gridFS file will automatically be renewed before it expires, potentially multiple times. If you need more control over lock expiration behavior in your application, set this option to `false`. Default: `true`
 
 Other available options are `options.sort` and `options.skip` which have the same behavior as they do for Meteor's [`Collection.findOne()`](http://docs.meteor.com/#findone).
 
@@ -549,7 +549,7 @@ The returned stream is a gridfs-locking-stream `readStream`, which has some [spe
 *     `stream.renewLock([callback])` - Renews the held lock for another expiration interval
 *     `stream.releaseLock([callback])` - Releases the held lock if you are done with the stream.
 
-This last call, `stream.releaseLock()` may be useful if you use `file.findOneStream()` and then do not read the file to the end (which would cause the lock to release automatically).  In this case, calling `stream.releaseLock()` is nice because it frees the lock before the expiration time is up. This would probably only matter for applications with lots of writers and readers contending for the same files, but it's good to know it exists. The values used for the locking parameters are set when the `FileCollection` is created via the `options.locks` option.
+This last call, `stream.releaseLock()` may be useful if you use `file.findOneStream()` and then do not read the file to the end (which would cause the lock to release automatically). In this case, calling `stream.releaseLock()` is nice because it frees the lock before the expiration time is up. This would probably only matter for applications with lots of writers and readers contending for the same files, but it's good to know it exists. The values used for the locking parameters are set when the `FileCollection` is created via the `options.locks` option.
 
 When the stream has ended, the `callback` is called with the gridFS file document.
 
