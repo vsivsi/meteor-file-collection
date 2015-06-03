@@ -4,7 +4,7 @@
 ###     See included LICENSE file for details.
 ***************************************************************************/
 
-var currentVersion = '1.1.1';
+var currentVersion = '1.2.0';
 
 Package.describe({
   summary: 'Collections that efficiently store files using MongoDB GridFS, with built-in HTTP support',
@@ -28,14 +28,14 @@ Package.onUse(function(api) {
   api.use('coffeescript@1.0.6', ['server','client']);
   api.use('webapp@1.2.0', 'server');
   api.use('mongo@1.1.0', ['server', 'client']);
-  api.addFiles('gridFS.coffee', ['server','client']);
-  api.addFiles('resumable/resumable.js', 'client')
-  api.addFiles('server_shared.coffee', 'server');
-  api.addFiles('gridFS_server.coffee', 'server');
-  api.addFiles('resumable_server.coffee', 'server');
-  api.addFiles('http_access_server.coffee', 'server');
-  api.addFiles('resumable_client.coffee', 'client');
-  api.addFiles('gridFS_client.coffee', 'client');
+  api.addFiles('resumable/resumable.js', 'client');
+  api.addFiles('src/gridFS.coffee', ['server','client']);
+  api.addFiles('src/server_shared.coffee', 'server');
+  api.addFiles('src/gridFS_server.coffee', 'server');
+  api.addFiles('src/resumable_server.coffee', 'server');
+  api.addFiles('src/http_access_server.coffee', 'server');
+  api.addFiles('src/resumable_client.coffee', 'client');
+  api.addFiles('src/gridFS_client.coffee', 'client');
   api.export('FileCollection');
 });
 
@@ -45,5 +45,5 @@ Package.onTest(function (api) {
   api.use('tinytest@1.0.5', ['server', 'client']);
   api.use('test-helpers@1.0.4', ['server','client']);
   api.use('http@1.1.0', ['server','client']);
-  api.addFiles('file_collection_tests.coffee', ['server', 'client']);
+  api.addFiles('test/file_collection_tests.coffee', ['server', 'client']);
 });
