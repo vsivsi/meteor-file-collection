@@ -1,5 +1,10 @@
 ## Revision history
 
+### v1.2.0
+
+* Updated project directory structure, adding `src` and `test` subdirs.
+* Documentation improvements.
+
 ### v1.1.1
 
 * Added informative `throw` when server-only methods are erroneously called on the client
