@@ -6,7 +6,7 @@ file-collection is a Meteor.js package that cleanly extends Meteor's Collection 
 
 #### Quick example
 
-```js
+```javascript
 myFiles = new FileCollection('myFiles');
 
 // Find a file document by name
@@ -29,7 +29,7 @@ Under the hood, file data is stored entirely within the Meteor MongoDB instance 
 * Automatic lock renewal support, can be controlled with `autoRenewLock` option on `fc.upsertStream()` and `fc.findOneStream()`
 * `range` option to `fc.findOneStream()` now allows `start` or `end` attributes to be safely omitted.
 * Major improvements to resumable.js upload server-side support. See HISTORY for details.
-* For perfromance reasons, the default `chunkSize` has changed to 2MB - 1KB. As always, other valus for this can be specified for each collection (any value less than 8MB.)
+* For perfromance reasons, the default `chunkSize` has changed to 2MB - 1KB. As always, other values for this can be specified for each collection (any value less than 8MB.)
 
 ### What's new in v1.0?
 
@@ -55,7 +55,7 @@ Enough words, time for some more code...
 
 The block below implements a `FileCollection` on server, including support for owner-secured HTTP file upload using `Resumable.js` and HTTP download. It also sets up the client to provide drag and drop chunked file uploads to the collection. The only things missing here are UI templates and some helper functions. See the [meteor-file-sample-app](https://github.com/vsivsi/meteor-file-sample-app) project for a complete working version written in [CoffeeScript](http://coffeescript.org/).
 
-```js
+```javascript
 // Create a file collection, and enable file upload and download using HTTP
 myFiles = new FileCollection('myFiles',
   { resumable: true,   // Enable built-in resumable.js upload support
@@ -195,7 +195,7 @@ Load `http://localhost:3000/` and the tests should run in your browser and on th
 
 Below you'll find the [MongoDB gridFS `files` data model](http://docs.mongodb.org/manual/reference/gridfs/#the-files-collection). This is also the schema used by file-collection because a FileCollection *is* a gridFS collection.
 
-```js
+```javascript
 {
   "_id" : <ObjectId>,
   "length" : <number>,
@@ -255,7 +255,7 @@ The big loser is `upsert()`, it's gone in `FileCollection`. If you try to call i
 ### fc = new FileCollection([name], [options])
 #### Create a new `FileCollection` object - Server and Client
 
-```js
+```javascript
 
 // create a new FileCollection with all default values
 
@@ -310,7 +310,7 @@ Note that an authenticated userId is not provided to the `lookup` function. User
 
 Here are some example HTTP interface definition objects to get you started:
 
-```js
+```javascript
 // GET file data by md5 sum
 { method: 'get',
   path:   '/hash/:md5',
@@ -409,7 +409,7 @@ Below are the methods defined on the returned `FileCollection` object
 ### fc.resumable
 #### Resumable.js API object - Client only
 
-```js
+```javascript
 fc.resumable.assignDrop($(".fileDrop"));  // Assign a file drop target
 
 // When a file is dropped on the target (or added some other way)
@@ -423,7 +423,7 @@ myData.resumable.on('fileAdded', function (file) {
 ### fc.find(selector, [options])
 #### Find any number of files - Server and Client
 
-```js
+```javascript
 // Count the number of likely lolcats in collection, this is reactive
 lols = fc.find({ 'contentType': 'image/gif'}).count();
 ```
@@ -433,7 +433,7 @@ lols = fc.find({ 'contentType': 'image/gif'}).count();
 ### fc.findOne(selector, [options])
 #### Find a single file. - Server and Client
 
-```js
+```javascript
 // Grab the file document for a known lolcat
 // This is not the file data, see fc.findOneStream() for that!
 myLol = fc.findOne({ 'filename': 'lolcat.gif'});
@@ -444,7 +444,7 @@ myLol = fc.findOne({ 'filename': 'lolcat.gif'});
 ### fc.insert([file], [callback])
 #### Insert a new zero-length file. - Server and Client
 
-```js
+```javascript
 // Create a new zero-length file in the collection
 // All fields are optional and will get defaults if omitted
 _id = fc.insert({
@@ -463,7 +463,7 @@ _id = fc.insert({
 ### fc.remove(selector, [callback])
 #### Remove a file and all of its data. - Server and Client
 
-```js
+```javascript
 // Make it go away, data and all
 fc.remove(
   { filename: 'nyancat.flv' }
@@ -476,7 +476,7 @@ fc.remove(
 ### fc.update(selector, modifier, [options], [callback])
 #### Update application controlled gridFS file attributes. - Server only
 
-```js
+```javascript
 // Update some attributes we own
 fc.update(
   { filename: 'keyboardcat.mp4' },
@@ -516,7 +516,7 @@ In addition to Meteor's `insert` and `remove` rules, file-collection also uses `
 ### fc.deny(options)
 #### Override allow rules. - Server only
 
-```js
+```javascript
 fc.deny({
   remove: function (userId, file) { return true; }  // Nobody can remove, boo!
 });
@@ -527,7 +527,7 @@ fc.deny({
 ### fc.findOneStream(selector, [options], [callback])
 #### Find a file collection file and return a readable stream for its data. - Server only
 
-```js
+```javascript
 // Get a readable data stream for a known lolcat
 lolStream = fc.findOneStream({ 'filename': 'lolcat.gif'});
 ```
@@ -536,7 +536,7 @@ lolStream = fc.findOneStream({ 'filename': 'lolcat.gif'});
 
 `options.range` -- To get partial data from the file, use the `range` option to spicify an object with `start` and `end` attributes:
 
-```js
+```javascript
 stream = fc.findOneStream({ 'filename': 'lolcat.gif'}, { range: { start: 100, end: 200 }})
 ```
 
@@ -556,7 +556,7 @@ When the stream has ended, the `callback` is called with the gridFS file documen
 ### fc.upsertStream(file, [options], [callback])
 #### Create/update a file collection file and return a writable stream to its data. - Server only
 
-```js
+```javascript
 // Get a writeable data stream to re-store all that is right and good
 nyanStream = fc.upsertStream({ filename: 'nyancat.flv',
                                contentType: 'video/x-flv',
@@ -584,7 +584,7 @@ When the write stream has closed, the `callback` is called as `callback(error, f
 ### fc.exportFile(selector, filePath, callback)
 #### Export a file collection file to the local fileSystem. - Server only
 
-```js
+```javascript
 // Write a file to wherever it belongs in the filesystem
 fc.exportFile({ 'filename': 'nyancat.flv'},
               '/dev/null',
@@ -600,7 +600,7 @@ The `selector` parameter works as it does with `fc.findOneStream()`. The `filePa
 ### fc.importFile(filePath, file, callback)
 #### Import a local filesystem file into a file collection file. - Server only
 
-```js
+```javascript
 // Write a file to wherever it belongs in the filesystem
 fc.importFile('/funtimes/lolcat_183.gif',
               { filename: 'lolcat_183.gif',
