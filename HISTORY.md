@@ -1,7 +1,8 @@
 ## Revision history
 
-### v1.2.0
+### v1.1.2
 
+* Checked in the `.versions` file
 * Updated project directory structure, adding `src` and `test` subdirs.
 * Updated npm dependencies.
 * Documentation improvements.
