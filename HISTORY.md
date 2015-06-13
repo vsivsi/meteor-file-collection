@@ -1,5 +1,9 @@
 ## Revision history
 
+### v1.1.3
+
+* Updated resumable.js and npm dependencies
+
 ### v1.1.2
 
 * Checked in the `.versions` file

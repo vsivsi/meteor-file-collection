@@ -4,7 +4,7 @@
 ###     See included LICENSE file for details.
 ***************************************************************************/
 
-var currentVersion = '1.1.2';
+var currentVersion = '1.1.3';
 
 Package.describe({
   summary: 'Collections that efficiently store files using MongoDB GridFS, with built-in HTTP support',
@@ -15,12 +15,13 @@ Package.describe({
 
 Npm.depends({
   mongodb: '2.0.33',
-  'gridfs-locking-stream': '1.0.4',
-  'gridfs-locks': '1.3.3',
+  'gridfs-locking-stream': '1.0.5',
+  'gridfs-locks': '1.3.4',
   dicer: '0.2.4',
-  async: '1.2.0',
+  async: '1.2.1',
   express: '4.12.4',
   'cookie-parser': '1.3.5',
+  // Version 2.x of through2 is Streams3, so don't go there yet!
   through2: '0.6.5'
 });
 
