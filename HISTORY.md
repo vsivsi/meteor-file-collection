@@ -1,5 +1,9 @@
 ## Revision history
 
+### v1.1.4
+
+* Resolving architecture specific build issues with newest mongodb driver
+
 ### v1.1.3
 
 * Updated resumable.js and npm dependencies
