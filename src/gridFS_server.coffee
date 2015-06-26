@@ -198,7 +198,7 @@ if Meteor.isServer
          options.autoRenewLock ?= true
 
          if options.mode is 'w+'
-            throw new Error "The ability to appeand file data in upsertStream() was removed in version 1.0.0"
+            throw new Error "The ability to append file data in upsertStream() was removed in version 1.0.0"
 
          # Make sure that we have an ID and it's valid
          if file._id
@@ -283,11 +283,26 @@ if Meteor.isServer
       remove: (selector, callback = undefined) ->
          callback = share.bind_env callback
          if selector?
+            ret = 0
             @find(selector).forEach (file) =>
-               ret = Meteor.wrapAsync(@gfs.remove.bind(@gfs))({ _id: mongodb.ObjectID("#{file._id}"), root: @root })
+               res = Meteor.wrapAsync(@gfs.remove.bind(@gfs))
+                  _id: mongodb.ObjectID("#{file._id}")
+                  root: @root
+                  timeOut: @lockOptions.timeOut
+                  lockExpiration: @lockOptions.lockExpiration
+                  pollingInterval: @lockOptions.pollingInterval
+               # console.log "Res in loop: #{res}"
+               ret += if res then 1 else 0
+            # console.log "Returning from remove: #{ret}"
             callback? and callback null, ret
+            return ret
          else
-            callback? and callback new Error "Remove with an empty selector is not supported"
+            err = new Error "Remove with an empty selector is not supported"
+            if callback?
+               callback err
+               return
+            else
+               throw err
 
       importFile: (filePath, file, callback) ->
          callback = share.bind_env callback

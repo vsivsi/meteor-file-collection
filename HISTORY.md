@@ -1,5 +1,14 @@
 ## Revision history
 
+### v.NEXT
+
+* Fixed issues related to lock timeouts and proper return values from `fc.remove()`
+* Added unit test coverage for basic `remove` functionality
+* Thanks to @timothyarmes for reporting these issues
+* Documentation improvements
+* Bumped npm dependencies
+* Updated resumable.js to upstream master
+
 ### v1.1.4
 
 * Resolving architecture specific build issues with newest mongodb driver

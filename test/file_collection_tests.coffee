@@ -129,7 +129,7 @@ Tinytest.add 'FileCollection constructor with options', (test) ->
   test.equal testColl.chunkSize, 16, "chunkSize not set properly"
   test.equal testColl.baseURL, "/test", "base URL not set properly"
 
-Tinytest.add 'FileCollection insert and findOne', (test) ->
+Tinytest.add 'FileCollection insert, findOne and remove', (test) ->
   _id = testColl.insert {}
   test.isNotNull _id, "No _id returned by insert"
   test.instanceOf _id, Meteor.Collection.ObjectID
@@ -144,8 +144,10 @@ Tinytest.add 'FileCollection insert and findOne', (test) ->
   test.equal typeof file.metadata, "object"
   test.instanceOf file.aliases, Array
   test.equal file.contentType, 'application/octet-stream'
+  result = testColl.remove {_id : _id}
+  test.equal result, 1, "Incorrect number of files removed"
 
-Tinytest.addAsync 'FileCollection insert and findOne in callback', subWrapper(sub, (test, onComplete) ->
+Tinytest.addAsync 'FileCollection insert, findOne and remove with callback', subWrapper(sub, (test, onComplete) ->
   _id = testColl.insert {}, (err, retid) ->
     test.fail(err) if err
     test.isNotNull _id, "No _id returned by insert"
@@ -164,7 +166,12 @@ Tinytest.addAsync 'FileCollection insert and findOne in callback', subWrapper(su
     test.equal typeof file.metadata, "object"
     test.instanceOf file.aliases, Array
     test.equal file.contentType, 'application/octet-stream'
-    onComplete()
+    testColl.remove {_id : retid}, (err, result) ->
+      test.fail(err) if err
+      # console.log "The async test result is: #{result}"
+      test.equal result, 1, "Incorrect number of files removed"
+      # console.log "The async test result was: #{result}"
+      onComplete()
 )
 
 Tinytest.add 'FileCollection insert and find with options', (test) ->
