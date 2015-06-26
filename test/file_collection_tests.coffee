@@ -168,9 +168,7 @@ Tinytest.addAsync 'FileCollection insert, findOne and remove with callback', sub
     test.equal file.contentType, 'application/octet-stream'
     testColl.remove {_id : retid}, (err, result) ->
       test.fail(err) if err
-      # console.log "The async test result is: #{result}"
       test.equal result, 1, "Incorrect number of files removed"
-      # console.log "The async test result was: #{result}"
       onComplete()
 )
 

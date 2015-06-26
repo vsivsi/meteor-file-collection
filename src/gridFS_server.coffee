@@ -122,6 +122,8 @@ if Meteor.isServer
                if share.check_allow_deny.bind(@) 'remove', userId, file
                   # This causes the file data itself to be removed from gridFS
                   @remove file
+                  # This gives the super remove something to do so the retVal is correct
+                  @insert {_id: file._id}
                   return false
 
                return true
@@ -291,9 +293,7 @@ if Meteor.isServer
                   timeOut: @lockOptions.timeOut
                   lockExpiration: @lockOptions.lockExpiration
                   pollingInterval: @lockOptions.pollingInterval
-               # console.log "Res in loop: #{res}"
                ret += if res then 1 else 0
-            # console.log "Returning from remove: #{ret}"
             callback? and callback null, ret
             return ret
          else

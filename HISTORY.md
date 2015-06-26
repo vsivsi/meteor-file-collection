@@ -1,10 +1,10 @@
 ## Revision history
 
-### v.NEXT
+### v1.1.5
 
 * Fixed issues related to lock timeouts and proper return values from `fc.remove()`
-* Added unit test coverage for basic `remove` functionality
 * Thanks to @timothyarmes for reporting these issues
+* Added unit test coverage for basic `remove` functionality
 * Documentation improvements
 * Bumped npm dependencies
 * Updated resumable.js to upstream master
