@@ -29,6 +29,7 @@ Package.onUse(function(api) {
   api.use('coffeescript@1.0.6', ['server','client']);
   api.use('webapp@1.2.0', 'server');
   api.use('mongo@1.1.0', ['server', 'client']);
+  api.use('minimongo@1.0.8', 'server');
   api.addFiles('resumable/resumable.js', 'client');
   api.addFiles('src/gridFS.coffee', ['server','client']);
   api.addFiles('src/server_shared.coffee', 'server');

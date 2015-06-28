@@ -118,15 +118,24 @@ if Meteor.isServer
                return true
 
             remove: (userId, file) =>
-               # call application rules
-               if share.check_allow_deny.bind(@) 'remove', userId, file
-                  # This causes the file data itself to be removed from gridFS
-                  @remove file
-                  # This gives the super remove something to do so the retVal is correct
-                  @insert {_id: file._id}
-                  return false
-
+               ## Remove is now handled via the default method override below, so this should
+               ## Never be called.
                return true
+
+         self = @ # Necessary in the method definition below
+
+         Meteor.server.method_handlers["#{@_prefix}remove"] = (selector) ->
+            unless LocalCollection._selectorIsIdPerhapsAsObject(selector)
+               throw new Meteor.Error 403, "Not permitted. Untrusted code may only remove documents by ID."
+
+            file = self.findOne selector
+            if file
+               if share.check_allow_deny.bind(self) 'remove', this.userId, file
+                  return self.remove file
+               else
+                  throw new Meteor.Error 403, "Access denied"
+            else
+               return 0
 
       # Register application allow rules
       allow: (allowOptions) ->
