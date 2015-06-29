@@ -3,7 +3,7 @@
 ### v1.1.5
 
 * Fixed issues related to lock timeouts and proper return values from `fc.remove()`
-* Thanks to @timothyarmes for reporting these issues
+* Thanks to @timothyarmes for reporting these issues [issue 59](https://github.com/vsivsi/meteor-file-collection/issues/59)
 * Added unit test coverage for basic `remove` functionality
 * Documentation improvements
 * Bumped npm dependencies
