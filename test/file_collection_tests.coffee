@@ -146,6 +146,8 @@ Tinytest.add 'FileCollection insert, findOne and remove', (test) ->
   test.equal file.contentType, 'application/octet-stream'
   result = testColl.remove {_id : _id}
   test.equal result, 1, "Incorrect number of files removed"
+  file = testColl.findOne {_id : _id}
+  test.isUndefined file, "File was not removed"
 
 Tinytest.addAsync 'FileCollection insert, findOne and remove with callback', subWrapper(sub, (test, onComplete) ->
   _id = testColl.insert {}, (err, retid) ->
@@ -166,10 +168,20 @@ Tinytest.addAsync 'FileCollection insert, findOne and remove with callback', sub
     test.equal typeof file.metadata, "object"
     test.instanceOf file.aliases, Array
     test.equal file.contentType, 'application/octet-stream'
+    finishCount = 0
+    finish = () ->
+      finishCount++
+      if finishCount > 1
+         onComplete()
+    obs = testColl.find({_id : _id}).observeChanges
+       removed: (id) ->
+          obs.stop()
+          test.ok EJSON.equals(id, _id), 'Incorrect file _id removed'
+          finish()
     testColl.remove {_id : retid}, (err, result) ->
       test.fail(err) if err
       test.equal result, 1, "Incorrect number of files removed"
-      onComplete()
+      finish()
 )
 
 Tinytest.add 'FileCollection insert and find with options', (test) ->
