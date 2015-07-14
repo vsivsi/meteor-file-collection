@@ -23,6 +23,9 @@ if Meteor.isServer
          unless @ instanceof Mongo.Collection
             throw new Error 'The global definition of Mongo.Collection has changed since the file-collection package was loaded. Please ensure that any packages that redefine Mongo.Collection are loaded before file-collection.'
 
+         unless Mongo.Collection is Mongo.Collection.prototype.constructor
+           throw new Error 'The global definition of Mongo.Collection has been patched by another package, and the prototype constructor has been left in an inconsistent state. Please see this link for a workaround: https://github.com/vsivsi/meteor-file-sample-app/issues/2#issuecomment-120780592'
+
          if typeof @root is 'object'
             options = @root
             @root = share.defaultRoot

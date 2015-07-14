@@ -1,5 +1,12 @@
 ## Revision history
 
+### v1.2.0
+
+* Add the ability to perform limited local updates to the client minimongo collection using `fc.localUpdate()`
+* Defend against `Mongo.Collection !== Mongo.Collection.protype.constructor`
+* Updated npm dependencies
+* Updated resumable.js
+
 ### v1.1.5
 
 * Fixed issues related to lock timeouts and proper return values from `fc.remove()`

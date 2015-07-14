@@ -15,6 +15,9 @@ if Meteor.isClient
          unless @ instanceof Mongo.Collection
             throw new Error 'The global definition of Mongo.Collection has changed since the file-collection package was loaded. Please ensure that any packages that redefine Mongo.Collection are loaded before file-collection.'
 
+         unless Mongo.Collection is Mongo.Collection.prototype.constructor
+           throw new Error 'The global definition of Mongo.Collection has been patched by another package, and the prototype constructor has been left in an inconsistent state. Please see this link for a workaround: https://github.com/vsivsi/meteor-file-sample-app/issues/2#issuecomment-120780592'
+
          if typeof @root is 'object'
             options = @root
             @root = share.defaultRoot
@@ -40,6 +43,30 @@ if Meteor.isClient
          # gets built from whatever is provided
          file = share.insert_func file, @chunkSize
          super file, callback
+
+      # This will only update the local client-side minimongo collection
+      # You can shadow update with this to enable latency compensation when
+      # updating the server-side collection using a Meteor method call
+      localUpdate: (selector, modifier, options = {}, callback = undefined) ->
+         if not callback? and typeof options is 'function'
+            callback = options
+            options = {}
+
+         if options.upsert?
+            err = new Error "Update does not support the upsert option"
+            if callback?
+               return callback err
+            else
+               throw err
+
+         if share.reject_file_modifier(modifier)
+            err = new Error "Modifying gridFS read-only document elements is a very bad idea!"
+            if callback?
+               return callback err
+            else
+               throw err
+         else
+            @find().collection.update selector, modifier, options, callback
 
       allow: () ->
         throw new Error "File Collection Allow rules may not be set in client code."

@@ -628,6 +628,13 @@ if Meteor.isClient
           onComplete()
   )
 
+  Tinytest.addAsync 'Client localUpdate test', (test, onComplete) ->
+     test.equal (typeof testColl.localUpdate), 'function'
+     testColl.localUpdate { filename: '中文指南.txt' }, { $set: { 'metadata.test': true } }
+     doc = testColl.findOne { filename: '中文指南.txt' }
+     test.equal doc.metadata.test, true
+     onComplete()
+
   # Resumable.js tests
 
   Tinytest.add 'Client has Resumable', (test) ->

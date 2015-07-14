@@ -24,18 +24,19 @@ thatFileStream = myFiles.findOneStream({ filename: 'lolcat.gif' });
 
 Under the hood, file data is stored entirely within the Meteor MongoDB instance using a Mongo technology called [gridFS](http://docs.mongodb.org/manual/reference/gridfs/). Your file collection and the underlying gridFS collection remain perfectly in sync because they *are* the same collection; and file collections are automatically safe for concurrent read/write access to files via [MongoDB based locking](https://github.com/vsivsi/gridfs-locks). The file-collection package also provides a simple way to enable secure HTTP (GET, POST, PUT, DELETE) interfaces to your files, and additionally has built-in support for robust and resumable file uploads using the excellent [Resumable.js](http://www.resumablejs.com/) library.
 
-### What's new in v1.1?
+### What's new since v1.0?
 
+* `fc.localUpdate()` allows client code to modify the local collection for latency compensation when performing server-side updates using a Meteor method.
 * Automatic lock renewal support, can be controlled with `autoRenewLock` option on `fc.upsertStream()` and `fc.findOneStream()`
 * `range` option to `fc.findOneStream()` now allows `start` or `end` attributes to be safely omitted.
 * Major improvements to resumable.js upload server-side support. See HISTORY for details.
-* For perfromance reasons, the default `chunkSize` has changed to 2MB - 1KB. As always, other values for this can be specified for each collection (any value less than 8MB.)
+* For performance reasons, the default `chunkSize` has changed to 2MB - 1KB. As always, other values for this can be specified for each collection (any value less than 8MB.)
 
 ### What's new in v1.0?
 
 There is one breaking change in v1.0.0. `fc.upsertStream()` may no longer append (mode 'w+') to existing files. This is due to a new limitation added to the underlying node.js mongodb/gridFS driver. Appending was a little used feature that was traded-off for node.js 0.10 new stream support. For safety, any attempt to use `options.mode = 'w+'` in `fc.upsertStream()` will now throw an error.
 
-Other exiciting new features in v1.0 are listed in the HISTORY file.
+Other exciting new features in v1.0 are listed in the HISTORY file.
 
 ### Design philosophy
 
@@ -476,6 +477,8 @@ fc.remove(
 ### fc.update(selector, modifier, [options], [callback])
 #### Update application controlled gridFS file attributes. - Server only
 
+Note: A local-only version of update is available on the client. See docs for `fc.localUpdate()` for details.
+
 ```javascript
 // Update some attributes we own
 fc.update(
@@ -494,8 +497,38 @@ fc.update(
 *     any of the gridFS "read-only" attributes would be modified
 *     any gridFS document level attributes would be removed
 *     non-gridFS attributes would be added
+*     the `upsert` option is attempted
 
 Since `fc.update()` only runs on the server, it is *not* subjected to any allow/deny rules.
+
+### fc.localUpdate(selector, modifier, [options], [callback])
+#### Update local minimongo file attributes. - Client only
+
+**Warning!** Changes made using this function do not persist to the server!
+
+```javascript
+// Update some attributes we own
+fc.localUpdate(
+  { filename: 'keyboardcat.mp4' },
+  {
+    $set: { 'metadata.comment': 'Play them off...' } },
+    $push: { aliases: 'Fatso.mp4' }
+  }
+  // Optional options here
+  // Optional callback here
+);
+```
+
+`fc.localUpdate()` is nearly the same as [Meteor's server-side `Collection.update()`](http://docs.meteor.com/#update), except that it is a client only method, and changes made using it do not propagate to the server. This call is useful for implementing latency compensation in the client UI when performing server updates using a Meteor method. This call can be invoked in the client Method stub to simulate what will be happening on the server. For this reason, this call can perform updates using complex selectors and the `multi` option, unlike client side updates on normal Mongo Collections.
+
+It will return an error if:
+
+*     any of the gridFS "read-only" attributes would be modified
+*     any gridFS document level attributes would be removed
+*     non-gridFS attributes would be added
+*     the `upsert` option is attempted
+
+Since `fc.localUpdate()` only runs on the client, it is *not* subjected to any allow/deny rules.
 
 ### fc.allow(options)
 #### Allow client insert and remove, and HTTP data accesses and updates, subject to your limitations. - Server only

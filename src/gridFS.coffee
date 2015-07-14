@@ -23,3 +23,37 @@ share.insert_func = (file = {}, chunkSize) ->
    subFile.aliases = file.aliases ? []
    subFile.contentType = file.contentType ? 'application/octet-stream'
    return subFile
+
+share.reject_file_modifier = (modifier) ->
+
+   forbidden = Match.OneOf(
+      Match.ObjectIncluding({ _id:        Match.Any })
+      Match.ObjectIncluding({ length:     Match.Any })
+      Match.ObjectIncluding({ chunkSize:  Match.Any })
+      Match.ObjectIncluding({ md5:        Match.Any })
+      Match.ObjectIncluding({ uploadDate: Match.Any })
+   )
+
+   required = Match.OneOf(
+      Match.ObjectIncluding({ _id:         Match.Any })
+      Match.ObjectIncluding({ length:      Match.Any })
+      Match.ObjectIncluding({ chunkSize:   Match.Any })
+      Match.ObjectIncluding({ md5:         Match.Any })
+      Match.ObjectIncluding({ uploadDate:  Match.Any })
+      Match.ObjectIncluding({ metadata:    Match.Any })
+      Match.ObjectIncluding({ aliases:     Match.Any })
+      Match.ObjectIncluding({ filename:    Match.Any })
+      Match.ObjectIncluding({ contentType: Match.Any })
+   )
+
+   return Match.test modifier, Match.OneOf(
+      Match.ObjectIncluding({ $set: forbidden })
+      Match.ObjectIncluding({ $unset: required})
+      Match.ObjectIncluding({ $inc: forbidden})
+      Match.ObjectIncluding({ $mul: forbidden})
+      Match.ObjectIncluding({ $bit: forbidden})
+      Match.ObjectIncluding({ $min: forbidden})
+      Match.ObjectIncluding({ $max: forbidden})
+      Match.ObjectIncluding({ $rename: required})
+      Match.ObjectIncluding({ $currentDate: forbidden})
+   )
