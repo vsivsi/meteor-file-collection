@@ -40,7 +40,7 @@ if Meteor.isClient
          headers: {}
 
       unless r.support
-         console.error "resumable.js not supported by this Browser, uploads will be disabled"
+         console.warn "resumable.js not supported by this Browser, uploads will be disabled"
          @resumable = null
       else
          @resumable = r

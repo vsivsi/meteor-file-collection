@@ -21,10 +21,10 @@ if Meteor.isServer
             return new FileCollection(@root, options)
 
          unless @ instanceof Mongo.Collection
-            throw new Error 'The global definition of Mongo.Collection has changed since the file-collection package was loaded. Please ensure that any packages that redefine Mongo.Collection are loaded before file-collection.'
+            throw new Meteor.Error 'The global definition of Mongo.Collection has changed since the file-collection package was loaded. Please ensure that any packages that redefine Mongo.Collection are loaded before file-collection.'
 
          unless Mongo.Collection is Mongo.Collection.prototype.constructor
-           throw new Error 'The global definition of Mongo.Collection has been patched by another package, and the prototype constructor has been left in an inconsistent state. Please see this link for a workaround: https://github.com/vsivsi/meteor-file-sample-app/issues/2#issuecomment-120780592'
+           throw new Meteor.Error 'The global definition of Mongo.Collection has been patched by another package, and the prototype constructor has been left in an inconsistent state. Please see this link for a workaround: https://github.com/vsivsi/meteor-file-sample-app/issues/2#issuecomment-120780592'
 
          if typeof @root is 'object'
             options = @root
@@ -144,18 +144,18 @@ if Meteor.isServer
       allow: (allowOptions) ->
          for type, func of allowOptions
             unless type of @allows
-               throw new Error "Unrecognized allow rule type '#{type}'."
+               throw new Meteor.Error "Unrecognized allow rule type '#{type}'."
             unless typeof func is 'function'
-               throw new Error "Allow rule #{type} must be a valid function."
+               throw new Meteor.Error "Allow rule #{type} must be a valid function."
             @allows[type].push(func)
 
       # Register application deny rules
       deny: (denyOptions) ->
          for type, func of denyOptions
             unless type of @denys
-               throw new Error "Unrecognized deny rule type '#{type}'."
+               throw new Meteor.Error "Unrecognized deny rule type '#{type}'."
             unless typeof func is 'function'
-               throw new Error "Deny rule #{type} must be a valid function."
+               throw new Meteor.Error "Deny rule #{type} must be a valid function."
             @denys[type].push(func)
 
       insert: (file = {}, callback = undefined) ->
@@ -173,14 +173,14 @@ if Meteor.isServer
             options = {}
 
          if options.upsert?
-            err = new Error "Update does not support the upsert option"
+            err = new Meteor.Error "Update does not support the upsert option"
             if callback?
                return callback err
             else
                throw err
 
          if share.reject_file_modifier(modifier) and not options.force
-            err = new Error "Modifying gridFS read-only document elements is a very bad idea!"
+            err = new Meteor.Error "Modifying gridFS read-only document elements is a very bad idea!"
             if callback?
                return callback err
             else
@@ -191,7 +191,7 @@ if Meteor.isServer
       upsert: (selector, modifier, options = {}, callback = undefined) ->
          if not callback? and typeof options is 'function'
             callback = options
-         err = new Error "File Collections do not support 'upsert'"
+         err = new Meteor.Error "File Collections do not support 'upsert'"
          if callback?
             callback err
          else
@@ -212,7 +212,7 @@ if Meteor.isServer
          options.autoRenewLock ?= true
 
          if options.mode is 'w+'
-            throw new Error "The ability to append file data in upsertStream() was removed in version 1.0.0"
+            throw new Meteor.Error "The ability to append file data in upsertStream() was removed in version 1.0.0"
 
          # Make sure that we have an ID and it's valid
          if file._id
@@ -309,7 +309,7 @@ if Meteor.isServer
             callback? and callback null, ret
             return ret
          else
-            err = new Error "Remove with an empty selector is not supported"
+            err = new Meteor.Error "Remove with an empty selector is not supported"
             if callback?
                callback err
                return

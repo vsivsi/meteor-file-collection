@@ -239,6 +239,27 @@ Tinytest.addAsync 'FileCollection insert and find with options in callback', sub
 
 if Meteor.isServer
 
+  Tinytest.addAsync 'Server accepts good and rejects bad updates', (test, onComplete) ->
+    _id = testColl.insert()
+    testColl.update _id, { $set: { "metadata.test": 1 } }, (err, res) ->
+      test.fail(err) if err
+      test.equal res, 1
+      testColl.update _id, { $inc: { "metadata.test": 1 } }, (err, res) ->
+        test.fail(err) if err
+        test.equal res, 1
+        doc = testColl.findOne _id
+        test.equal doc.metadata.test, 2
+        testColl.update _id, { $set: { md5: 1 } }, (err, res) ->
+          test.isUndefined res
+          test.instanceOf err, Meteor.Error
+          testColl.update _id, { $unset: { filename: 1 } }, (err, res) ->
+            test.isUndefined res
+            test.instanceOf err, Meteor.Error
+            testColl.update _id, { foo: "bar" }, (err, res) ->
+              test.isUndefined res
+              test.instanceOf err, Meteor.Error
+              onComplete()
+
   Tinytest.addAsync 'Insert and then Upsert stream to gridfs and read back, write to file system, and re-import',
     (test, onComplete) ->
       _id = testColl.insert { filename: 'writefile', contentType: 'text/plain' }, (err, _id) ->
@@ -652,8 +673,8 @@ if Meteor.isClient
     Meteor.call 'updateTest', id, true, (err, res) ->
       test.instanceOf err, Meteor.Error
       doc = testColl.findOne { _id: id }
-      test.equal doc.metadata.test2, undefined
-      test.equal res, undefined
+      test.isUndefined doc.metadata.test2
+      test.isUndefined res
       Meteor.call 'updateTest', id, false, (err, res) ->
         test.fail(err) if err
         test.equal res, 1

@@ -13,10 +13,10 @@ if Meteor.isClient
             return new FileCollection(root, options)
 
          unless @ instanceof Mongo.Collection
-            throw new Error 'The global definition of Mongo.Collection has changed since the file-collection package was loaded. Please ensure that any packages that redefine Mongo.Collection are loaded before file-collection.'
+            throw new Meteor.Error 'The global definition of Mongo.Collection has changed since the file-collection package was loaded. Please ensure that any packages that redefine Mongo.Collection are loaded before file-collection.'
 
          unless Mongo.Collection is Mongo.Collection.prototype.constructor
-           throw new Error 'The global definition of Mongo.Collection has been patched by another package, and the prototype constructor has been left in an inconsistent state. Please see this link for a workaround: https://github.com/vsivsi/meteor-file-sample-app/issues/2#issuecomment-120780592'
+           throw new Meteor.Error 'The global definition of Mongo.Collection has been patched by another package, and the prototype constructor has been left in an inconsistent state. Please see this link for a workaround: https://github.com/vsivsi/meteor-file-sample-app/issues/2#issuecomment-120780592'
 
          if typeof @root is 'object'
             options = @root
@@ -53,14 +53,14 @@ if Meteor.isClient
             options = {}
 
          if options.upsert?
-            err = new Error "Update does not support the upsert option"
+            err = new Meteor.Error "Update does not support the upsert option"
             if callback?
                return callback err
             else
                throw err
 
          if share.reject_file_modifier(modifier)
-            err = new Error "Modifying gridFS read-only document elements is a very bad idea!"
+            err = new Meteor.Error "Modifying gridFS read-only document elements is a very bad idea!"
             if callback?
                return callback err
             else
@@ -69,25 +69,25 @@ if Meteor.isClient
             @find().collection.update selector, modifier, options, callback
 
       allow: () ->
-        throw new Error "File Collection Allow rules may not be set in client code."
+        throw new Meteor.Error "File Collection Allow rules may not be set in client code."
 
       deny: () ->
-        throw new Error "File Collection Deny rules may not be set in client code."
+        throw new Meteor.Error "File Collection Deny rules may not be set in client code."
 
       upsert: () ->
-         throw new Error "File Collections do not support 'upsert'"
+         throw new Meteor.Error "File Collections do not support 'upsert'"
 
       update: () ->
-         throw new Error "File Collections do not support 'update' on client, use method calls instead"
+         throw new Meteor.Error "File Collections do not support 'update' on client, use method calls instead"
 
       findOneStream: () ->
-         throw new Error "File Collections do not support 'findOneStream' in client code."
+         throw new Meteor.Error "File Collections do not support 'findOneStream' in client code."
 
       upsertStream: () ->
-         throw new Error "File Collections do not support 'upsertStream' in client code."
+         throw new Meteor.Error "File Collections do not support 'upsertStream' in client code."
 
       importFile: () ->
-         throw new Error "File Collections do not support 'importFile' in client code."
+         throw new Meteor.Error "File Collections do not support 'importFile' in client code."
 
       exportFile: () ->
-         throw new Error "File Collections do not support 'exportFile' in client code."
+         throw new Meteor.Error "File Collections do not support 'exportFile' in client code."

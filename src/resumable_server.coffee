@@ -69,7 +69,7 @@ if Meteor.isServer
                      if err
                         console.error "Error from cursor.next()", err
                         cb err
-                     return cb new Error "Received null part" unless part
+                     return cb new Meteor.Error "Received null part" unless part
                      partId = mongodb.ObjectID("#{part._id}")
                      partlock = gridLocks.Lock(partId, @locks, {}).obtainWriteLock()
                      partlock.on 'locked', () =>
@@ -94,8 +94,8 @@ if Meteor.isServer
                                        partlock.removeLock()
                                        return cb err if err
                                        cb()
-                     partlock.on 'timed-out', () -> cb new Error 'Partlock timed out!'
-                     partlock.on 'expired', () -> cb new Error 'Partlock expired!'
+                     partlock.on 'timed-out', () -> cb new Meteor.Error 'Partlock timed out!'
+                     partlock.on 'expired', () -> cb new Meteor.Error 'Partlock expired!'
                      partlock.on 'error', (err) ->
                         console.error "Error obtaining partlock #{part._id}", err
                         cb err
@@ -122,8 +122,8 @@ if Meteor.isServer
          lock.renewLock().once 'renewed', (ld) ->
             unless ld
                console.warn "Resumable upload lock renewal failed!"
-      lock.on 'expired', () -> callback new Error "File Lock expired"
-      lock.on 'timed-out', () -> callback new Error "File Lock timed out"
+      lock.on 'expired', () -> callback new Meteor.Error "File Lock expired"
+      lock.on 'timed-out', () -> callback new Meteor.Error "File Lock timed out"
       lock.on 'error', (err) -> callback err
 
    # Handle HTTP POST requests from Resumable.js
