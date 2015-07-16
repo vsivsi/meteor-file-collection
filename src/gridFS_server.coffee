@@ -179,7 +179,7 @@ if Meteor.isServer
             else
                throw err
 
-         if reject_file_modifier(modifier) and not options.force
+         if share.reject_file_modifier(modifier) and not options.force
             err = new Error "Modifying gridFS read-only document elements is a very bad idea!"
             if callback?
                return callback err
@@ -335,37 +335,3 @@ if Meteor.isServer
          readStream.pipe(writeStream)
             .on('finish', share.bind_env(callback))
             .on('error', share.bind_env(callback))
-
-   reject_file_modifier = (modifier) ->
-
-      forbidden = Match.OneOf(
-         Match.ObjectIncluding({ _id:        Match.Any })
-         Match.ObjectIncluding({ length:     Match.Any })
-         Match.ObjectIncluding({ chunkSize:  Match.Any })
-         Match.ObjectIncluding({ md5:        Match.Any })
-         Match.ObjectIncluding({ uploadDate: Match.Any })
-      )
-
-      required = Match.OneOf(
-         Match.ObjectIncluding({ _id:         Match.Any })
-         Match.ObjectIncluding({ length:      Match.Any })
-         Match.ObjectIncluding({ chunkSize:   Match.Any })
-         Match.ObjectIncluding({ md5:         Match.Any })
-         Match.ObjectIncluding({ uploadDate:  Match.Any })
-         Match.ObjectIncluding({ metadata:    Match.Any })
-         Match.ObjectIncluding({ aliases:     Match.Any })
-         Match.ObjectIncluding({ filename:    Match.Any })
-         Match.ObjectIncluding({ contentType: Match.Any })
-      )
-
-      return Match.test modifier, Match.OneOf(
-         Match.ObjectIncluding({ $set: forbidden })
-         Match.ObjectIncluding({ $unset: required})
-         Match.ObjectIncluding({ $inc: forbidden})
-         Match.ObjectIncluding({ $mul: forbidden})
-         Match.ObjectIncluding({ $bit: forbidden})
-         Match.ObjectIncluding({ $min: forbidden})
-         Match.ObjectIncluding({ $max: forbidden})
-         Match.ObjectIncluding({ $rename: required})
-         Match.ObjectIncluding({ $currentDate: forbidden})
-      )
