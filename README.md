@@ -527,7 +527,9 @@ Meteor.methods({
       return x.length <= 140;
     }));
     // You'll probably want to do some kind of ownership check here...
+
     var update = null;
+    // You can avoid this by initializing fc.update on the client to be fc.localUpdate
     if (Meteor.isServer) {
       update = fc.update;  // Server actually persists the update
     } else { // isClient
@@ -553,7 +555,7 @@ It will return an error if:
 *     non-gridFS attributes would be added
 *     the `upsert` option is attempted
 
-Since `fc.localUpdate()` only runs on the client, it is *not* subjected to any allow/deny rules.
+Since `fc.localUpdate()` only changes data on the client, it is *not* subjected to any allow/deny rules.
 
 ### fc.allow(options)
 #### Allow client insert and remove, and HTTP data accesses and updates, subject to your limitations. - Server only
