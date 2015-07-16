@@ -2,7 +2,7 @@
 
 ## Introduction
 
-file-collection is a Meteor.js package that cleanly extends Meteor's Collection metaphor for efficiently dealing with collections of files and their data. File Collections are fully reactive, so if you know how to use Meteor Collections, you already know most of what you need to begin working with this package.
+file-collection is a Meteor.js package that cleanly extends Meteor's Collection metaphor for efficiently dealing with collections of files and their data. File Collections are fully reactive, and if you know how to use Meteor Collections, you already know most of what you need to begin working with this package.
 
 Major features:
 
@@ -517,8 +517,7 @@ fc.update(
 `fc.update()` is nearly the same as [Meteor's `Collection.update()`](http://docs.meteor.com/#update), except that it is a server only method, and it will return an error if:
 
 *     any of the gridFS "read-only" attributes would be modified
-*     any gridFS document level attributes would be removed
-*     non-gridFS attributes would be added
+*     any standard gridFS document level attributes would be removed
 *     the `upsert` option is attempted
 
 Since `fc.update()` only runs on the server, it is *not* subjected to any allow/deny rules.
@@ -564,8 +563,7 @@ Meteor.methods({
 It will return an error if:
 
 *     any of the gridFS "read-only" attributes would be modified
-*     any gridFS document level attributes would be removed
-*     non-gridFS attributes would be added
+*     any standard gridFS document level attributes would be removed
 *     the `upsert` option is attempted
 
 Since `fc.localUpdate()` only changes data on the client, it is *not* subjected to any allow/deny rules.
