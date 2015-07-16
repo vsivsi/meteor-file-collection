@@ -2,7 +2,17 @@
 
 ## Introduction
 
-file-collection is a Meteor.js package that cleanly extends Meteor's Collection metaphor for efficiently dealing with collections of files and their data. File Collections are fully reactive, so if you know how to use Meteor Collections, you already know most of what you need to begin working with this package. It also fully supports HTTP upload and download including support for authentication.
+file-collection is a Meteor.js package that cleanly extends Meteor's Collection metaphor for efficiently dealing with collections of files and their data. File Collections are fully reactive, so if you know how to use Meteor Collections, you already know most of what you need to begin working with this package.
+
+Major features:
+
+* HTTP upload and download including support for Meteor authentication
+* Client and Server integration of [resumable.js](http://resumablejs.com/) for robust chunked uploading
+* Also compatible with traditional HTTP POST or PUT file uploading
+* HTTP range requests support random access for resumable downloads, media seeking, etc.
+* Robust file locking allows safe replacement and removal of files even on a busy server
+* External changes to the underlying file store automatically synchronize with the Meteor collection
+* Designed for efficient handling of millions of small files as well as huge files 10GB and above
 
 #### Quick example
 
@@ -507,16 +517,31 @@ Since `fc.update()` only runs on the server, it is *not* subjected to any allow/
 **Warning!** Changes made using this function do not persist to the server!
 
 ```javascript
-// Update some attributes we own
-fc.localUpdate(
-  { filename: 'keyboardcat.mp4' },
-  {
-    $set: { 'metadata.comment': 'Play them off...' } },
-    $push: { aliases: 'Fatso.mp4' }
+// Implement latency compensated update using Meteor methods and localUpdate
+Meteor.methods({
+  updateFileComment: function (fileId, comment) {
+    // Always check method params!
+    check(fileId, Mongo.ObjectId);
+    check(comment, Match.Where(function (x) {
+      check(x, String);
+      return x.length <= 140;
+    }));
+    // You'll probably want to do some kind of ownership check here...
+    var update = null;
+    if (Meteor.isServer) {
+      update = fc.update;  // Server actually persists the update
+    } else { // isClient
+      update = fc.localUpdate; // Client updates locally for latency comp
+    }
+    // Use whichever function the environment dictates
+    update({ _id: _id }, {
+        $set: { 'metadata.comment': comment }
+      }
+      // Optional options here
+      // Optional callback here
+    );
   }
-  // Optional options here
-  // Optional callback here
-);
+});
 ```
 
 `fc.localUpdate()` is nearly the same as [Meteor's server-side `Collection.update()`](http://docs.meteor.com/#update), except that it is a client only method, and changes made using it do not propagate to the server. This call is useful for implementing latency compensation in the client UI when performing server updates using a Meteor method. This call can be invoked in the client Method stub to simulate what will be happening on the server. For this reason, this call can perform updates using complex selectors and the `multi` option, unlike client side updates on normal Mongo Collections.
