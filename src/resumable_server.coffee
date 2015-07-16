@@ -209,7 +209,9 @@ if Meteor.isServer
       q = { _id: share.safeObjectID(query.resumableIdentifier) }
       return q
 
-   # This handles Resumable.js "test GET" requests, that exist to determine if a part is already uploaded
+   # This handles Resumable.js "test GET" requests, that exist to determine
+   # if a part is already uploaded. It also handles HEAD requests, which
+   # should be a bit more efficient and resumable.js now supports
    resumable_get_handler = (req, res, next) ->
       query = req.query
       chunkQuery =

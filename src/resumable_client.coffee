@@ -31,6 +31,7 @@ if Meteor.isClient
          fileParameterName: 'file'
          chunkSize: @chunkSize
          testChunks: true
+         testMethod: 'HEAD'
          permanentErrors: [204, 404, 415, 500, 501]
          simultaneousUploads: 3
          maxFiles: undefined

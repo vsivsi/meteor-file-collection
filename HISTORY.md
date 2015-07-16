@@ -8,6 +8,7 @@
 * Defend against `Mongo.Collection !== Mongo.Collection.protype.constructor`
 * Updated npm dependencies
 * Updated resumable.js
+* Switch to using HEAD requests for resumable.js chunk test requests
 * Use `Meteor.Error` consistently
 
 ### v1.1.5
