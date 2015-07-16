@@ -14,20 +14,32 @@ Major features:
 * External changes to the underlying file store automatically synchronize with the Meteor collection
 * Designed for efficient handling of millions of small files as well as huge files 10GB and above
 
-#### Quick example
+These features (and more) are possible because file-collection tightly integrates MongoDB [gridFS](http://docs.mongodb.org/manual/reference/gridfs/) with Meteor Collections, without any intervening plumbing or unnecessary layers of abstraction.
+
+#### Quick server-side example
 
 ```javascript
-myFiles = new FileCollection('myFiles');
+myFiles = new FileCollection('myFiles',
+  { resumable: true,    // Enable built-in resumable.js chunked upload support
+    http: [             // Define HTTP route
+      { method: 'get',  // Enable a GET endpoint
+        path: '/:md5',  // this will be at route "/gridfs/myFiles/:md5"
+        lookup: function (params, query) {  // uses express style url params
+          return { md5: params.md5 };       // a query mapping url to myFiles
+}}]});
+
+// You can add publications and allow/deny rules here to securely
+// access myFiles from clients.
+// On the server, you can access everything without limitation:
 
 // Find a file document by name
-
 thatFile = myFiles.findOne({ filename: 'lolcat.gif' });
 
-// or get a file's data as a stream
-
+// or get a file's data as a node.js Stream2
 thatFileStream = myFiles.findOneStream({ filename: 'lolcat.gif' });
 
-// Write the file data someplace...
+// Easily remove a file and its data
+result = myFiles.remove(thatFile._id);
 ```
 
 ### Feature summary
