@@ -52,6 +52,17 @@ noReadColl = new FileCollection "noReadColl",
 noAllowColl = new FileCollection "noAllowColl"
 denyColl = new FileCollection "denyColl"
 
+Meteor.methods
+  updateTest: (id, reject) ->
+    check id, Mongo.ObjectID
+    check reject, Boolean
+    if this.isSimulation
+      testColl.localUpdate { _id: id }, { $set: { 'metadata.test2': true } }
+    else if reject
+      throw new Meteor.Error "Rejected by server"
+    else
+      testColl.update { _id: id }, { $set: { 'metadata.test2': false } }
+
 if Meteor.isServer
 
   Meteor.publish 'everything', () -> testColl.find {}
@@ -628,12 +639,27 @@ if Meteor.isClient
           onComplete()
   )
 
-  Tinytest.addAsync 'Client localUpdate test', (test, onComplete) ->
-     test.equal (typeof testColl.localUpdate), 'function'
-     testColl.localUpdate { filename: '中文指南.txt' }, { $set: { 'metadata.test': true } }
-     doc = testColl.findOne { filename: '中文指南.txt' }
-     test.equal doc.metadata.test, true
-     onComplete()
+  Tinytest.addAsync 'Client basic localUpdate test', (test, onComplete) ->
+    id = testColl.insert()
+    test.equal (typeof testColl.localUpdate), 'function'
+    testColl.localUpdate { _id: id }, { $set: { 'metadata.test': true } }
+    doc = testColl.findOne { _id: id }
+    test.equal doc.metadata.test, true
+    onComplete()
+
+  Tinytest.addAsync 'Client localUpdate server method rejection test', (test, onComplete) ->
+    id = testColl.insert()
+    Meteor.call 'updateTest', id, true, (err, res) ->
+      test.instanceOf err, Meteor.Error
+      doc = testColl.findOne { _id: id }
+      test.equal doc.metadata.test2, undefined
+      test.equal res, undefined
+      Meteor.call 'updateTest', id, false, (err, res) ->
+        test.fail(err) if err
+        test.equal res, 1
+        doc = testColl.findOne { _id: id }
+        test.equal doc.metadata.test2, false
+        onComplete()
 
   # Resumable.js tests
 

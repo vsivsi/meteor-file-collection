@@ -521,7 +521,7 @@ Since `fc.update()` only runs on the server, it is *not* subjected to any allow/
 Meteor.methods({
   updateFileComment: function (fileId, comment) {
     // Always check method params!
-    check(fileId, Mongo.ObjectId);
+    check(fileId, Mongo.ObjectID);
     check(comment, Match.Where(function (x) {
       check(x, String);
       return x.length <= 140;
@@ -530,10 +530,10 @@ Meteor.methods({
 
     var update = null;
     // You can avoid this by initializing fc.update on the client to be fc.localUpdate
-    if (Meteor.isServer) {
+    if (this.isSimulation) {
+      update = fc.localUpdate; // Client stub updates locally for latency comp
+    } else { // isServer
       update = fc.update;  // Server actually persists the update
-    } else { // isClient
-      update = fc.localUpdate; // Client updates locally for latency comp
     }
     // Use whichever function the environment dictates
     update({ _id: _id }, {
