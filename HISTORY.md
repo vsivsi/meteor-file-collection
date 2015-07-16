@@ -3,6 +3,7 @@
 ### v1.2.0
 
 * Add the ability to perform limited local updates to the client minimongo collection using `fc.localUpdate()`
+* Thanks to @Digital-Thor for his work on integrating [Sortable]() and file-collection, demonstrating the usefulness of supporting local client-side update
 * Fixed bug permitting `update` replacement of entire gridFS documents
 * Added update related unit tests
 * Defend against `Mongo.Collection !== Mongo.Collection.protype.constructor`
