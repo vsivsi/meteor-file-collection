@@ -514,7 +514,7 @@ Since `fc.update()` only runs on the server, it is *not* subjected to any allow/
 ### fc.localUpdate(selector, modifier, [options], [callback])
 #### Update local minimongo file attributes. - Client only
 
-**Warning!** Changes made using this function do not persist to the server!
+**Warning!** Changes made using this function do not persist to the server! You must implement your own Meteor methods to perform persistent updates from a client. For example:
 
 ```javascript
 // Implement latency compensated update using Meteor methods and localUpdate
@@ -529,7 +529,8 @@ Meteor.methods({
     // You'll probably want to do some kind of ownership check here...
 
     var update = null;
-    // You can avoid this by initializing fc.update on the client to be fc.localUpdate
+    // If desired you can avoid this by initializing fc.update
+    // on the client to be fc.localUpdate
     if (this.isSimulation) {
       update = fc.localUpdate; // Client stub updates locally for latency comp
     } else { // isServer
@@ -571,7 +572,6 @@ In addition to Meteor's `insert` and `remove` rules, file-collection also uses `
 `write` rules are analogous to `update` rules on Meteor collections, except that they apply only to HTTP PUT/POST requests modifying file data, and will only see changes to the `length` and `md5` fields (in the `fieldnames` parameter) for that reason. Because MongoDB updates are not directly involved, no `modifier` is provided to the `write` function.
 
 `read` rules apply only to HTTP GET/HEAD requests retrieving file data, and have the same parameters and `insert` and `remove` rules.
-
 
 ### fc.deny(options)
 #### Override allow rules. - Server only

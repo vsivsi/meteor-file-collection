@@ -3,6 +3,7 @@
 ### v1.2.0
 
 * Add the ability to perform limited local updates to the client minimongo collection using `fc.localUpdate()`
+* Fixed bug permitting `update` replacement of entire gridFS documents
 * Added update related unit tests
 * Defend against `Mongo.Collection !== Mongo.Collection.protype.constructor`
 * Updated npm dependencies
