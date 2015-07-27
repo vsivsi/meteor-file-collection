@@ -604,7 +604,7 @@ lolStream = fc.findOneStream({ 'filename': 'lolcat.gif'});
 
 `fc.findOneStream()` is like `fc.findOne()` except instead of returning the `files` document for the found file, it returns a [Readable stream](http://nodejs.org/api/stream.html#stream_class_stream_readable) for the found file's data.
 
-`options.range` -- To get partial data from the file, use the `range` option to spicify an object with `start` and `end` attributes:
+`options.range` -- To get partial data from the file, use the `range` option to specify an object with `start` and `end` attributes:
 
 ```javascript
 stream = fc.findOneStream({ 'filename': 'lolcat.gif'}, { range: { start: 100, end: 200 }})
