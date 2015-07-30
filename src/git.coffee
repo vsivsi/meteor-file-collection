@@ -6,6 +6,8 @@
 
 console.log "In Git source"
 
+gbs = Npm.require 'git-blob-stream'
+
 modes = Npm.require 'js-git/lib/modes'
 unwrappedRepo = {}
 
