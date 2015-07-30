@@ -1,5 +1,9 @@
 ## Revision history
 
+### v.NEXT
+
+* Don't create unused readable streams for HTTP HEAD requests
+
 ### v1.2.0
 
 * Add the ability to perform limited local updates to the client minimongo collection using `fc.localUpdate()`
