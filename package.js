@@ -4,7 +4,7 @@
 ###     See included LICENSE file for details.
 ***************************************************************************/
 
-var currentVersion = '1.2.0';
+var currentVersion = '1.3.0';
 
 Package.describe({
   summary: 'Collections that efficiently store files using MongoDB GridFS, with built-in HTTP support',
@@ -22,7 +22,8 @@ Npm.depends({
   express: '4.13.1',
   'cookie-parser': '1.3.5',
   // Version 2.x of through2 is Streams3, so don't go there yet!
-  through2: '0.6.5'
+  through2: '0.6.5',
+  'js-git': '0.7.7'
 });
 
 Package.onUse(function(api) {
@@ -30,6 +31,7 @@ Package.onUse(function(api) {
   api.use('webapp@1.2.0', 'server');
   api.use('mongo@1.1.0', ['server', 'client']);
   api.use('minimongo@1.0.8', 'server');
+  api.use('meteorhacks:async@1.0.0', 'server');
   api.addFiles('resumable/resumable.js', 'client');
   api.addFiles('src/gridFS.coffee', ['server','client']);
   api.addFiles('src/server_shared.coffee', 'server');
@@ -38,6 +40,7 @@ Package.onUse(function(api) {
   api.addFiles('src/http_access_server.coffee', 'server');
   api.addFiles('src/resumable_client.coffee', 'client');
   api.addFiles('src/gridFS_client.coffee', 'client');
+  api.addFiles('src/git.coffee', 'server');
   api.export('FileCollection');
 });
 
