@@ -24,7 +24,7 @@ Npm.depends({
   // Version 2.x of through2 is Streams3, so don't go there yet!
   through2: '0.6.5',
   'js-git': '0.7.7',
-  'git-blob-stream': '0.0.1'
+  'git-blob-stream': '0.0.8'
 });
 
 Package.onUse(function(api) {
@@ -41,7 +41,7 @@ Package.onUse(function(api) {
   api.addFiles('src/http_access_server.coffee', 'server');
   api.addFiles('src/resumable_client.coffee', 'client');
   api.addFiles('src/gridFS_client.coffee', 'client');
-  api.addFiles('src/git.coffee', 'server');
+  // api.addFiles('src/git.coffee', 'server');
   api.export('FileCollection');
 });
 

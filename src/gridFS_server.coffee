@@ -13,6 +13,7 @@ if Meteor.isServer
    path = Npm.require 'path'
    dicer = Npm.require 'dicer'
    express = Npm.require 'express'
+   gbs = Npm.require 'git-blob-stream'
 
    class FileCollection extends Mongo.Collection
 
@@ -46,6 +47,8 @@ if Meteor.isServer
             pollingInterval: @lockOptions.pollingInterval
 
          @gfs = new grid(@db, mongodb, @root)
+
+         @gbs = gbs
 
          @baseURL = options.baseURL ? "/gridfs/#{@root}"
 
