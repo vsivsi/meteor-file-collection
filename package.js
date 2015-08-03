@@ -23,8 +23,7 @@ Npm.depends({
   'cookie-parser': '1.3.5',
   // Version 2.x of through2 is Streams3, so don't go there yet!
   through2: '0.6.5',
-  'js-git': '0.7.7',
-  'git-blob-stream': '0.0.8'
+  'git-blob-stream': '0.0.10'
 });
 
 Package.onUse(function(api) {
