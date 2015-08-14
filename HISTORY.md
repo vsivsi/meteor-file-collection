@@ -1,5 +1,9 @@
 ## Revision history
 
+### v.NEXT
+
+* Relaxed the constraint that Mongo `_id` values must be of type `Mongo.ObjectID`, they may now also be arbitrary strings.
+
 ### v1.2.0
 
 * Add the ability to perform limited local updates to the client minimongo collection using `fc.localUpdate()`

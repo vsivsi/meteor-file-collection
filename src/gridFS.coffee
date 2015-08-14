@@ -1,6 +1,6 @@
 ############################################################################
 #     Copyright (C) 2014-2015 by Vaughn Iverson
-#     fileCollection is free software released under the MIT/X11 license.
+#     file-collection is free software released under the MIT/X11 license.
 #     See included LICENSE file for details.
 ############################################################################
 
@@ -9,9 +9,12 @@ share.defaultRoot = 'fs'
 
 share.insert_func = (file = {}, chunkSize) ->
    try
-      id = new Meteor.Collection.ObjectID("#{file._id}")
+      id = new Mongo.ObjectID("#{file._id}")
    catch
-      id = new Meteor.Collection.ObjectID()
+      if file._id and typeof file._id is 'string'
+         id = file._id
+      else
+         id = new Mongo.ObjectID()
    subFile = {}
    subFile._id = id
    subFile.length = 0

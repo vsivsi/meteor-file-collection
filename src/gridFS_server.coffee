@@ -1,6 +1,6 @@
 ############################################################################
 #     Copyright (C) 2014-2015 by Vaughn Iverson
-#     fileCollection is free software released under the MIT/X11 license.
+#     file-collection is free software released under the MIT/X11 license.
 #     See included LICENSE file for details.
 ############################################################################
 
@@ -14,6 +14,14 @@ if Meteor.isServer
    dicer = Npm.require 'dicer'
    express = Npm.require 'express'
    gbs = Npm.require 'git-blob-stream'
+
+   makeMongoObjectId = (id) ->
+      try
+         outputId = mongodb.ObjectID "#{id}"
+      catch
+         outputId = id
+
+      return outputId
 
    class FileCollection extends Mongo.Collection
 
@@ -219,16 +227,18 @@ if Meteor.isServer
 
          # Make sure that we have an ID and it's valid
          if file._id
-            found = @findOne {_id: file._id}
+            found = @findOne { _id: file._id }
 
-         unless file._id and found
+         unless found
+            if file._id
+               mods._id = file._id
             file._id = @insert mods
          else if Object.keys(mods).length > 0
             @update { _id: file._id }, { $set: mods }
 
          writeStream = Meteor.wrapAsync(@gfs.createWriteStream.bind(@gfs))
             root: @root
-            _id: mongodb.ObjectID("#{file._id}")
+            _id: makeMongoObjectId file._id
             mode: 'w'
             timeOut: @lockOptions.timeOut
             lockExpiration: @lockOptions.lockExpiration
@@ -273,7 +283,7 @@ if Meteor.isServer
 
             readStream = Meteor.wrapAsync(@gfs.createReadStream.bind(@gfs))
                root: @root
-               _id: mongodb.ObjectID("#{file._id}")
+               _id: makeMongoObjectId file._id
                timeOut: @lockOptions.timeOut
                lockExpiration: @lockOptions.lockExpiration
                pollingInterval: @lockOptions.pollingInterval
@@ -303,7 +313,7 @@ if Meteor.isServer
             ret = 0
             @find(selector).forEach (file) =>
                res = Meteor.wrapAsync(@gfs.remove.bind(@gfs))
-                  _id: mongodb.ObjectID("#{file._id}")
+                  _id: makeMongoObjectId file._id
                   root: @root
                   timeOut: @lockOptions.timeOut
                   lockExpiration: @lockOptions.lockExpiration

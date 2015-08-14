@@ -270,7 +270,7 @@ if Meteor.isServer
           test.equal file.length, 10, "Improper file length"
           test.equal file.md5, 'e807f1fcf82d132f9bb018ca6738a19f', "Improper file md5 hash"
           test.equal file.contentType, 'text/plain', "Improper contentType"
-          readstream = testColl.findOneStream {_id: file._id }
+          readstream = testColl.findOneStream { _id: file._id }
           readstream.on 'data', bind_env (chunk) ->
             test.equal chunk.toString(), '1234567890','Incorrect data read back from stream'
           readstream.on 'end', bind_env () ->
@@ -279,7 +279,7 @@ if Meteor.isServer
               test.fail(err) if err
               testColl.importFile testfile, {}, bind_env (err, doc) ->
                 test.fail(err) if err
-                readstream = testColl.findOneStream {_id: doc._id }
+                readstream = testColl.findOneStream { _id: doc._id }
                 readstream.on 'data', bind_env (chunk) ->
                   test.equal chunk.toString(), '1234567890','Incorrect data read back from file stream'
                 readstream.on 'end', bind_env () ->
