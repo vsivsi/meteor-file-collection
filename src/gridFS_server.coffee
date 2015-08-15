@@ -151,6 +151,9 @@ if Meteor.isServer
             else
                return 0
 
+      Git: (repo) ->
+         return new share.Git @, repo
+
       # Register application allow rules
       allow: (allowOptions) ->
          for type, func of allowOptions

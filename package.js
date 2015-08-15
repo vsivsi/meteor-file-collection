@@ -35,6 +35,7 @@ Package.onUse(function(api) {
   api.addFiles('resumable/resumable.js', 'client');
   api.addFiles('src/gridFS.coffee', ['server','client']);
   api.addFiles('src/server_shared.coffee', 'server');
+  api.addFiles('src/git.coffee', 'server');
   api.addFiles('src/gridFS_server.coffee', 'server');
   api.addFiles('src/resumable_server.coffee', 'server');
   api.addFiles('src/http_access_server.coffee', 'server');
