@@ -23,15 +23,15 @@ if Meteor.isServer
          @prefix = "#{@repo}.git"
 
          # Initialize the repo if necessary
-         unless @_readHead()
-            @_writeHead 'ref: refs/heads/master'
-            @_updateServerInfo()
+         @_updateServerInfo()
 
       _objPath: (hash) ->
          return "objects/#{hash.slice(0,2)}/#{hash.slice(2)}"
 
       _updateServerInfo: () ->
          Async.runSync (done) =>
+            unless @_readHead()
+               @_writeHead 'ref: refs/heads/master'
             query =
                filename:
                   $regex: new RegExp "^#{@prefix}/refs/"
@@ -190,9 +190,9 @@ if Meteor.isServer
                return callback err
             name = "#{@prefix}/#{@_objPath data.hash}"
             if @fC.findOne { _id: name }
-               callback null, false
+               callback null, data, false
             else
-               callback null, data
+               callback null, data, true
 
       _writeFile: (data, callback) ->
          name = "#{@prefix}/#{@_objPath data.hash}"
