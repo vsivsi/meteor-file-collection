@@ -20,6 +20,8 @@ if Meteor.isServer
          unless typeof @repo is 'string'
             throw new Error "Git error: Invalid repository name provided"
 
+         @gbs = gbs
+
          @prefix = "#{@repo}.git"
 
          # Initialize the repo if necessary
@@ -37,7 +39,6 @@ if Meteor.isServer
                   $regex: new RegExp "^#{@prefix}/refs/"
             refs = ""
             @fC.find(query).forEach (d) ->
-               console.log "%%%%%%%%%%%%%%%%%%%%%%%", d
                refs += "#{d.metadata._Git.ref}\t#{d.filename.slice(d.filename.indexOf('/')+1)}\n"
             name = "#{@prefix}/info/refs"
             query =
@@ -45,6 +46,7 @@ if Meteor.isServer
                filename: name
                metadata:
                   _Git:
+                     repo: @repo
                      type: 'refs'
             outStream = @fC.upsertStream query, (err, f) =>
                console.dir f
@@ -71,6 +73,7 @@ if Meteor.isServer
                filename: "#{@prefix}/HEAD"
                metadata:
                   _Git:
+                     repo: @repo
                      type: 'HEAD'
                      ref: "#{ref}"
             outStream = @fC.upsertStream query, (err, f) =>
@@ -100,6 +103,7 @@ if Meteor.isServer
                filename: name
                metadata:
                   _Git:
+                     repo: @repo
                      type: 'ref'
                      ref: commit
             outStream = @fC.upsertStream query, (err, f) =>
@@ -115,27 +119,24 @@ if Meteor.isServer
             data = Async.wrap(gbs.treeWriter) tree, { arrayTree: true, noOutput: true }
             console.log "tree should be: #{data.hash}, #{data.size}"
             name = "#{@prefix}/#{@_objPath data.hash}"
-            console.log "!!! 1", name
             if @fC.findOne { _id: name }
                done null, data
             else
-               console.log "!!! 2"
                outStream = @fC.upsertStream
                      _id: name
                      filename: name
                      metadata:
                         _Git:
+                           repo: @repo
+                           sha1: data.hash
                            type: 'tree'
                            size: data.size
                            tree: data.tree
                   , (err, f) =>
-                     console.log "!!! 5"
                      console.dir f, { depth: null }
                      console.log "#{data.hash} written! as #{f._id}", err
                      done err, data
-               console.log "!!! 3"
                gbs.treeWriter(tree).pipe(outStream)
-               console.log "!!! 4"
 
       _writeCommit: (commit) ->
          Async.runSync (done) =>
@@ -151,6 +152,8 @@ if Meteor.isServer
                      filename: name
                      metadata:
                         _Git:
+                           repo: @repo
+                           sha1: data.hash
                            type: 'commit'
                            size: data.size
                            commit: data.commit
@@ -174,6 +177,8 @@ if Meteor.isServer
                      filename: name
                      metadata:
                         _Git:
+                           repo: @repo
+                           sha1: data.hash
                            type: 'tag'
                            size: data.size
                            tag: data.tag
@@ -199,7 +204,7 @@ if Meteor.isServer
          bw = gbs.blobWriter
                type: 'blob'
                size: data.length
-            , (err, obj) =>
+            ,  Meteor.bindEnvironment (err, obj) =>
                console.dir obj
                callback? err, obj
          outStream = @fC.upsertStream
@@ -207,6 +212,8 @@ if Meteor.isServer
                filename: name
                metadata:
                   _Git:
+                     repo: @repo
+                     sha1: data.hash
                      type: 'blob'
                      size: data.length
             , (err, f) =>
@@ -214,3 +221,28 @@ if Meteor.isServer
                console.log "#{data.hash} written! as #{f._id}", err
          bw.pipe(outStream)
          return bw
+
+      _makeDbTree: (collection, query) ->
+         @_writeTree collection.find(query).map (d) =>
+            res = Async.runSync (done) =>
+               canon = EJSON.stringify d, { canonical: true, indent: true }
+               c = @_checkFile (err, data, newBlob) =>
+                  if err
+                     return done err
+                  record =
+                    name: "#{d._id}"
+                    mode: gbs.gitModes.file
+                    hash: data.hash
+                  if newBlob
+                     w = @_writeFile data, (err, data) =>
+                        if err
+                           return done err
+                        console.log "Record written", canon, data
+                        done null, record
+                     w.end canon
+                  else
+                     console.log "Record present", canon, data
+                     done null, record
+               c.end canon
+            throw res.error if res.error
+            return res.result
