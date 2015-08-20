@@ -190,6 +190,7 @@ if Meteor.isServer
                gbs.tagWriter(tag).pipe(outStream)
 
       _checkFile: (callback) ->
+         # TODO Make this synchronous
          return gbs.blobWriter { type: 'blob', noOutput: true }, Meteor.bindEnvironment (err, data) =>
             if err
                return callback err
@@ -200,6 +201,7 @@ if Meteor.isServer
                callback null, data, true
 
       _writeFile: (data, callback) ->
+         # TODO Make this synchronous, optionally pass in a buffer or input stream?
          name = "#{@prefix}/#{@_objPath data.hash}"
          bw = gbs.blobWriter
                type: 'blob'
@@ -244,5 +246,33 @@ if Meteor.isServer
                      console.log "Record present", canon, data
                      done null, record
                c.end canon
+            throw res.error if res.error
+            return res.result
+
+      _makeFcTree: (collection, query) ->
+         @_writeTree collection.find(query).map (d) =>
+            res = Async.runSync (done) =>
+
+               # Add ability to cache sha1/size and make them depend on md5
+               # So that unchanging files don't need to be rehashed again and again:
+               # if d.metadata._blobCache?.md5 is d.md5
+               #   # Do something else.
+               # _checkFile should be able to handle this...
+
+               # Check if this blob exists
+               collection.findOneStream({ _id: d._id })?.pipe @_checkFile (err, data, newBlob) =>
+                  if err
+                     return done err
+                  record =
+                    name: "#{d._id}"
+                    mode: gbs.gitModes.file
+                    hash: data.hash
+                  if newBlob
+                     collection.findOneStream({ _id: d._id })?.pipe @_writeFile data, (err, data) =>
+                        console.log "FileStream written", data
+                        done null, record
+                  else
+                     console.log "File present", data
+                     done null, record
             throw res.error if res.error
             return res.result
