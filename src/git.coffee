@@ -8,6 +8,14 @@ if Meteor.isServer
 
    gbs = Npm.require 'git-blob-stream'
 
+   through2 = Npm.require 'through2'
+
+   strStream = (data) ->
+      s = through2()
+      s.write data
+      s.end()
+      return s
+
    share.Git = class Git
 
       constructor: (@fC, @repo = '') ->
@@ -54,15 +62,28 @@ if Meteor.isServer
             console.log "Here are the refs!", refs
             outStream.end refs
 
+      _readFile: (query) ->
+         Async.runSync (done) =>
+            buffers = []
+            bufferLen = 0
+            rs = @fC.findOneStream query
+            rs.on 'data', (buffer) =>
+               bufferLen += buffer.length
+               buffers.push buffer
+            rs.on 'end', () =>
+               done null, Buffer.concat(buffers, bufferLen)
+            rs.on 'error', (err) =>
+               done err
+
       _readHead: () ->
-         query =
-            _id: "#{@prefix}/HEAD"
-         ref = @fC.findOne query
-         if ref
-            return ref.metadata._Git.ref
-         else
-            console.warn "Missing HEAD"
+         headRef = @_readRef 'HEAD'
+         unless headRef?
             return null
+         unless headRef[..4] is 'ref: '
+            console.warn 'HEAD is detached'
+            return headRef
+         else
+            return @_readRef headRef[5..]
 
       _writeHead: (ref) ->
          Async.runSync (done) =>
@@ -85,11 +106,14 @@ if Meteor.isServer
          query =
             _id: "#{@prefix}/#{ref}"
          ref = @fC.findOne query
-         if ref
+         unless ref?
+            console.warn "Missing ref: #{ref}"
+            return null
+         if ref.metadata?._Git?.ref?
             return ref.metadata._Git.ref
          else
-            console.warn "Missing Ref"
-            return null
+            # Read the file...
+            return _readFile(query).result
 
       _writeRef: (ref, commit) ->
          Async.runSync (done) =>
@@ -189,90 +213,91 @@ if Meteor.isServer
                      done null, data
                gbs.tagWriter(tag).pipe(outStream)
 
-      _checkFile: (callback) ->
-         # TODO Make this synchronous
-         return gbs.blobWriter { type: 'blob', noOutput: true }, Meteor.bindEnvironment (err, data) =>
-            if err
-               return callback err
-            name = "#{@prefix}/#{@_objPath data.hash}"
-            if @fC.findOne { _id: name }
-               callback null, data, false
-            else
-               callback null, data, true
+      _checkFile: (inputStream) ->
+         res = Async.runSync (done) =>
+            inputStream.pipe gbs.blobWriter { type: 'blob', noOutput: true }, Meteor.bindEnvironment (err, data) =>
+               if err
+                  return done err
+               name = "#{@prefix}/#{@_objPath data.hash}"
+               if @fC.findOne { _id: name }
+                  done null, { blob: data, newBlob: false }
+               else
+                  done null, { blob: data, newBlob: true }
 
-      _writeFile: (data, callback) ->
-         # TODO Make this synchronous, optionally pass in a buffer or input stream?
-         name = "#{@prefix}/#{@_objPath data.hash}"
-         bw = gbs.blobWriter
-               type: 'blob'
-               size: data.length
-            ,  Meteor.bindEnvironment (err, obj) =>
-               console.dir obj
-               callback? err, obj
-         outStream = @fC.upsertStream
-               _id: name
-               filename: name
-               metadata:
-                  _Git:
-                     repo: @repo
-                     sha1: data.hash
-                     type: 'blob'
-                     size: data.length
-            , (err, f) =>
-               console.dir f, { depth: null }
-               console.log "#{data.hash} written! as #{f._id}", err
-         bw.pipe(outStream)
-         return bw
+      _writeFile: (data, stream) ->
+         res = Async.runSync (done) =>
+            name = "#{@prefix}/#{@_objPath data.hash}"
+            bw = gbs.blobWriter
+                  type: 'blob'
+                  size: data.length
+               ,  (err, obj) =>
+                  console.dir obj
+                  done err, obj
+            outStream = @fC.upsertStream
+                  _id: name
+                  filename: name
+                  metadata:
+                     _Git:
+                        repo: @repo
+                        sha1: data.hash
+                        type: 'blob'
+                        size: data.size
+               , (err, f) =>
+                  console.dir f, { depth: null }
+                  console.log "#{data.hash} written! as #{f._id}", err
+            stream.pipe(bw).pipe(outStream)
+         return res
 
       _makeDbTree: (collection, query) ->
          @_writeTree collection.find(query).map (d) =>
             res = Async.runSync (done) =>
                canon = EJSON.stringify d, { canonical: true, indent: true }
-               c = @_checkFile (err, data, newBlob) =>
-                  if err
-                     return done err
-                  record =
-                    name: "#{d._id}"
-                    mode: gbs.gitModes.file
-                    hash: data.hash
-                  if newBlob
-                     w = @_writeFile data, (err, data) =>
-                        if err
-                           return done err
-                        console.log "Record written", canon, data
-                        done null, record
-                     w.end canon
-                  else
-                     console.log "Record present", canon, data
-                     done null, record
-               c.end canon
+               r = @_checkFile strStream(canon)
+               if r.error
+                  return done r.error
+               record =
+                  name: "#{d._id}"
+                  mode: gbs.gitModes.file
+                  hash: r.result.blob.hash
+               if r.result.newBlob
+                  rr = @_writeFile r.result.blob, strStream(canon)
+                  if rr.error
+                     return done rr.error
+                  console.log "Record written", canon, rr.result
+                  done null, record
+               else
+                  console.log "Record present", canon, r.result.blob
+                  done null, record
             throw res.error if res.error
             return res.result
 
       _makeFcTree: (collection, query) ->
          @_writeTree collection.find(query).map (d) =>
-            res = Async.runSync (done) =>
-
-               # Add ability to cache sha1/size and make them depend on md5
-               # So that unchanging files don't need to be rehashed again and again:
-               # if d.metadata._blobCache?.md5 is d.md5
-               #   # Do something else.
-               # _checkFile should be able to handle this...
-
-               # Check if this blob exists
-               collection.findOneStream({ _id: d._id })?.pipe @_checkFile (err, data, newBlob) =>
-                  if err
-                     return done err
+            if d.metadata?._blobCache?.md5 is d.md5
+               name = "#{@prefix}/#{@_objPath d.metadata._blobCache.sha1}"
+               doc = @fC.findOne name
+               if doc
+                  console.log "Hit blob cache!"
                   record =
-                    name: "#{d._id}"
-                    mode: gbs.gitModes.file
-                    hash: data.hash
-                  if newBlob
-                     collection.findOneStream({ _id: d._id })?.pipe @_writeFile data, (err, data) =>
-                        console.log "FileStream written", data
-                        done null, record
-                  else
-                     console.log "File present", data
-                     done null, record
+                     name: d.filename
+                     mode: gbs.gitModes.file
+                     hash: d.metadata._blobCache.sha1
+                  return record
+            res = Async.runSync (done) =>
+               # Check if this blob exists
+               r = @_checkFile collection.findOneStream({ _id: d._id })
+               if r.error
+                  return done r.error
+               record =
+                 name: d.filename
+                 mode: gbs.gitModes.file
+                 hash: r.result.blob.hash
+               if r.result.newBlob
+                  rr = @_writeFile r.result.blob, collection.findOneStream({ _id: d._id })
+                  console.log "FileStream written", rr.result
+               else
+                  console.log "File present", r.result.blob
+               collection.update { _id: d._id }, { $set: { 'metadata._blobCache': { md5: d.md5, sha1: r.result.blob.hash } } }
+               done null, record
             throw res.error if res.error
             return res.result
