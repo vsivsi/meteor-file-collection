@@ -180,7 +180,7 @@ if Meteor.isServer
             metadata: req.gridFS.metadata
 
          unless writeStream
-            res.writeHead(404, {'Content-Type':'text/plain','Access-Control-Allow-Origin': 'http://meteor.local', 'hase':2})
+            res.writeHead(404, {'Content-Type':'text/plain','Access-Control-Allow-Origin': 'http://meteor.local'})
             res.end()
             return
 

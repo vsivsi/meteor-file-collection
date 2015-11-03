@@ -240,7 +240,7 @@ if Meteor.isServer
                res.writeHead(500, {'Content-Type':'text/plain','Access-Control-Allow-Origin': 'http://meteor.local'})
                res.end(err)
       else
-         res.writeHead(404, {'Content-Type':'text/plain','Access-Control-Allow-Origin': 'http://meteor.local', 'hase':'3'})
+         res.writeHead(404, {'Content-Type':'text/plain','Access-Control-Allow-Origin': 'http://meteor.local'})
          res.end("#{req.url} Not found!")
 
    # Handle a generic HTTP DELETE request
@@ -291,7 +291,7 @@ if Meteor.isServer
                   req.gridFS = @findOne lookup
                   unless req.gridFS
 
-                     res.writeHead(404, {'Content-Type':'text/plain','Access-Control-Allow-Origin': 'http://meteor.local',hase:'5'})
+                     res.writeHead(404, {'Content-Type':'text/plain','Access-Control-Allow-Origin': 'http://meteor.local'})
                      res.end()
                      return
 
@@ -333,7 +333,7 @@ if Meteor.isServer
 
 
             unless req.gridFS
-               res.writeHead(404, {'Content-Type':'text/plain','Access-Control-Allow-Origin': 'http://meteor.local', 'hase':'6'})
+               res.writeHead(404, {'Content-Type':'text/plain','Access-Control-Allow-Origin': 'http://meteor.local'})
                res.end()
                return
             next()
