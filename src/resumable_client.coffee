@@ -21,12 +21,16 @@ if Meteor.isClient
             return fToBind.apply(func, aArgs.concat(Array.prototype.slice.call(arguments)))
 
          fNOP.prototype = this.prototype
+
          fBound.prototype = new fNOP()
          return fBound
 
    share.setup_resumable = () ->
+      url = "#{@baseURL}/_resumable"
+      url = Meteor.absoluteUrl(url) if Meteor.isCordova
+
       r = new Resumable
-         target: "#{@baseURL}/_resumable"
+         target: url
          generateUniqueIdentifier: (file) -> "#{new Meteor.Collection.ObjectID()}"
          fileParameterName: 'file'
          chunkSize: @chunkSize
@@ -38,7 +42,8 @@ if Meteor.isClient
          maxFilesErrorCallback: undefined
          prioritizeFirstAndLastChunk: false
          query: undefined
-         headers: {}
+         headers: {},
+         maxChunkRetries:5
 
       unless r.support
          console.warn "resumable.js not supported by this Browser, uploads will be disabled"
