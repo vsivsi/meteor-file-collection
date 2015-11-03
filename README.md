@@ -1,5 +1,10 @@
 # file-collection
 
+## Cordova information
+Due to a bug in Cordova, you need to add the following line into your mobile-config.js
+```
+App.accessRule("blob:*");
+```
 ## Introduction
 
 file-collection is a Meteor.js package that cleanly extends Meteor's Collection metaphor for efficiently dealing with collections of files and their data. File Collections are fully reactive, and if you know how to use Meteor Collections, you already know most of what you need to begin working with this package.
