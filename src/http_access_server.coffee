@@ -322,7 +322,7 @@ if Meteor.isServer
 
 
 
-         .options (req, res, next) ->  # Make sure a file has been selected by some rule
+         .options (req, res, next) ->  # Needed for CORS support, browser sends options to check if CORDS is supported by server
             res.writeHead(200, {'Content-Type':'text/plain','Access-Control-Allow-Origin': 'http://meteor.local'})
             res.end()
             return
