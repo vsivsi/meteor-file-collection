@@ -287,7 +287,6 @@ if Meteor.isServer
                   # Perform the collection query
                   if req.query.resumableIdentifier
                       lookup = {_id: new Mongo.ObjectID(req.query.resumableIdentifier)};  #  Todo: This workaround only works if you've defined '_id' as identifier, so it will break the package if you use f.e. md5 as identifier. We need this workaround lookup has the value {_id:null} when uploading via Cordova.
-                      console.log(req)
                   req.gridFS = @findOne lookup
                   unless req.gridFS
 
