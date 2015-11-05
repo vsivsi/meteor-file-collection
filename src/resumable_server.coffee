@@ -252,4 +252,10 @@ if Meteor.isServer
          lookup: resumable_get_lookup
          handler: resumable_get_handler
       }
+      {
+         method: 'head'
+         path: '/_resumable'
+         lookup: resumable_get_lookup
+         handler: resumable_get_handler
+      }
    ]

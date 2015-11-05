@@ -1,7 +1,8 @@
 ## Revision history
 
-### v.NEXT
+### v1.2.1
 
+* Fixed bug where HEAD requests were always returning 404, even when a chunk was present in the gridFS store. Thanks to @dnish
 * Don't create unused readable streams for HTTP HEAD requests
 
 ### v1.2.0
