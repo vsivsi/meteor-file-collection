@@ -218,17 +218,16 @@ if Meteor.isServer
          $or: [
             {
                _id: share.safeObjectID(query.resumableIdentifier)
-               length: query.resumableTotalSize
+               length: parseInt query.resumableTotalSize
             }
             {
-               length: query.resumableCurrentChunkSize
+               length: parseInt query.resumableCurrentChunkSize
                'metadata._Resumable.resumableIdentifier': query.resumableIdentifier
-               'metadata._Resumable.resumableChunkNumber': query.resumableChunkNumber
+               'metadata._Resumable.resumableChunkNumber': parseInt query.resumableChunkNumber
             }
          ]
 
       result = @findOne chunkQuery, { fields: { _id: 1 }}
-
       if result
          # Chunk is present
          res.writeHead(200, {'Content-Type':'text/plain'})

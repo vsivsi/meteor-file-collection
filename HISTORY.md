@@ -2,7 +2,9 @@
 
 ### v1.2.1
 
-* Fixed bug where HEAD requests were always returning 404, even when a chunk was present in the gridFS store. Thanks to @dnish for help figuring this out.
+* Fixed bug causing resumable HEAD requests to always return 404, even when a chunk was present in the gridFS store. Thanks to @dnish for help figuring this out.
+* Fixed bug causing resumable GET requests to always return 204, even when a chunk was present in the gridFS store.
+* Added unit tests for resumable.js GET/HEAD test request backend support
 * Don't create unused readable streams for HTTP HEAD requests.
 * Unit tests fixed for Meteor 1.2.x by adding many missing meteor packages to test build.
 
