@@ -13,7 +13,7 @@ bind_env = (func) ->
 subWrapper = (sub, func) ->
   (test, onComplete) ->
     if Meteor.isClient
-      Deps.autorun () ->
+      Tracker.autorun () ->
         if sub.ready()
           func test, onComplete
     else

@@ -26,10 +26,11 @@ Npm.depends({
 });
 
 Package.onUse(function(api) {
-  api.use('coffeescript@1.0.6', ['server','client']);
-  api.use('webapp@1.2.0', 'server');
-  api.use('mongo@1.1.0', ['server', 'client']);
-  api.use('minimongo@1.0.8', 'server');
+  api.use('coffeescript@1.0.11', ['server','client']);
+  api.use('webapp@1.2.3', 'server');
+  api.use('mongo@1.1.3', ['server', 'client']);
+  api.use('minimongo@1.0.10', 'server');
+  api.use('check@1.1.0', ['server', 'client']);
   api.addFiles('resumable/resumable.js', 'client');
   api.addFiles('src/gridFS.coffee', ['server','client']);
   api.addFiles('src/server_shared.coffee', 'server');
@@ -43,9 +44,14 @@ Package.onUse(function(api) {
 
 Package.onTest(function (api) {
   api.use('vsivsi:file-collection@' + currentVersion, ['server', 'client']);
-  api.use('coffeescript@1.0.6', ['server', 'client']);
-  api.use('tinytest@1.0.5', ['server', 'client']);
-  api.use('test-helpers@1.0.4', ['server','client']);
-  api.use('http@1.1.0', ['server','client']);
+  api.use('coffeescript@1.0.11', ['server', 'client']);
+  api.use('tinytest@1.0.6', ['server', 'client']);
+  api.use('test-helpers@1.0.5', ['server','client']);
+  api.use('http@1.1.1', ['server','client']);
+  api.use('ejson@1.0.7',['server','client']);
+  api.use('mongo@1.1.3', ['server', 'client']);
+  api.use('check@1.1.0', ['server', 'client']);
+  api.use('tracker@1.0.9', 'client');
+  api.use('jquery@1.11.4', 'client');
   api.addFiles('test/file_collection_tests.coffee', ['server', 'client']);
 });
