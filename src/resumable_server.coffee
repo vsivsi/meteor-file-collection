@@ -208,6 +208,7 @@ if Meteor.isServer
                res.end())
 
    resumable_get_lookup = (params, query) ->
+      console.log('yaay');
       q = { _id: share.safeObjectID(query.resumableIdentifier) }
       return q
 
@@ -242,12 +243,15 @@ if Meteor.isServer
 
    # Setup the GET and POST HTTP REST paths for Resumable.js in express
    share.resumable_paths = [
+
+
       {
          method: 'post'
          path: '/_resumable'
          lookup: resumable_post_lookup
          handler: resumable_post_handler
       }
+
       {
          method: 'get'
          path: '/_resumable'

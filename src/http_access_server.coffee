@@ -272,8 +272,11 @@ if Meteor.isServer
             (req, res, next) =>
 
                # params and queries literally named "_id" get converted to ObjectIDs automatically
+
+
                req.params._id = share.safeObjectID(req.params._id) if req.params?._id?
                req.query._id = share.safeObjectID(req.query._id) if req.query?._id?
+
 
 
                # Build the path lookup mongoDB query object for the gridFS files collection
@@ -285,8 +288,12 @@ if Meteor.isServer
                   return
                else
                   # Perform the collection query
-                  if req.query.resumableIdentifier
-                      lookup = {_id: new Mongo.ObjectID(req.query.resumableIdentifier)};  #  Todo: This workaround only works if you've defined '_id' as identifier, so it will break the package if you use f.e. md5 as identifier. We need this workaround lookup has the value {_id:null} when uploading via Cordova.
+
+
+                  console.log(req.params._id)
+                  console.log(req.query._id )
+                  #if req.query.resumableIdentifier
+                      #lookup = {_id: new Mongo.ObjectID(req.query.resumableIdentifier)};  #  Todo: This workaround only works if you've defined '_id' as identifier, so it will break the package if you use f.e. md5 as identifier. We need this workaround lookup has the value {_id:null} when uploading via Cordova.
                   req.gridFS = @findOne lookup
                   unless req.gridFS
 
