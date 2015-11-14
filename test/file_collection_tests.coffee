@@ -13,7 +13,7 @@ bind_env = (func) ->
 subWrapper = (sub, func) ->
   (test, onComplete) ->
     if Meteor.isClient
-      Deps.autorun () ->
+      Tracker.autorun () ->
         if sub.ready()
           func test, onComplete
     else
@@ -352,7 +352,7 @@ Tinytest.addAsync 'REST API POST/GET/DELETE', (test, onComplete) ->
 
 createContent = (_id, data, name, chunkNum, chunkSize = 16) ->
   totalChunks = Math.floor(data.length / chunkSize)
-  totalChunks = 1 if totalChunks is 0
+  totalChunks += 1 unless totalChunks*chunkSize is data.length
   throw new Error "Bad chunkNum" if chunkNum > totalChunks
   begin = (chunkNum - 1) * chunkSize
   end = if chunkNum is totalChunks then data.length else chunkNum * chunkSize
@@ -411,6 +411,14 @@ createContent = (_id, data, name, chunkNum, chunkSize = 16) ->
     --AaB03x--\r
   """
 
+createCheckQuery = (_id, data, name, chunkNum, chunkSize = 16) ->
+  totalChunks = Math.floor(data.length / chunkSize)
+  totalChunks += 1 unless totalChunks*chunkSize is data.length
+  throw new Error "Bad chunkNum" if chunkNum > totalChunks
+  begin = (chunkNum - 1) * chunkSize
+  end = if chunkNum is totalChunks then data.length else chunkNum * chunkSize
+  "?resumableChunkNumber=#{chunkNum}&resumableChunkSize=#{chunkSize}&resumableCurrentChunkSize=#{end-begin}&resumableTotalSize=#{data.length}&resumableType=text/plain&resumableIdentifier=#{_id}&resumableFilename=#{name}&resumableRelativePath=#{name}&resumableTotalChunks=#{totalChunks}"
+
 Tinytest.addAsync 'Basic resumable.js REST interface POST/GET/DELETE', (test, onComplete) ->
   testColl.insert { filename: 'writeresumablefile', contentType: 'text/plain' }, (err, _id) ->
     test.fail(err) if err
@@ -430,7 +438,7 @@ Tinytest.addAsync 'Basic resumable.js REST interface POST/GET/DELETE', (test, on
 
 Tinytest.addAsync 'Basic resumable.js REST interface POST/GET/DELETE, multiple chunks', (test, onComplete) ->
 
-  data = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+  data = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ012345'
 
   testColl.insert { filename: 'writeresumablefile', contentType: 'text/plain' }, (err, _id) ->
     test.fail(err) if err
@@ -440,20 +448,26 @@ Tinytest.addAsync 'Basic resumable.js REST interface POST/GET/DELETE, multiple c
     HTTP.post url, { headers: { 'Content-Type': 'multipart/form-data; boundary="AaB03x"'}, content: content },
       (err, res) ->
         test.fail(err) if err
-        HTTP.post url, { headers: { 'Content-Type': 'multipart/form-data; boundary="AaB03x"'}, content: content2 },
-          (err, res) ->
+        HTTP.get url + createCheckQuery(_id, data, "writeresumablefile", 2), (err, res) ->
+          test.fail(err) if err
+          test.equal res.statusCode, 204
+          HTTP.call 'head', url + createCheckQuery(_id, data, "writeresumablefile", 1), (err, res) ->
             test.fail(err) if err
-            url = Meteor.absoluteUrl 'test/byid/' + _id
-            HTTP.get url, (err, res) ->
-              test.fail(err) if err
-              test.equal res.content, data
-              HTTP.del url, (err, res) ->
+            test.equal res.statusCode, 200
+            HTTP.post url, { headers: { 'Content-Type': 'multipart/form-data; boundary="AaB03x"'}, content: content2 },
+              (err, res) ->
                 test.fail(err) if err
-                onComplete()
+                url = Meteor.absoluteUrl 'test/byid/' + _id
+                HTTP.get url, (err, res) ->
+                  test.fail(err) if err
+                  test.equal res.content, data
+                  HTTP.del url, (err, res) ->
+                    test.fail(err) if err
+                    onComplete()
 
 Tinytest.addAsync 'Basic resumable.js REST interface POST/GET/DELETE, duplicate chunks', (test, onComplete) ->
 
-  data = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+  data = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ012345'
 
   testColl.insert { filename: 'writeresumablefile', contentType: 'text/plain' }, (err, _id) ->
     test.fail(err) if err
@@ -479,7 +493,7 @@ Tinytest.addAsync 'Basic resumable.js REST interface POST/GET/DELETE, duplicate 
 
 Tinytest.addAsync 'Basic resumable.js REST interface POST/GET/DELETE, duplicate chunks 2', (test, onComplete) ->
 
-  data = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+  data = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ012345'
 
   testColl.insert { filename: 'writeresumablefile', contentType: 'text/plain' }, (err, _id) ->
     test.fail(err) if err
@@ -505,7 +519,7 @@ Tinytest.addAsync 'Basic resumable.js REST interface POST/GET/DELETE, duplicate 
 
 Tinytest.addAsync 'Basic resumable.js REST interface POST/GET/DELETE, duplicate chunks 3', (test, onComplete) ->
 
-  data = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnopqrstuvwxyz'
+  data = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdef'
 
   testColl.insert { filename: 'writeresumablefile', contentType: 'text/plain' }, (err, _id) ->
     test.fail(err) if err

@@ -221,17 +221,16 @@ if Meteor.isServer
          $or: [
             {
                _id: share.safeObjectID(query.resumableIdentifier)
-               length: query.resumableTotalSize
+               length: parseInt query.resumableTotalSize
             }
             {
-               length: query.resumableCurrentChunkSize
+               length: parseInt query.resumableCurrentChunkSize
                'metadata._Resumable.resumableIdentifier': query.resumableIdentifier
-               'metadata._Resumable.resumableChunkNumber': query.resumableChunkNumber
+               'metadata._Resumable.resumableChunkNumber': parseInt query.resumableChunkNumber
             }
          ]
 
       result = @findOne chunkQuery, { fields: { _id: 1 }}
-
       if result
          # Chunk is present
          res.writeHead(200, {'Content-Type':'text/plain','Access-Control-Allow-Origin': 'http://meteor.local'})
@@ -254,6 +253,12 @@ if Meteor.isServer
 
       {
          method: 'get'
+         path: '/_resumable'
+         lookup: resumable_get_lookup
+         handler: resumable_get_handler
+      }
+      {
+         method: 'head'
          path: '/_resumable'
          lookup: resumable_get_lookup
          handler: resumable_get_handler

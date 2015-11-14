@@ -165,13 +165,14 @@ if Meteor.isServer
             'Access-Control-Allow-Origin': 'http://meteor.local'
 
         # Read the partial request from gridfs stream
-        stream = @findOneStream(
-          _id: req.gridFS._id
-        ,
-          range:
-            start: start
-            end: end
-        )
+        unless req.method is 'HEAD'
+           stream = @findOneStream(
+             _id: req.gridFS._id
+           ,
+             range:
+               start: start
+               end: end
+           )
 
       # Otherwise prepare to stream the whole file
       else
@@ -186,7 +187,8 @@ if Meteor.isServer
             'Last-Modified': req.gridFS.uploadDate.toUTCString()
 
         # Open file to stream
-        stream = @findOneStream { _id: req.gridFS._id }
+        unless req.method is 'HEAD'
+           stream = @findOneStream { _id: req.gridFS._id }
 
       # Trigger download in browser, optionally specify filename.
       if (req.query.download and req.query.download.toLowerCase() == 'true') or req.query.filename
