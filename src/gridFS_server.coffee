@@ -322,6 +322,7 @@ if Meteor.isServer
          file ?= {}
          file.filename ?= path.basename filePath
          readStream = fs.createReadStream filePath
+         readStream.on('error', share.bind_env(callback))
          writeStream = @upsertStream file
          readStream.pipe(share.streamChunker(@chunkSize)).pipe(writeStream)
             .on('close', share.bind_env((d) -> callback(null, d)))

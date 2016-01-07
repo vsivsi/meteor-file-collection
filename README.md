@@ -676,7 +676,7 @@ The `selector` parameter works as it does with `fc.findOneStream()`. The `filePa
 #### Import a local filesystem file into a file collection file. - Server only
 
 ```javascript
-// Write a file to wherever it belongs in the filesystem
+// Read a file into the collection from the filesystem
 fc.importFile('/funtimes/lolcat_183.gif',
               { filename: 'lolcat_183.gif',
                 contentType: 'image/gif'

@@ -1,5 +1,12 @@
 ## Revision history
 
+### v1.2.2
+
+* Fixed an uncaught throw in `importFile()` when the input file doesn't exist, thanks to @dpatte
+* Updated resumable.js to latest master
+* Updated dependencies
+* Documentation improvements
+
 ### v1.2.1
 
 * Fixed bug causing resumable HEAD requests to always return 404, even when a chunk was present in the gridFS store. Thanks to @dnish for help figuring this out.

@@ -239,6 +239,13 @@ Tinytest.addAsync 'FileCollection insert and find with options in callback', sub
 
 if Meteor.isServer
 
+  Tinytest.addAsync 'Proper error handling for missing file on import',
+    (test, onComplete) ->
+      bogusfile = "/bogus/file.not"
+      testColl.importFile bogusfile, {}, bind_env (err, doc) ->
+         test.fail(err) unless err
+         onComplete()
+
   Tinytest.addAsync 'Server accepts good and rejects bad updates', (test, onComplete) ->
     _id = testColl.insert()
     testColl.update _id, { $set: { "metadata.test": 1 } }, (err, res) ->
