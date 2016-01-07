@@ -208,7 +208,6 @@ if Meteor.isServer
                res.end())
 
    resumable_get_lookup = (params, query) ->
-      console.log('yaay');
       q = { _id: share.safeObjectID(query.resumableIdentifier) }
       return q
 
