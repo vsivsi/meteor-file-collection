@@ -1,5 +1,5 @@
 ############################################################################
-#     Copyright (C) 2014-2015 by Vaughn Iverson
+#     Copyright (C) 2014-2016 by Vaughn Iverson
 #     fileCollection is free software released under the MIT/X11 license.
 #     See included LICENSE file for details.
 ############################################################################
@@ -12,8 +12,6 @@ if Meteor.isServer
    gridLocks = Npm.require 'gridfs-locks'
    dicer = Npm.require 'dicer'
    async = Npm.require 'async'
-
-   allowCORSCordova = "'Access-Control-Allow-Origin': 'http://meteor.local'";
 
    # This function checks to see if all of the parts of a Resumable.js uploaded file are now in the gridFS
    # Collection. If so, it completes the file by moving all of the chunks to the correct file and cleans up
@@ -138,7 +136,7 @@ if Meteor.isServer
       # This has to be a resumable POST
       unless req.multipart?.params?.resumableIdentifier
          console.error "Missing resumable.js multipart information"
-         res.writeHead(501, {'Content-Type':'text/plain','Access-Control-Allow-Origin': 'http://meteor.local'})
+         res.writeHead(501, share.defaultResponseHeaders)
          res.end()
          return
 
@@ -155,7 +153,7 @@ if Meteor.isServer
               ((resumable.resumableChunkNumber is resumable.resumableTotalChunks) and
                (resumable.resumableCurrentChunkSize < 2*resumable.resumableChunkSize)))
 
-         res.writeHead(501, {'Content-Type':'text/plain','Access-Control-Allow-Origin': 'http://meteor.local'})
+         res.writeHead(501, share.defaultResponseHeaders)
          res.end()
          return
 
@@ -170,7 +168,7 @@ if Meteor.isServer
       if findResult
          # Duplicate chunk... Don't rewrite it.
          # console.warn "Duplicate chunk detected: #{resumable.resumableChunkNumber}, #{resumable.resumableIdentifier}"
-         res.writeHead(200, {'Content-Type':'text/plain','Access-Control-Allow-Origin': 'http://meteor.local'})
+         res.writeHead(200, share.defaultResponseHeaders)
          res.end()
       else
          # Everything looks good, so write this part
@@ -180,7 +178,7 @@ if Meteor.isServer
             metadata: req.gridFS.metadata
 
          unless writeStream
-            res.writeHead(404, {'Content-Type':'text/plain','Access-Control-Allow-Origin': 'http://meteor.local'})
+            res.writeHead(404, share.defaultResponseHeaders)
             res.end()
             return
 
@@ -191,20 +189,20 @@ if Meteor.isServer
                   check_order.bind(@)(req.gridFS, (err) ->
                      if err
                         console.error "Error reassembling chunks of resumable.js upload", err
-                        res.writeHead(500, {'Content-Type':'text/plain','Access-Control-Allow-Origin': 'http://meteor.local'})
+                        res.writeHead(500, share.defaultResponseHeaders)
                      else
-                        res.writeHead(200, {'Content-Type':'text/plain','Access-Control-Allow-Origin': 'http://meteor.local'})
+                        res.writeHead(200, share.defaultResponseHeaders)
                      res.end()
                   )
                else
                   console.error "Missing retFile on pipe close"
-                  res.writeHead(500, {'Content-Type':'text/plain','Access-Control-Allow-Origin': 'http://meteor.local'})
+                  res.writeHead(500, share.defaultResponseHeaders)
                   res.end()
                )
 
             .on 'error', share.bind_env((err) =>
                console.error "Piping Error!", err
-               res.writeHead(500, {'Content-Type':'text/plain','Access-Control-Allow-Origin': 'http://meteor.local'})
+               res.writeHead(500, share.defaultResponseHeaders)
                res.end())
 
    resumable_get_lookup = (params, query) ->
@@ -232,10 +230,10 @@ if Meteor.isServer
       result = @findOne chunkQuery, { fields: { _id: 1 }}
       if result
          # Chunk is present
-         res.writeHead(200, {'Content-Type':'text/plain','Access-Control-Allow-Origin': 'http://meteor.local'})
+         res.writeHead(200, share.defaultResponseHeaders)
       else
          # Chunk is missing
-         res.writeHead(204, {'Content-Type':'text/plain','Access-Control-Allow-Origin': 'http://meteor.local'})
+         res.writeHead(204, share.defaultResponseHeaders)
 
       res.end()
 

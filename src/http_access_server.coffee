@@ -1,5 +1,5 @@
 ############################################################################
-#     Copyright (C) 2014-2015 by Vaughn Iverson
+#     Copyright (C) 2014-2016 by Vaughn Iverson
 #     fileCollection is free software released under the MIT/X11 license.
 #     See included LICENSE file for details.
 ############################################################################
@@ -12,10 +12,6 @@ if Meteor.isServer
    grid = Npm.require 'gridfs-locking-stream'
    gridLocks = Npm.require 'gridfs-locks'
    dicer = Npm.require 'dicer'
-
-
-   # Add this to all response headers to allow CORS for cordova with origin http://meteor.local
-   allowCORSCordova = "'Access-Control-Allow-Origin': 'http://meteor.local'";
 
    find_mime_boundary = (req) ->
       RE_BOUNDARY = /^multipart\/.+?(?:; boundary=(?:(?:"(.+)")|(?:([^\s]+))))$/i
@@ -36,7 +32,7 @@ if Meteor.isServer
          console.error "#{msg} \n", err
          unless responseSent
             responseSent = true
-            res.writeHead retCode, {'Content-Type':'text/plain'}
+            res.writeHead retCode, share.defaultResponseHeaders
             res.end()
 
       boundary = find_mime_boundary req
@@ -121,13 +117,13 @@ if Meteor.isServer
          req.multipart.fileStream.pipe(share.streamChunker(@chunkSize)).pipe(stream)
             .on 'close', (retFile) ->
                if retFile
-                  res.writeHead(200, {'Content-Type':'text/plain', 'Access-Control-Allow-Origin': 'http://meteor.local'})
+                  res.writeHead(200, share.defaultResponseHeaders)
                   res.end()
             .on 'error', (err) ->
-               res.writeHead(500, {'Content-Type':'text/plain','Access-Control-Allow-Origin': 'http://meteor.local'})
+               res.writeHead(500, share.defaultResponseHeaders)
                res.end()
       else
-         res.writeHead(410, {'Content-Type':'text/plain','Access-Control-Allow-Origin': 'http://meteor.local'})
+         res.writeHead(410, share.defaultResponseHeaders)
          res.end()
 
    # Handle a generic HTTP GET request
@@ -135,6 +131,10 @@ if Meteor.isServer
    # If the request URL has a "?download=true" query, then a browser download response is triggered
 
    get = (req, res, next) ->
+
+      headers = {}
+      for h, v of share.defaultResponseHeaders
+         headers[h] = v
 
       # If range request in the header
       if req.headers['range']
@@ -148,7 +148,8 @@ if Meteor.isServer
 
         # Unable to handle range request - Send the valid range with status code 416
         if (start < 0) or (end >= req.gridFS.length) or (start > end) or isNaN(start) or isNaN(end)
-          res.writeHead 416, { 'Content-Type':'text/plain', 'Content-Range': 'bytes ' + '*/' + req.gridFS.length }
+          headers['Content-Range'] = 'bytes ' + '*/' + req.gridFS.length
+          res.writeHead 416, headers
           res.end()
           return
 
@@ -156,13 +157,13 @@ if Meteor.isServer
         chunksize = (end - start) + 1
 
         # Construct the range request header
-        headers =
-            'Content-Range': 'bytes ' + start + '-' + end + '/' + req.gridFS.length
-            'Accept-Ranges': 'bytes'
-            'Content-Type': req.gridFS.contentType
-            'Content-Length': chunksize
-            'Last-Modified': req.gridFS.uploadDate.toUTCString()
-            'Access-Control-Allow-Origin': 'http://meteor.local'
+        # headers = {}
+        headers['Content-Range'] = 'bytes ' + start + '-' + end + '/' + req.gridFS.length
+        headers['Accept-Ranges'] = 'bytes'
+        headers['Content-Type'] = req.gridFS.contentType
+        headers['Content-Length'] = chunksize
+        headers['Last-Modified'] = req.gridFS.uploadDate.toUTCString()
+        headers['Access-Control-Allow-Origin'] = 'http://meteor.local'
 
         # Read the partial request from gridfs stream
         unless req.method is 'HEAD'
@@ -180,11 +181,12 @@ if Meteor.isServer
         statusCode = 200
 
         # Set default headers
-        headers =
-            'Content-type': req.gridFS.contentType
-            'Content-MD5': req.gridFS.md5
-            'Content-Length': req.gridFS.length
-            'Last-Modified': req.gridFS.uploadDate.toUTCString()
+        headers = {}
+        headers['Content-Type'] = req.gridFS.contentType
+        headers['Content-MD5'] = req.gridFS.md5
+        headers['Content-Length'] = req.gridFS.length
+        headers['Last-Modified'] = req.gridFS.uploadDate.toUTCString()
+        headers['Access-Control-Allow-Origin'] = 'http://meteor.local'
 
         # Open file to stream
         unless req.method is 'HEAD'
@@ -212,10 +214,10 @@ if Meteor.isServer
             .on 'close', () ->
                res.end()
             .on 'error', (err) ->
-               res.writeHead(500, {'Content-Type':'text/plain'})
+               res.writeHead(500, share.defaultResponseHeaders)
                res.end(err)
       else
-         res.writeHead(410, {'Content-Type':'text/plain'})
+         res.writeHead(410, share.defaultResponseHeaders)
          res.end()
 
    # Handle a generic HTTP PUT request
@@ -236,13 +238,14 @@ if Meteor.isServer
          req.pipe(share.streamChunker(@chunkSize)).pipe(stream)
             .on 'close', (retFile) ->
                if retFile
-                  res.writeHead(200, {'Content-Type':'text/plain', 'Access-Control-Allow-Origin': 'http://meteor.local'})
+                  res.writeHead(200, share.defaultResponseHeaders)
                   res.end()
+               else
             .on 'error', (err) ->
-               res.writeHead(500, {'Content-Type':'text/plain','Access-Control-Allow-Origin': 'http://meteor.local'})
+               res.writeHead(500, share.defaultResponseHeaders)
                res.end(err)
       else
-         res.writeHead(404, {'Content-Type':'text/plain','Access-Control-Allow-Origin': 'http://meteor.local'})
+         res.writeHead(404, share.defaultResponseHeaders)
          res.end("#{req.url} Not found!")
 
    # Handle a generic HTTP DELETE request
@@ -254,7 +257,7 @@ if Meteor.isServer
    del = (req, res, next) ->
 
       @remove req.gridFS
-      res.writeHead(204, {'Content-Type':'text/plain','Access-Control-Allow-Origin': 'http://meteor.local'})
+      res.writeHead(204, share.defaultResponseHeaders)
       res.end()
 
    # Setup all of the application specified paths and file lookups in express
@@ -274,32 +277,22 @@ if Meteor.isServer
             (req, res, next) =>
 
                # params and queries literally named "_id" get converted to ObjectIDs automatically
-
-
                req.params._id = share.safeObjectID(req.params._id) if req.params?._id?
                req.query._id = share.safeObjectID(req.query._id) if req.query?._id?
-
-
 
                # Build the path lookup mongoDB query object for the gridFS files collection
                lookup = r.lookup?.bind(@)(req.params or {}, req.query or {}, req.multipart)
                unless lookup?
                   # No lookup returned, so bailing
-                  res.writeHead(500, {'Content-Type':'text/plain','Access-Control-Allow-Origin': 'http://meteor.local'})
+                  res.writeHead(500, share.defaultResponseHeaders)
                   res.end()
                   return
                else
                   # Perform the collection query
-
-
-                  console.log(req.params._id)
-                  console.log(req.query._id )
-                  #if req.query.resumableIdentifier
-                      #lookup = {_id: new Mongo.ObjectID(req.query.resumableIdentifier)};  #  Todo: This workaround only works if you've defined '_id' as identifier, so it will break the package if you use f.e. md5 as identifier. We need this workaround lookup has the value {_id:null} when uploading via Cordova.
                   req.gridFS = @findOne lookup
                   unless req.gridFS
 
-                     res.writeHead(404, {'Content-Type':'text/plain','Access-Control-Allow-Origin': 'http://meteor.local'})
+                     res.writeHead(404, share.defaultResponseHeaders)
                      res.end()
                      return
 
@@ -307,21 +300,21 @@ if Meteor.isServer
                   switch req.method
                      when 'HEAD', 'GET'
                         unless share.check_allow_deny.bind(@) 'read', req.meteorUserId, req.gridFS
-                           res.writeHead(403, {'Content-Type':'text/plain','Access-Control-Allow-Origin': 'http://meteor.local'})
+                           res.writeHead(403, share.defaultResponseHeaders)
                            res.end()
                            return
                      when 'POST', 'PUT'
                         unless share.check_allow_deny.bind(@) 'write', req.meteorUserId, req.gridFS
-                           res.writeHead(403, {'Content-Type':'text/plain','Access-Control-Allow-Origin': 'http://meteor.local'})
+                           res.writeHead(403, share.defaultResponseHeaders)
                            res.end()
                            return
                      when 'DELETE'
                         unless share.check_allow_deny.bind(@) 'remove', req.meteorUserId, req.gridFS
-                           res.writeHead(403, {'Content-Type':'text/plain','Access-Control-Allow-Origin': 'http://meteor.local'})
+                           res.writeHead(403, share.defaultResponseHeaders)
                            res.end()
                            return
                      else
-                        res.writeHead(500, {'Content-Type':'text/plain','Access-Control-Allow-Origin': 'http://meteor.local'})
+                        res.writeHead(500, share.defaultResponseHeaders)
                         res.end()
                         return
 
@@ -329,19 +322,15 @@ if Meteor.isServer
 
       @router.route('/*')
 
-
-
          .options (req, res, next) ->  # Needed for CORS support, browser sends options to check if CORDS is supported by server
-            res.writeHead(200, {'Content-Type':'text/plain','Access-Control-Allow-Origin': 'http://meteor.local'})
+            res.writeHead(200, share.defaultResponseHeaders)
             res.end()
             return
             next()
 
          .all (req, res, next) ->  # Make sure a file has been selected by some rule
-
-
             unless req.gridFS
-               res.writeHead(404, {'Content-Type':'text/plain','Access-Control-Allow-Origin': 'http://meteor.local'})
+               res.writeHead(404, share.defaultResponseHeaders)
                res.end()
                return
             next()
@@ -359,7 +348,7 @@ if Meteor.isServer
          .post(post.bind(@))
          .delete(del.bind(@))
          .all (req, res, next) ->   # Unkown methods are denied
-            res.writeHead(500, {'Content-Type':'text/plain','Access-Control-Allow-Origin': 'http://meteor.local'})
+            res.writeHead(500, share.defaultResponseHeaders)
             res.end()
 
    # Performs a meteor userId lookup by hased access token

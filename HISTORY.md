@@ -1,19 +1,27 @@
 ## Revision history
 
+### v1.3.0
+
+* Optional CORS support for Apache Cordova, thanks to @
+* Configurable maximum file size for resumable.js uploads
+* Updated to MongoDB 2.1.x driver
+* Updated npm dependencies
+
 ### v1.2.2
 
 * Fixed an uncaught throw in `importFile()` when the input file doesn't exist, thanks to @dpatte
 * Updated resumable.js to latest master
 * Updated dependencies
 * Documentation improvements
-
-### v1.2.1
-
 * Fixed bug causing resumable HEAD requests to always return 404, even when a chunk was present in the gridFS store. Thanks to @dnish for help figuring this out.
 * Fixed bug causing resumable GET requests to always return 204, even when a chunk was present in the gridFS store.
 * Added unit tests for resumable.js GET/HEAD test request backend support
 * Don't create unused readable streams for HTTP HEAD requests.
 * Unit tests fixed for Meteor 1.2.x by adding many missing meteor packages to test build.
+
+### v1.2.1
+
+* This version number was accidentally skipped over, so there was no v1.2.1 release.
 
 ### v1.2.0
 

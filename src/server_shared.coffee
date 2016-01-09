@@ -1,5 +1,5 @@
 ############################################################################
-#     Copyright (C) 2014-2015 by Vaughn Iverson
+#     Copyright (C) 2014-2016 by Vaughn Iverson
 #     fileCollection is free software released under the MIT/X11 license.
 #     See included LICENSE file for details.
 ############################################################################
@@ -7,6 +7,10 @@
 if Meteor.isServer
 
    through2 = Npm.require 'through2'
+
+   share.defaultResponseHeaders =
+      'Content-Type': 'text/plain'
+      'Access-Control-Allow-Origin': 'http://meteor.local'
 
    share.check_allow_deny = (type, userId, file, fields) ->
 
