@@ -10,7 +10,6 @@ if Meteor.isServer
 
    share.defaultResponseHeaders =
       'Content-Type': 'text/plain'
-      'Access-Control-Allow-Origin': 'http://meteor.local'
 
    share.check_allow_deny = (type, userId, file, fields) ->
 
