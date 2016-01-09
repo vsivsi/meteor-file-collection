@@ -163,7 +163,6 @@ if Meteor.isServer
         headers['Content-Type'] = req.gridFS.contentType
         headers['Content-Length'] = chunksize
         headers['Last-Modified'] = req.gridFS.uploadDate.toUTCString()
-        headers['Access-Control-Allow-Origin'] = 'http://meteor.local'
 
         # Read the partial request from gridfs stream
         unless req.method is 'HEAD'
@@ -186,7 +185,6 @@ if Meteor.isServer
         headers['Content-MD5'] = req.gridFS.md5
         headers['Content-Length'] = req.gridFS.length
         headers['Last-Modified'] = req.gridFS.uploadDate.toUTCString()
-        headers['Access-Control-Allow-Origin'] = 'http://meteor.local'
 
         # Open file to stream
         unless req.method is 'HEAD'
