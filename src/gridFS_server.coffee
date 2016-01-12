@@ -71,12 +71,11 @@ if Meteor.isServer
                   length: 1
                }, indexOptions)
 
-         options.additionalHeaders =
-            'Access-Control-Allow-Origin': 'http://meteor.local'
+         unless options.additionalHTTPHeaders? and (typeof options.additionalHTTPHeaders is 'object')
+            options.additionalHTTPHeaders = {}
 
-         if options.additionalHeaders
-            for h, v of options.additionalHeaders
-               share.defaultResponseHeaders[h] = v
+         for h, v of options.additionalHTTPHeaders
+            share.defaultResponseHeaders[h] = v
 
          # Setup specific allow/deny rules for gridFS, and tie-in the application settings
 

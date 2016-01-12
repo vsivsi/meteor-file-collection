@@ -1,10 +1,5 @@
 # file-collection
 
-## Cordova information
-Due to a bug in Cordova, you need to add the following line into your mobile-config.js
-```
-App.accessRule("blob:*");
-```
 ## Introduction
 
 file-collection is a Meteor.js package that cleanly extends Meteor's Collection metaphor for efficiently dealing with collections of files and their data. File Collections are fully reactive, and if you know how to use Meteor Collections, you already know most of what you need to begin working with this package.
@@ -298,6 +293,7 @@ fc = new FileCollection('fs',  // base name of collection
       lockExpiration: 90       // Seconds until a lock expires
     }
     http: []    // HTTP method definitions, none by default
+    additionalHTTPHeaders: {}  // Custom HTTP headers to include in all responses
   }
 );
 ```
@@ -383,6 +379,33 @@ Here are some example HTTP interface definition objects to get you started:
              "metadata.y": parseInt(params.y), // (execept _id) are strings
              "metadata.z": parseInt(params.z),
              contentType: query.type} }}
+```
+
+#### CORS / Apache Cordova Support
+
+The HTTP access in file-collection can be configured for compatibility with [Cross Origin Resource Sharing (CORS)](https://en.wikipedia.org/wiki/Cross-origin_resource_sharing) via use of the `additionalHTTPHeaders` option.
+
+This provides a simple way to support accessing file-collection files in [Apache Cordova]() client applications:
+
+```javascript
+myFiles = new FileCollection('myFiles',
+  { resumable: true,    // Enable built-in resumable.js chunked upload support
+    http: [             // Define HTTP route
+      { method: 'get',  // Enable a GET endpoint
+        path: '/:md5',  // this will be at route "/gridfs/myFiles/:md5"
+        lookup: function (params, query) {  // uses express style url params
+          return { md5: params.md5 };       // a query mapping url to myFiles
+        }
+      }
+    ]
+    additionalHTTPHeaders: { 'Access-Control-Allow-Origin': 'http://meteor.local' }
+  }
+);
+```
+
+**Note!:** Reportedly due to a bug in Cordova, you need to add the following line into your mobile-config.js
+```
+App.accessRule("blob:*");
 ```
 
 #### HTTP authentication

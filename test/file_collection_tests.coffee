@@ -37,6 +37,8 @@ testColl = new FileCollection "test",
      { method: 'put', path: '/byid/:_id', lookup: (params, query) -> { _id: params._id }}
      { method: 'delete', path: '/byid/:_id', lookup: (params, query) -> { _id: params._id }}
   ]
+  additionalHTTPHeaders:
+     'Access-Control-Allow-Origin': 'http://meteor.local'
 
 noReadColl = new FileCollection "noReadColl",
   baseURL: "/noread"
