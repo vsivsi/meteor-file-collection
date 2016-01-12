@@ -36,9 +36,13 @@ testColl = new FileCollection "test",
      { method: 'post', path: '/byid/:_id', lookup: (params, query) -> { _id: params._id }}
      { method: 'put', path: '/byid/:_id', lookup: (params, query) -> { _id: params._id }}
      { method: 'delete', path: '/byid/:_id', lookup: (params, query) -> { _id: params._id }}
+     { method: 'options', path: '/byid/:_id', lookup: ((params, query) -> return { _id: params._id }), handler: (req, res, next) ->
+          console.warn "In Options Handler"
+          res.writeHead(200, { 'Content-Type': 'text/plain', 'Access-Control-Allow-Origin': 'http://meteor.local' })
+          res.end()
+          return
+     }
   ]
-  additionalHTTPHeaders:
-     'Access-Control-Allow-Origin': 'http://meteor.local'
 
 noReadColl = new FileCollection "noReadColl",
   baseURL: "/noread"
@@ -327,10 +331,15 @@ Tinytest.addAsync 'REST API PUT/GET', (test, onComplete) ->
     url = Meteor.absoluteUrl 'test/byid/' + _id
     HTTP.put url, { content: '0987654321'}, (err, res) ->
       test.fail(err) if err
-      HTTP.get url, (err, res) ->
-        test.fail(err) if err
-        test.equal res.content, '0987654321'
-        onComplete()
+      console.log "Calling OPTIONS"
+      HTTP.call "OPTIONS", url, (err, res) ->
+         console.log "Called OPTIONS"
+         test.fail(err) if err
+         test.equal res.headers?['access-control-allow-origin'], 'http://meteor.local'
+         HTTP.get url, (err, res) ->
+           test.fail(err) if err
+           test.equal res.content, '0987654321'
+           onComplete()
 
 Tinytest.addAsync 'REST API POST/GET/DELETE', (test, onComplete) ->
   _id = testColl.insert { filename: 'writefile', contentType: 'text/plain' }, (err, _id) ->

@@ -157,7 +157,6 @@ if Meteor.isServer
         chunksize = (end - start) + 1
 
         # Construct the range request header
-        # headers = {}
         headers['Content-Range'] = 'bytes ' + start + '-' + end + '/' + req.gridFS.length
         headers['Accept-Ranges'] = 'bytes'
         headers['Content-Type'] = req.gridFS.contentType
@@ -180,7 +179,6 @@ if Meteor.isServer
         statusCode = 200
 
         # Set default headers
-        headers = {}
         headers['Content-Type'] = req.gridFS.contentType
         headers['Content-MD5'] = req.gridFS.md5
         headers['Content-Length'] = req.gridFS.length
@@ -311,6 +309,8 @@ if Meteor.isServer
                            res.writeHead(403, share.defaultResponseHeaders)
                            res.end()
                            return
+                     when 'OPTIONS'
+                           return
                      else
                         res.writeHead(500, share.defaultResponseHeaders)
                         res.end()
@@ -320,11 +320,11 @@ if Meteor.isServer
 
       @router.route('/*')
 
-         .options (req, res, next) ->  # Needed for CORS support, browser sends options to check if CORDS is supported by server
-            res.writeHead(200, share.defaultResponseHeaders)
-            res.end()
-            return
-            next()
+         # .options (req, res, next) ->
+         #    res.writeHead(200, share.defaultResponseHeaders)
+         #    res.end()
+         #    return
+         #    next()
 
          .all (req, res, next) ->  # Make sure a file has been selected by some rule
             unless req.gridFS
@@ -335,8 +335,9 @@ if Meteor.isServer
 
       # Loop over the app supplied http paths
       for r in http when typeof r.handler is 'function'
-            # Add an express middleware for each custom request handler
-            @router[r.method] r.path, r.handler.bind(@)
+         console.log "Adding custom for #{r.method}, #{r.path}"
+         # Add an express middleware for each custom request handler
+         @router[r.method] r.path, r.handler.bind(@)
 
       # Add all of generic request handling methods to the express route
       @router.route('/*')
