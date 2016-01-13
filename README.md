@@ -410,7 +410,7 @@ myFiles = new FileCollection('myFiles',
         lookup: function (params, query) {  // uses express style url params
           return { md5: params.md5 };       // a query mapping url to myFiles
         }
-        handler: function (req, res, next) {  // Custom espress.js handler for OPTIONS
+        handler: function (req, res, next) {  // Custom express.js handler for OPTIONS
            res.writeHead(200, {
               'Content-Type': 'text/plain',
               'Access-Control-Allow-Origin': 'http://meteor.local',
