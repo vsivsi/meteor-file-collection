@@ -387,7 +387,7 @@ Here are some example HTTP interface definition objects to get you started:
 
 The HTTP access in file-collection can be configured for compatibility with [Cross Origin Resource Sharing (CORS)](https://en.wikipedia.org/wiki/Cross-origin_resource_sharing) via use of the `additionalHTTPHeaders` option.
 
-This provides a simple way to support accessing file-collection files in [Apache Cordova]() client applications:
+This provides a simple way to support accessing file-collection files in [Apache Cordova](https://github.com/meteor/meteor/wiki/Meteor-Cordova-integration) client applications:
 
 ```javascript
 myFiles = new FileCollection('myFiles',
