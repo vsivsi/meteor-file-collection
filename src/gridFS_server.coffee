@@ -71,6 +71,8 @@ if Meteor.isServer
                   length: 1
                }, indexOptions)
 
+         @maxUploadSize = options.maxUploadSize ? -1  # Negative is no limit...
+
          unless options.additionalHTTPHeaders? and (typeof options.additionalHTTPHeaders is 'object')
             options.additionalHTTPHeaders = {}
 

@@ -2,9 +2,10 @@
 
 ### v1.3.0
 
-* Added ability to define custom HTTP OPTIONS request handlers
-* Optional CORS support for Apache Cordova, thanks to @
-* Configurable maximum file size for resumable.js uploads
+* Added ability to define custom HTTP OPTIONS request handlers, e.g. to support CORS
+* `additionalHTTPHeaders` option allows arbitrary static default response headers to be specified for all file-collection HTTP requests
+* The above features can be used to add support for files in Apache Cordova apps. Thanks to @ for initial work on this.
+* `maxUploadSize` option enables a configurable maximum file size for POST, PUT and resumable.js uploads. Thanks to @ for this feature suggestion.
 * Updated to MongoDB 2.1.x driver
 * Updated npm dependencies
 

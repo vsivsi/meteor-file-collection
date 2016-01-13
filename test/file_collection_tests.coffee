@@ -30,10 +30,15 @@ Tinytest.add 'FileCollection default constructor', (test) ->
 idLookup = (params, query) ->
    return { _id: params._id }
 
+longString = ''
+while longString.length < 4096
+   longString += '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
+
 testColl = new FileCollection "test",
   baseURL: "/test"
   chunkSize: 16
   resumable: true
+  maxUploadSize: 2048
   http: [
      { method: 'get', path: '/byid/:_id', lookup: idLookup}
      { method: 'post', path: '/byid/:_id', lookup: idLookup}
@@ -341,6 +346,35 @@ Tinytest.addAsync 'REST API PUT/GET', (test, onComplete) ->
            test.equal res.content, '0987654321'
            onComplete()
 
+Tinytest.addAsync 'maxUploadSize enforced by when HTTP PUT upload is too large', (test, onComplete) ->
+  _id = testColl.insert { filename: 'writefile', contentType: 'text/plain' }, (err, _id) ->
+    test.fail(err) if err
+    url = Meteor.absoluteUrl 'test/byid/' + _id
+    HTTP.put url, { content: longString }, (err, res) ->
+      test.equal res.statusCode, 413
+      onComplete()
+
+Tinytest.addAsync 'maxUploadSize enforced by when HTTP POST upload is too large', (test, onComplete) ->
+  _id = testColl.insert { filename: 'writefile', contentType: 'text/plain' }, (err, _id) ->
+    test.fail(err) if err
+    url = Meteor.absoluteUrl 'test/byid/' + _id
+    content = """
+      --AaB03x\r
+      Content-Disposition: form-data; name="blahBlahBlah"\r
+      Content-Type: text/plain\r
+      \r
+      BLAH\r
+      --AaB03x\r
+      Content-Disposition: form-data; name="file"; filename="foobar"\r
+      Content-Type: text/plain\r
+      \r
+      #{longString}\r
+      --AaB03x--\r
+    """
+    HTTP.post url, { headers: { 'Content-Type': 'multipart/form-data; boundary="AaB03x"'}, content: content }, (err, res) ->
+      test.equal res.statusCode, 413
+      onComplete()
+
 Tinytest.addAsync 'REST API POST/GET/DELETE', (test, onComplete) ->
   _id = testColl.insert { filename: 'writefile', contentType: 'text/plain' }, (err, _id) ->
     test.fail(err) if err
@@ -567,6 +601,16 @@ Tinytest.addAsync 'Basic resumable.js REST interface POST/GET/DELETE, duplicate 
                           HTTP.del url, (err, res) ->
                             test.fail(err) if err
                             onComplete()
+
+Tinytest.addAsync 'maxUploadSize enforced by when resumable.js upload is too large', (test, onComplete) ->
+    testColl.insert { filename: 'writeresumablefile', contentType: 'text/plain' }, (err, _id) ->
+       test.fail(err) if err
+       url = Meteor.absoluteUrl "test/_resumable"
+       content = createContent _id, longString, "writeresumablefile", 1
+       HTTP.post url, { headers: { 'Content-Type': 'multipart/form-data; boundary="AaB03x"'}, content: content },
+         (err, res) ->
+           test.equal res.statusCode, 413
+           onComplete()
 
 Tinytest.addAsync 'REST API valid range requests', (test, onComplete) ->
   _id = testColl.insert { filename: 'writefile', contentType: 'text/plain' }, (err, _id) ->

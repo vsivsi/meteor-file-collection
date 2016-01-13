@@ -317,13 +317,15 @@ Here are the options `FileCollection` does support:
 For more information on Meteor's use of the MongoDB oplog, see: [Meteor livequery](https://www.meteor.com/livequery).
 *    `options.baseURL` - `<string>`  Sets the base route for all HTTP interfaces defined on this collection. Default value is `/gridfs/[name]`
 *    `options.locks` - `<object>`  Locking parameters, the defaults should be fine and you shouldn't need to set this, but see the `gridfs-locks` [`LockCollection` docs](https://github.com/vsivsi/gridfs-locks#lockcollectiondb-options) for more information.
+*    `option.additionalHTTPHeaders` - `<object>`  Additional default headers to include in all HTTP responses.
+*    `option.maxUploadSize` - `<integer>`  Maximum number of bytes permitted for any HTTP POST, PUT or resumable.js file upload.
 *    `option.http` - <array of objects>  HTTP interface configuration objects, described below:
 
 #### Configuring HTTP methods
 
 Each object in the `option.http` array defines one HTTP request interface on the server, and has these three attributes:
 
-*    `obj.method` - `<string>`  The HTTP request method to define, one of `get`, `post`, `put`, or `delete`.
+*    `obj.method` - `<string>`  The HTTP request method to define, one of `get`, `post`, `put`, `delete` or `options`.
 *    `obj.path` - `<string>`  An [express.js style](http://expressjs.com/4x/api.html#req.params) route path with parameters. This path will be added to the path specified by `options.baseURL`.
 *    `obj.lookup` - `<function>`  A function that is called when an HTTP request matches the `method` and `path`. It is provided with the values of the route parameters and any URL query parameters, and it should return a mongoDB query object which can be used to find a file that matches those parameters. For POST requests, it is also provided any with MIME/multipart parameters and other file information from the multipart headers.
 *    `obj.handler` - `<function>` OPTIONAL! This is an advanced feature that allows the developer to provide a custom "express.js style" request handler to satisfy requests for this specific request interface. For an example of how this works, please see the resumable.js upload support implementation in the source file `resumable_server.coffee`.
@@ -396,9 +398,29 @@ myFiles = new FileCollection('myFiles',
         lookup: function (params, query) {  // uses express style url params
           return { md5: params.md5 };       // a query mapping url to myFiles
         }
+      },
+      { method: 'put',  // Enable a PUT endpoint
+        path: '/:md5',  // this will be at route "/gridfs/myFiles/:md5"
+        lookup: function (params, query) {  // uses express style url params
+          return { md5: params.md5 };       // a query mapping url to myFiles
+        }
+      },
+      { method: 'options',  // Enable an OPTIONS endpoint (for CORS)
+        path: '/:md5',  // this will be at route "/gridfs/myFiles/:md5"
+        lookup: function (params, query) {  // uses express style url params
+          return { md5: params.md5 };       // a query mapping url to myFiles
+        }
+        handler: function (req, res, next) {  // Custom espress.js handler for OPTIONS
+           res.writeHead(200, {
+              'Content-Type': 'text/plain',
+              'Access-Control-Allow-Origin': 'http://meteor.local',
+              'Access-Control-Allow-Methods': 'GET, PUT'
+           });
+           res.end();
+           return;
+        }
       }
     ]
-    additionalHTTPHeaders: { 'Access-Control-Allow-Origin': 'http://meteor.local' }
   }
 );
 ```

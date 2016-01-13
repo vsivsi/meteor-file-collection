@@ -147,8 +147,16 @@ if Meteor.isServer
       resumable.resumableChunkSize = parseInt resumable.resumableChunkSize
       resumable.resumableCurrentChunkSize = parseInt resumable.resumableCurrentChunkSize
 
+      if @maxUploadSize >= 0
+         unless resumable.resumableTotalSize <= @maxUploadSize
+            res.writeHead(413, share.defaultResponseHeaders)
+            res.end()
+            return
+
       # Sanity check the chunk sizes that are critical to reassembling the file from parts
       unless ((req.gridFS.chunkSize is resumable.resumableChunkSize) and
+              (resumable.resumableChunkNumber <= resumable.resumableTotalChunks) and
+              (resumable.resumableTotalSize/resumable.resumableChunkSize <= resumable.resumableTotalChunks+1) and
               (resumable.resumableCurrentChunkSize is resumable.resumableChunkSize) or
               ((resumable.resumableChunkNumber is resumable.resumableTotalChunks) and
                (resumable.resumableCurrentChunkSize < 2*resumable.resumableChunkSize)))
