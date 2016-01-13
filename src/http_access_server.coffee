@@ -309,7 +309,12 @@ if Meteor.isServer
                            res.writeHead(403, share.defaultResponseHeaders)
                            res.end()
                            return
-                     when 'OPTIONS'
+                     when 'OPTIONS'  # Should there be a permission for options?
+                        unless (share.check_allow_deny.bind(@)('read', req.meteorUserId, req.gridFS) or
+                                share.check_allow_deny.bind(@)('write', req.meteorUserId, req.gridFS) or
+                                share.check_allow_deny.bind(@)('remove', req.meteorUserId, req.gridFS))
+                           res.writeHead(403, share.defaultResponseHeaders)
+                           res.end()
                            return
                      else
                         res.writeHead(500, share.defaultResponseHeaders)
@@ -319,13 +324,6 @@ if Meteor.isServer
                   next()
 
       @router.route('/*')
-
-         # .options (req, res, next) ->
-         #    res.writeHead(200, share.defaultResponseHeaders)
-         #    res.end()
-         #    return
-         #    next()
-
          .all (req, res, next) ->  # Make sure a file has been selected by some rule
             unless req.gridFS
                res.writeHead(404, share.defaultResponseHeaders)
@@ -335,7 +333,6 @@ if Meteor.isServer
 
       # Loop over the app supplied http paths
       for r in http when typeof r.handler is 'function'
-         console.log "Adding custom for #{r.method}, #{r.path}"
          # Add an express middleware for each custom request handler
          @router[r.method] r.path, r.handler.bind(@)
 

@@ -27,17 +27,19 @@ Tinytest.add 'FileCollection default constructor', (test) ->
   test.equal defaultColl.chunkSize, 2*1024*1024 - 1024, "bad default chunksize"
   test.equal defaultColl.baseURL, "/gridfs/fs", "bad default base URL"
 
+idLookup = (params, query) ->
+   return { _id: params._id }
+
 testColl = new FileCollection "test",
   baseURL: "/test"
   chunkSize: 16
   resumable: true
   http: [
-     { method: 'get', path: '/byid/:_id', lookup: (params, query) -> { _id: params._id }}
-     { method: 'post', path: '/byid/:_id', lookup: (params, query) -> { _id: params._id }}
-     { method: 'put', path: '/byid/:_id', lookup: (params, query) -> { _id: params._id }}
-     { method: 'delete', path: '/byid/:_id', lookup: (params, query) -> { _id: params._id }}
-     { method: 'options', path: '/byid/:_id', lookup: ((params, query) -> return { _id: params._id }), handler: (req, res, next) ->
-          console.warn "In Options Handler"
+     { method: 'get', path: '/byid/:_id', lookup: idLookup}
+     { method: 'post', path: '/byid/:_id', lookup: idLookup}
+     { method: 'put', path: '/byid/:_id', lookup: idLookup}
+     { method: 'delete', path: '/byid/:_id', lookup: idLookup}
+     { method: 'options', path: '/byid/:_id', lookup: idLookup, handler: (req, res, next) ->
           res.writeHead(200, { 'Content-Type': 'text/plain', 'Access-Control-Allow-Origin': 'http://meteor.local' })
           res.end()
           return
@@ -49,10 +51,10 @@ noReadColl = new FileCollection "noReadColl",
   chunkSize: 1024*1024
   resumable: false
   http: [
-     { method: 'get', path: '/byid/:_id', lookup: (params, query) -> { _id: params._id }}
-     { method: 'post', path: '/byid/:_id', lookup: (params, query) -> { _id: params._id }}
-     { method: 'put', path: '/byid/:_id', lookup: (params, query) -> { _id: params._id }}
-     { method: 'delete', path: '/byid/:_id', lookup: (params, query) -> { _id: params._id }}
+     { method: 'get', path: '/byid/:_id', lookup: idLookup}
+     { method: 'post', path: '/byid/:_id', lookup: idLookup}
+     { method: 'put', path: '/byid/:_id', lookup: idLookup}
+     { method: 'delete', path: '/byid/:_id', lookup: idLookup}
   ]
 
 noAllowColl = new FileCollection "noAllowColl"
@@ -331,9 +333,7 @@ Tinytest.addAsync 'REST API PUT/GET', (test, onComplete) ->
     url = Meteor.absoluteUrl 'test/byid/' + _id
     HTTP.put url, { content: '0987654321'}, (err, res) ->
       test.fail(err) if err
-      console.log "Calling OPTIONS"
       HTTP.call "OPTIONS", url, (err, res) ->
-         console.log "Called OPTIONS"
          test.fail(err) if err
          test.equal res.headers?['access-control-allow-origin'], 'http://meteor.local'
          HTTP.get url, (err, res) ->

@@ -2,6 +2,7 @@
 
 ### v1.3.0
 
+* Added ability to define custom HTTP OPTIONS request handlers
 * Optional CORS support for Apache Cordova, thanks to @
 * Configurable maximum file size for resumable.js uploads
 * Updated to MongoDB 2.1.x driver
