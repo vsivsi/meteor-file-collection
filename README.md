@@ -325,7 +325,7 @@ For more information on Meteor's use of the MongoDB oplog, see: [Meteor livequer
 
 Each object in the `option.http` array defines one HTTP request interface on the server, and has these three attributes:
 
-*    `obj.method` - `<string>`  The HTTP request method to define, one of `get`, `post`, `put`, `delete` or `options`.
+*    `obj.method` - `<string>`  The HTTP request method to define, one of `get`, `post`, `put`, `delete` (or `options` with a custom handler).
 *    `obj.path` - `<string>`  An [express.js style](http://expressjs.com/4x/api.html#req.params) route path with parameters. This path will be added to the path specified by `options.baseURL`.
 *    `obj.lookup` - `<function>`  A function that is called when an HTTP request matches the `method` and `path`. It is provided with the values of the route parameters and any URL query parameters, and it should return a mongoDB query object which can be used to find a file that matches those parameters. For POST requests, it is also provided any with MIME/multipart parameters and other file information from the multipart headers.
 *    `obj.handler` - `<function>` OPTIONAL! This is an advanced feature that allows the developer to provide a custom "express.js style" request handler to satisfy requests for this specific request interface. For an example of how this works, please see the resumable.js upload support implementation in the source file `resumable_server.coffee`.
@@ -385,7 +385,8 @@ Here are some example HTTP interface definition objects to get you started:
 
 #### CORS / Apache Cordova Support
 
-The HTTP access in file-collection can be configured for compatibility with [Cross Origin Resource Sharing (CORS)](https://en.wikipedia.org/wiki/Cross-origin_resource_sharing) via use of the `additionalHTTPHeaders` option.
+The HTTP access in file-collection can be configured for compatibility with [Cross Origin Resource Sharing (CORS)](https://en.wikipedia.org/wiki/Cross-origin_resource_sharing) via use of a custom handler for the `'options'`
+request method.
 
 This provides a simple way to support accessing file-collection files in [Apache Cordova](https://github.com/meteor/meteor/wiki/Meteor-Cordova-integration) client applications:
 
