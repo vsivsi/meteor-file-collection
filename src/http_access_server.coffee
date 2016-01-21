@@ -304,10 +304,6 @@ if Meteor.isServer
                            res.writeHead(403, share.defaultResponseHeaders)
                            res.end()
                            return
-                        unless req.headers['content-length']?
-                           res.writeHead(4, share.defaultResponseHeaders)
-                           res.end()
-                           return
                         if @maxUploadSize >= 0
                            unless req.headers['content-length']?
                               res.writeHead(411, share.defaultResponseHeaders)
