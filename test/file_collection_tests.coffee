@@ -1,5 +1,5 @@
 ############################################################################
-#     Copyright (C) 2014-2015 by Vaughn Iverson
+#     Copyright (C) 2014-2016 by Vaughn Iverson
 #     fileCollection is free software released under the MIT/X11 license.
 #     See included LICENSE file for details.
 ############################################################################
@@ -106,7 +106,7 @@ if Meteor.isServer
   noReadColl.allow
     read: () -> false
     insert: () -> true
-    write: () -> true
+    write: () -> 15
     remove: () -> true
 
   noReadColl.deny
@@ -734,6 +734,15 @@ if Meteor.isClient
         req.fail (jqXHR, status, err) ->
           test.equal err, 'Forbidden', 'Test was not forbidden'
           onComplete()
+  )
+
+  Tinytest.addAsync 'Reject HTTP PUT larger than write allow rule allows', subWrapper(noReadSub, (test, onComplete) ->
+    _id = noReadColl.insert { filename: 'writefile', contentType: 'text/plain' }, (err, _id) ->
+      test.fail(err) if err
+      url = Meteor.absoluteUrl 'noread/byid/' + _id
+      HTTP.put url, { content: '0123456789abcdef'}, (err, res) ->
+        test.equal res.statusCode, 413
+        onComplete()
   )
 
   Tinytest.addAsync 'Client basic localUpdate test', (test, onComplete) ->

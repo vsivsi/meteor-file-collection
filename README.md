@@ -630,9 +630,18 @@ Since `fc.localUpdate()` only changes data on the client, it is *not* subjected 
 
 In addition to Meteor's `insert` and `remove` rules, file-collection also uses `read` and `write` rules. These are used to secure access to file data via HTTP GET and POST/PUT requests, respectively.
 
-`write` rules are analogous to `update` rules on Meteor collections, except that they apply only to HTTP PUT/POST requests modifying file data, and will only see changes to the `length` and `md5` fields (in the `fieldnames` parameter) for that reason. Because MongoDB updates are not directly involved, no `modifier` is provided to the `write` function.
+`read` rules apply only to HTTP GET/HEAD requests retrieving file data, and have the same parameters as all other rules.
 
-`read` rules apply only to HTTP GET/HEAD requests retrieving file data, and have the same parameters and `insert` and `remove` rules.
+`write` rules are analogous to `update` rules on Meteor collections, except that they apply only to HTTP PUT/POST requests modifying file data, and will only (and always) see changes to the `length` and `md5` fields. For that reason the `fieldNames` parameter is omitted. Similarly, because MongoDB updates are not directly involved, no `modifier` parameter is provided to the `write` function. Write rules may optionally return a positive integer size instead of `true`, which indicates the maximum allowable upload size for this request. If this max upload size is provided, it will override any value provided for the `maxUploadSize` option on the fileCollection.
+
+The parameters for callback functions for all four types of allow/deny rules are the same:
+
+```js
+function (userId, file) {
+   // userId is Meteor account if authenticated
+   // file is the gridFS file record for the matching file
+}
+```
 
 ### fc.deny(options)
 #### Override allow rules. - Server only

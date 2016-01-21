@@ -287,7 +287,6 @@ if Meteor.isServer
                   # Perform the collection query
                   req.gridFS = @findOne lookup
                   unless req.gridFS
-
                      res.writeHead(404, share.defaultResponseHeaders)
                      res.end()
                      return
@@ -300,16 +299,19 @@ if Meteor.isServer
                            res.end()
                            return
                      when 'POST', 'PUT'
-                        unless share.check_allow_deny.bind(@) 'write', req.meteorUserId, req.gridFS
+                        req.maxUploadSize = @maxUploadSize
+                        unless max = share.check_allow_deny.bind(@) 'write', req.meteorUserId, req.gridFS
                            res.writeHead(403, share.defaultResponseHeaders)
                            res.end()
                            return
-                        if @maxUploadSize >= 0
+                        if max > 1  # true is 1
+                           req.maxUploadSize = max
+                        if req.maxUploadSize > 0
                            unless req.headers['content-length']?
                               res.writeHead(411, share.defaultResponseHeaders)
                               res.end()
                               return
-                           unless parseInt(req.headers['content-length']) <= @maxUploadSize
+                           unless parseInt(req.headers['content-length']) <= req.maxUploadSize
                               res.writeHead(413, share.defaultResponseHeaders)
                               res.end()
                               return

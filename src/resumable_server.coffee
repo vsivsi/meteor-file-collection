@@ -147,8 +147,8 @@ if Meteor.isServer
       resumable.resumableChunkSize = parseInt resumable.resumableChunkSize
       resumable.resumableCurrentChunkSize = parseInt resumable.resumableCurrentChunkSize
 
-      if @maxUploadSize >= 0
-         unless resumable.resumableTotalSize <= @maxUploadSize
+      if req.maxUploadSize > 0
+         unless resumable.resumableTotalSize <= req.maxUploadSize
             res.writeHead(413, share.defaultResponseHeaders)
             res.end()
             return
