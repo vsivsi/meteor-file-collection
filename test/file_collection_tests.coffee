@@ -156,7 +156,7 @@ Tinytest.add 'FileCollection constructor with options', (test) ->
 Tinytest.add 'FileCollection insert, findOne and remove', (test) ->
   _id = testColl.insert {}
   test.isNotNull _id, "No _id returned by insert"
-  test.instanceOf _id, Meteor.Collection.ObjectID
+  test.instanceOf _id, Mongo.ObjectID
   file = testColl.findOne {_id : _id}
   test.isNotNull file, "Invalid file returned by findOne"
   test.equal typeof file, "object"
@@ -178,8 +178,8 @@ Tinytest.addAsync 'FileCollection insert, findOne and remove with callback', sub
     test.fail(err) if err
     test.isNotNull _id, "No _id returned by insert"
     test.isNotNull retid, "No _id returned by insert callback"
-    test.instanceOf _id, Meteor.Collection.ObjectID, "_id is wrong type"
-    test.instanceOf retid, Meteor.Collection.ObjectID, "retid is wrong type"
+    test.instanceOf _id, Mongo.ObjectID, "_id is wrong type"
+    test.instanceOf retid, Mongo.ObjectID, "retid is wrong type"
     test.equal _id, retid, "different ids returned in return and callback"
     file = testColl.findOne {_id : retid}
     test.isNotNull file, "Invalid file returned by findOne"
@@ -231,8 +231,8 @@ Tinytest.addAsync 'FileCollection insert and find with options in callback', sub
     test.fail(err) if err
     test.isNotNull _id, "No _id returned by insert"
     test.isNotNull retid, "No _id returned by insert callback"
-    test.instanceOf _id, Meteor.Collection.ObjectID, "_id is wrong type"
-    test.instanceOf retid, Meteor.Collection.ObjectID, "retid is wrong type"
+    test.instanceOf _id, Mongo.ObjectID, "_id is wrong type"
+    test.instanceOf retid, Mongo.ObjectID, "retid is wrong type"
     test.equal _id, retid, "different ids returned in return and callback"
     file = testColl.findOne {_id : retid}
     test.isNotNull file, "Invalid file returned by findOne"
@@ -291,6 +291,7 @@ if Meteor.isServer
           test.equal file.md5, 'e807f1fcf82d132f9bb018ca6738a19f', "Improper file md5 hash"
           test.equal file.contentType, 'text/plain', "Improper contentType"
           test.equal typeof file._id, 'object'
+          test.equal _id, new Mongo.ObjectID file._id.toHexString()
           readstream = testColl.findOneStream {_id: file._id }
           readstream.on 'data', bind_env (chunk) ->
             test.equal chunk.toString(), '1234567890','Incorrect data read back from stream'
@@ -316,7 +317,7 @@ if Meteor.isServer
         test.equal file.md5, 'e46c309de99c3dfbd6acd9e77751ae98', "Improper file md5 hash"
         test.equal file.contentType, 'text/plain', "Improper contentType"
         test.equal typeof file._id, 'object'
-        test.instanceOf file._id, Meteor.Collection.ObjectID, "_id is wrong type"
+        test.instanceOf file._id, Mongo.ObjectID, "_id is wrong type"
         readstream = testColl.findOneStream {_id: file._id }
         readstream.on 'data', bind_env (chunk) ->
           test.equal chunk.toString(), 'ZYXWVUTSRQ','Incorrect data read back from stream'

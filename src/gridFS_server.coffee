@@ -250,7 +250,7 @@ if Meteor.isServer
             if callback?
                writeStream.on 'close', (retFile) ->
                   if retFile
-                     retFile._id = new Mongo.ObjectID retFile._id.toString()
+                     retFile._id = new Mongo.ObjectID retFile._id.toHexString()
                      callback(null, retFile)
                writeStream.on 'error', (err) ->
                   callback(err)
