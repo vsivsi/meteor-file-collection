@@ -290,6 +290,7 @@ if Meteor.isServer
           test.equal file.length, 10, "Improper file length"
           test.equal file.md5, 'e807f1fcf82d132f9bb018ca6738a19f', "Improper file md5 hash"
           test.equal file.contentType, 'text/plain', "Improper contentType"
+          test.equal typeof file._id, 'object'
           readstream = testColl.findOneStream {_id: file._id }
           readstream.on 'data', bind_env (chunk) ->
             test.equal chunk.toString(), '1234567890','Incorrect data read back from stream'
@@ -309,12 +310,13 @@ if Meteor.isServer
 
   Tinytest.addAsync 'Just Upsert stream to gridfs and read back, write to file system, and re-import',
     (test, onComplete) ->
-      writestream = testColl.upsertStream { filename: 'writefile', contentType: 'text/plain' }
-      writestream.on 'close', bind_env (file) ->
+      writestream = testColl.upsertStream { filename: 'writefile', contentType: 'text/plain' }, bind_env (err, file) ->
         test.equal typeof file, 'object', "Bad file object after upsert stream"
         test.equal file.length, 10, "Improper file length"
         test.equal file.md5, 'e46c309de99c3dfbd6acd9e77751ae98', "Improper file md5 hash"
         test.equal file.contentType, 'text/plain', "Improper contentType"
+        test.equal typeof file._id, 'object'
+        test.instanceOf file._id, Meteor.Collection.ObjectID, "_id is wrong type"
         readstream = testColl.findOneStream {_id: file._id }
         readstream.on 'data', bind_env (chunk) ->
           test.equal chunk.toString(), 'ZYXWVUTSRQ','Incorrect data read back from stream'
