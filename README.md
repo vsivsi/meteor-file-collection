@@ -46,19 +46,13 @@ result = myFiles.remove(thatFile._id);
 
 Under the hood, file data is stored entirely within the Meteor MongoDB instance using a Mongo technology called [gridFS](http://docs.mongodb.org/manual/reference/gridfs/). Your file collection and the underlying gridFS collection remain perfectly in sync because they *are* the same collection; and file collections are automatically safe for concurrent read/write access to files via [MongoDB based locking](https://github.com/vsivsi/gridfs-locks). The file-collection package also provides a simple way to enable secure HTTP (GET, POST, PUT, DELETE) interfaces to your files, and additionally has built-in support for robust and resumable file uploads using the excellent [Resumable.js](http://www.resumablejs.com/) library.
 
-### What's new since v1.0?
+### What's in v1.3?
 
-* `fc.localUpdate()` allows client code to modify the local collection for latency compensation when performing server-side updates using a Meteor method.
-* Automatic lock renewal support, can be controlled with `autoRenewLock` option on `fc.upsertStream()` and `fc.findOneStream()`
-* `range` option to `fc.findOneStream()` now allows `start` or `end` attributes to be safely omitted.
-* Major improvements to resumable.js upload server-side support. See HISTORY for details.
-* For performance reasons, the default `chunkSize` has changed to 2MB - 1KB. As always, other values for this can be specified for each collection (any value less than 8MB.)
+*   CORS/Cordova support via the ability to define custom HTTP OPTIONS request handlers
+*   Global and per-request file upload size limits via the new `maxUploadSize` option
+*   Added ability to add static custom HTTP headers to all responses served by file-collection
 
-### What's new in v1.0?
-
-There is one breaking change in v1.0.0. `fc.upsertStream()` may no longer append (mode 'w+') to existing files. This is due to a new limitation added to the underlying node.js mongodb/gridFS driver. Appending was a little used feature that was traded-off for node.js 0.10 new stream support. For safety, any attempt to use `options.mode = 'w+'` in `fc.upsertStream()` will now throw an error.
-
-Other exciting new features in v1.0 are listed in the HISTORY file.
+Additional changes are detailed in the HISTORY file.
 
 ### Design philosophy
 
