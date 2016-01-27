@@ -46,7 +46,7 @@ result = myFiles.remove(thatFile._id);
 
 Under the hood, file data is stored entirely within the Meteor MongoDB instance using a Mongo technology called [gridFS](http://docs.mongodb.org/manual/reference/gridfs/). Your file collection and the underlying gridFS collection remain perfectly in sync because they *are* the same collection; and file collections are automatically safe for concurrent read/write access to files via [MongoDB based locking](https://github.com/vsivsi/gridfs-locks). The file-collection package also provides a simple way to enable secure HTTP (GET, POST, PUT, DELETE) interfaces to your files, and additionally has built-in support for robust and resumable file uploads using the excellent [Resumable.js](http://www.resumablejs.com/) library.
 
-### What's in v1.3?
+### What's new in v1.3?
 
 *   CORS/Cordova support via the ability to define custom HTTP OPTIONS request handlers
 *   Global and per-request file upload size limits via the new `maxUploadSize` option
