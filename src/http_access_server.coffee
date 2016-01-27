@@ -300,12 +300,12 @@ if Meteor.isServer
                            return
                      when 'POST', 'PUT'
                         req.maxUploadSize = @maxUploadSize
-                        unless max = share.check_allow_deny.bind(@) 'write', req.meteorUserId, req.gridFS
+                        unless opts = share.check_allow_deny.bind(@) 'write', req.meteorUserId, req.gridFS
                            res.writeHead(403, share.defaultResponseHeaders)
                            res.end()
                            return
-                        if max > 1  # true is 1
-                           req.maxUploadSize = max
+                        if opts.maxUploadSize? and typeof opts.maxUploadSize is 'number'
+                           req.maxUploadSize = opts.maxUploadSize
                         if req.maxUploadSize > 0
                            unless req.headers['content-length']?
                               res.writeHead(411, share.defaultResponseHeaders)

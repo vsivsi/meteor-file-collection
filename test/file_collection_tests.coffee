@@ -106,7 +106,7 @@ if Meteor.isServer
   noReadColl.allow
     read: () -> false
     insert: () -> true
-    write: () -> 15
+    write: () -> { maxUploadSize: 15 }
     remove: () -> true
 
   noReadColl.deny

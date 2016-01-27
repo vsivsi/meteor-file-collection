@@ -622,7 +622,7 @@ Since `fc.localUpdate()` only changes data on the client, it is *not* subjected 
 ### fc.allow(options)
 #### Allow client insert and remove, and HTTP data accesses and updates, subject to your limitations. - Server only
 
-`fc.allow(options)` is essentially the same as [Meteor's `Collection.allow()`](http://docs.meteor.com/#allow), except that the Meteor Collection `fetch` and `transform` options are not supported by `FileCollection`.
+`fc.allow(options)` is essentially the same as [Meteor's `Collection.allow()`](http://docs.meteor.com/#allow), except that the Meteor Collection `fetch` and `transform` options are not supported by `FileCollection`. In addition to returning true/false, rules may also return a (possibly empty) options object to indicate truth while affecting the behavior of the allowed request.  See the `maxUploadSize` option on `'write'` allow rules as an example. Note that more than one allow rule may apply to a given request, but unlike deny rules, they are not all guaranteed to run. Allow rules are run in the order in which they are defined, and the first one to return a truthy value wins, which can be significant if they return options or otherwise modify state.
 
 `insert` rules are essentially the same as for ordinary Meteor collections.
 
@@ -632,7 +632,7 @@ In addition to Meteor's `insert` and `remove` rules, file-collection also uses `
 
 `read` rules apply only to HTTP GET/HEAD requests retrieving file data, and have the same parameters as all other rules.
 
-`write` rules are analogous to `update` rules on Meteor collections, except that they apply only to HTTP PUT/POST requests modifying file data, and will only (and always) see changes to the `length` and `md5` fields. For that reason the `fieldNames` parameter is omitted. Similarly, because MongoDB updates are not directly involved, no `modifier` parameter is provided to the `write` function. Write rules may optionally return a positive integer size instead of `true`, which indicates the maximum allowable upload size for this request. If this max upload size is provided, it will override any value provided for the `maxUploadSize` option on the fileCollection.
+`write` rules are analogous to `update` rules on Meteor collections, except that they apply only to HTTP PUT/POST requests modifying file data, and will only (and always) see changes to the `length` and `md5` fields. For that reason the `fieldNames` parameter is omitted. Similarly, because MongoDB updates are not directly involved, no `modifier` parameter is provided to the `write` function. Write rules may optionally return an object with a positive integer `maxUploadSize` attribute instead of `true`. This indicates the maximum allowable upload size for this request. If this max upload size is provided, it will override any value provided for the `maxUploadSize` option on the fileCollection as a whole.
 
 The parameters for callback functions for all four types of allow/deny rules are the same:
 
