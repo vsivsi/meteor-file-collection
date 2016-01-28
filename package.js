@@ -14,13 +14,13 @@ Package.describe({
 });
 
 Npm.depends({
-  mongodb: '2.1.3',
+  mongodb: '2.1.4',
   'gridfs-locking-stream': '1.1.0',
   'gridfs-locks': '1.3.4',
   dicer: '0.2.5',
   async: '1.5.2',
-  express: '4.13.3',
-  'cookie-parser': '1.4.0',
+  express: '4.13.4',
+  'cookie-parser': '1.4.1',
   // Version 2.x of through2 is Streams3, so don't go there yet!
   through2: '0.6.5'
 });
@@ -52,6 +52,6 @@ Package.onTest(function (api) {
   api.use('mongo@1.1.3', ['server', 'client']);
   api.use('check@1.1.0', ['server', 'client']);
   api.use('tracker@1.0.9', 'client');
-  api.use('jquery@1.11.4', 'client');
+  // api.use('jquery@1.11.4', 'client');
   api.addFiles('test/file_collection_tests.coffee', ['server', 'client']);
 });
