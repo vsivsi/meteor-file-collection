@@ -73,11 +73,13 @@ if Meteor.isServer
 
          @maxUploadSize = options.maxUploadSize ? -1  # Negative is no limit...
 
-         unless options.additionalHTTPHeaders? and (typeof options.additionalHTTPHeaders is 'object')
-            options.additionalHTTPHeaders = {}
+         ## Delay this feature until demand is clear. Unit tests / documentation needed.
 
-         for h, v of options.additionalHTTPHeaders
-            share.defaultResponseHeaders[h] = v
+         # unless options.additionalHTTPHeaders? and (typeof options.additionalHTTPHeaders is 'object')
+         #    options.additionalHTTPHeaders = {}
+         #
+         # for h, v of options.additionalHTTPHeaders
+         #    share.defaultResponseHeaders[h] = v
 
          # Setup specific allow/deny rules for gridFS, and tie-in the application settings
 

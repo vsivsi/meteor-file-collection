@@ -50,7 +50,6 @@ Under the hood, file data is stored entirely within the Meteor MongoDB instance 
 
 *   CORS/Cordova support via the ability to define custom HTTP OPTIONS request handlers
 *   Global and per-request file upload size limits via the new `maxUploadSize` option
-*   Added ability to add static custom HTTP headers to all responses served by file-collection
 
 Additional changes are detailed in the HISTORY file.
 
@@ -287,7 +286,6 @@ fc = new FileCollection('fs',  // base name of collection
       lockExpiration: 90       // Seconds until a lock expires
     }
     http: []    // HTTP method definitions, none by default
-    additionalHTTPHeaders: {}  // Custom HTTP headers to include in all responses
   }
 );
 ```
@@ -311,7 +309,6 @@ Here are the options `FileCollection` does support:
 For more information on Meteor's use of the MongoDB oplog, see: [Meteor livequery](https://www.meteor.com/livequery).
 *    `options.baseURL` - `<string>`  Sets the base route for all HTTP interfaces defined on this collection. Default value is `/gridfs/[name]`
 *    `options.locks` - `<object>`  Locking parameters, the defaults should be fine and you shouldn't need to set this, but see the `gridfs-locks` [`LockCollection` docs](https://github.com/vsivsi/gridfs-locks#lockcollectiondb-options) for more information.
-*    `option.additionalHTTPHeaders` - `<object>`  Additional default headers to include in all HTTP responses.
 *    `option.maxUploadSize` - `<integer>`  Maximum number of bytes permitted for any HTTP POST, PUT or resumable.js file upload.
 *    `option.http` - <array of objects>  HTTP interface configuration objects, described below:
 
