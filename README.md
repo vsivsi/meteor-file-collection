@@ -1,6 +1,6 @@
 # file-collection
 
-![Build Status](https://travis-ci.org/vsivsi/meteor-file-collection.svg)
+[![Build Status](https://travis-ci.org/vsivsi/meteor-file-collection.svg)](https://travis-ci.org/vsivsi/meteor-file-collection)
 
 ## Introduction
 
