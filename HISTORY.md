@@ -8,6 +8,7 @@
 * Fixed improper ObjectID type in callback from `fc.upsertStream()`. Thanks @DrDanRyan for reporting.
 * Updated to MongoDB 2.1.x driver
 * Updated npm dependencies
+* Added TravisCI support
 
 ### v1.2.2
 
