@@ -1,11 +1,11 @@
 language: node_js
 node_js:
-  - "0.10.36"
+  - "0.10.40"
 
 before_install:
   - "curl https://install.meteor.com | /bin/sh"
   - "npm install -g spacejam"
-  - "npm install -g phantomjs"
+  - "npm install -g phantomjs-prebuilt"
   - "export PATH=$PATH:$HOME/.meteor"
 
 script: "spacejam test-packages ./ --use-system-phantomjs"
