@@ -175,7 +175,7 @@ if (Meteor.isClient) {
 
 ## Installation
 
-I've only tested with Meteor v0.9.x and v1.0. Older versions run on Meteor v0.8 as well, but why would you want to do that?
+I've only tested with Meteor v0.9.x and v1.x.x, and older versions run on Meteor v0.8 as well, but why would you want to do that?
 
 To add to your project, run:
 
