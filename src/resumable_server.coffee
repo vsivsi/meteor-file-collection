@@ -248,6 +248,12 @@ if Meteor.isServer
    # Setup the GET and POST HTTP REST paths for Resumable.js in express
    share.resumable_paths = [
       {
+         method: 'head'
+         path: '/_resumable'
+         lookup: resumable_get_lookup
+         handler: resumable_get_handler
+      }
+      {
          method: 'post'
          path: '/_resumable'
          lookup: resumable_post_lookup
@@ -255,12 +261,6 @@ if Meteor.isServer
       }
       {
          method: 'get'
-         path: '/_resumable'
-         lookup: resumable_get_lookup
-         handler: resumable_get_handler
-      }
-      {
-         method: 'head'
          path: '/_resumable'
          lookup: resumable_get_lookup
          handler: resumable_get_handler

@@ -40,11 +40,11 @@ testColl = new FileCollection "test",
   resumable: true
   maxUploadSize: 2048
   http: [
-     { method: 'get', path: '/byid/:_id', lookup: idLookup}
-     { method: 'post', path: '/byid/:_id', lookup: idLookup}
-     { method: 'put', path: '/byid/:_id', lookup: idLookup}
-     { method: 'delete', path: '/byid/:_id', lookup: idLookup}
-     { method: 'options', path: '/byid/:_id', lookup: idLookup, handler: (req, res, next) ->
+     { method: 'get', path: '/:_id', lookup: idLookup}
+     { method: 'post', path: '/:_id', lookup: idLookup}
+     { method: 'put', path: '/:_id', lookup: idLookup}
+     { method: 'delete', path: '/:_id', lookup: idLookup}
+     { method: 'options', path: '/:_id', lookup: idLookup, handler: (req, res, next) ->
           res.writeHead(200, { 'Content-Type': 'text/plain', 'Access-Control-Allow-Origin': 'http://meteor.local' })
           res.end()
           return
@@ -56,10 +56,10 @@ noReadColl = new FileCollection "noReadColl",
   chunkSize: 1024*1024
   resumable: false
   http: [
-     { method: 'get', path: '/byid/:_id', lookup: idLookup}
-     { method: 'post', path: '/byid/:_id', lookup: idLookup}
-     { method: 'put', path: '/byid/:_id', lookup: idLookup}
-     { method: 'delete', path: '/byid/:_id', lookup: idLookup}
+     { method: 'get', path: '/:_id', lookup: idLookup}
+     { method: 'post', path: '/:_id', lookup: idLookup}
+     { method: 'put', path: '/:_id', lookup: idLookup}
+     { method: 'delete', path: '/:_id', lookup: idLookup}
   ]
 
 noAllowColl = new FileCollection "noAllowColl"
@@ -338,7 +338,7 @@ if Meteor.isServer
 Tinytest.addAsync 'REST API PUT/GET', (test, onComplete) ->
   _id = testColl.insert { filename: 'writefile', contentType: 'text/plain' }, (err, _id) ->
     test.fail(err) if err
-    url = Meteor.absoluteUrl 'test/byid/' + _id
+    url = Meteor.absoluteUrl 'test/' + _id
     HTTP.put url, { content: '0987654321'}, (err, res) ->
       test.fail(err) if err
       HTTP.call "OPTIONS", url, (err, res) ->
@@ -352,7 +352,7 @@ Tinytest.addAsync 'REST API PUT/GET', (test, onComplete) ->
 Tinytest.addAsync 'maxUploadSize enforced by when HTTP PUT upload is too large', (test, onComplete) ->
    _id = testColl.insert { filename: 'writefile', contentType: 'text/plain' }, (err, _id) ->
       test.fail(err) if err
-      url = Meteor.absoluteUrl 'test/byid/' + _id
+      url = Meteor.absoluteUrl 'test/' + _id
       HTTP.put url, { content: longString }, (err, res) ->
          test.isNotNull err
          if err.response?  # Not sure why, but under phantomjs the error object is different
@@ -364,7 +364,7 @@ Tinytest.addAsync 'maxUploadSize enforced by when HTTP PUT upload is too large',
 Tinytest.addAsync 'maxUploadSize enforced by when HTTP POST upload is too large', (test, onComplete) ->
    _id = testColl.insert { filename: 'writefile', contentType: 'text/plain' }, (err, _id) ->
       test.fail(err) if err
-      url = Meteor.absoluteUrl 'test/byid/' + _id
+      url = Meteor.absoluteUrl 'test/' + _id
       content = """
          --AaB03x\r
          Content-Disposition: form-data; name="blahBlahBlah"\r
@@ -389,7 +389,7 @@ Tinytest.addAsync 'maxUploadSize enforced by when HTTP POST upload is too large'
 Tinytest.addAsync 'REST API POST/GET/DELETE', (test, onComplete) ->
   _id = testColl.insert { filename: 'writefile', contentType: 'text/plain' }, (err, _id) ->
     test.fail(err) if err
-    url = Meteor.absoluteUrl 'test/byid/' + _id
+    url = Meteor.absoluteUrl 'test/' + _id
     content = """
       --AaB03x\r
       Content-Disposition: form-data; name="blahBlahBlah"\r
@@ -491,7 +491,7 @@ Tinytest.addAsync 'Basic resumable.js REST interface POST/GET/DELETE', (test, on
     HTTP.post url, { headers: { 'Content-Type': 'multipart/form-data; boundary="AaB03x"'}, content: content },
       (err, res) ->
         test.fail(err) if err
-        url = Meteor.absoluteUrl 'test/byid/' + _id
+        url = Meteor.absoluteUrl 'test/' + _id
         HTTP.get url, (err, res) ->
           test.fail(err) if err
           test.equal res.content, data
@@ -520,7 +520,7 @@ Tinytest.addAsync 'Basic resumable.js REST interface POST/GET/DELETE, multiple c
             HTTP.post url, { headers: { 'Content-Type': 'multipart/form-data; boundary="AaB03x"'}, content: content2 },
               (err, res) ->
                 test.fail(err) if err
-                url = Meteor.absoluteUrl 'test/byid/' + _id
+                url = Meteor.absoluteUrl 'test/' + _id
                 HTTP.get url, (err, res) ->
                   test.fail(err) if err
                   test.equal res.content, data
@@ -546,7 +546,7 @@ Tinytest.addAsync 'Basic resumable.js REST interface POST/GET/DELETE, duplicate 
             HTTP.post url, { headers: { 'Content-Type': 'multipart/form-data; boundary="AaB03x"'}, content: content },
               (err, res) ->
                 test.fail(err) if err
-                url = Meteor.absoluteUrl 'test/byid/' + _id
+                url = Meteor.absoluteUrl 'test/' + _id
                 HTTP.get url, (err, res) ->
                   test.fail(err) if err
                   test.equal res.content, data
@@ -572,7 +572,7 @@ Tinytest.addAsync 'Basic resumable.js REST interface POST/GET/DELETE, duplicate 
             HTTP.post url, { headers: { 'Content-Type': 'multipart/form-data; boundary="AaB03x"'}, content: content },
               (err, res) ->
                 test.fail(err) if err
-                url = Meteor.absoluteUrl 'test/byid/' + _id
+                url = Meteor.absoluteUrl 'test/' + _id
                 HTTP.get url, (err, res) ->
                   test.fail(err) if err
                   test.equal res.content, data
@@ -605,7 +605,7 @@ Tinytest.addAsync 'Basic resumable.js REST interface POST/GET/DELETE, duplicate 
                     HTTP.post url, { headers: { 'Content-Type': 'multipart/form-data; boundary="AaB03x"'}, content: content3 },
                       (err, res) ->
                         test.fail(err) if err
-                        url = Meteor.absoluteUrl 'test/byid/' + _id
+                        url = Meteor.absoluteUrl 'test/' + _id
                         HTTP.get url, (err, res) ->
                           test.fail(err) if err
                           test.equal res.content, data
@@ -630,7 +630,7 @@ Tinytest.addAsync 'maxUploadSize enforced by when resumable.js upload is too lar
 Tinytest.addAsync 'REST API valid range requests', (test, onComplete) ->
   _id = testColl.insert { filename: 'writefile', contentType: 'text/plain' }, (err, _id) ->
     test.fail(err) if err
-    url = Meteor.absoluteUrl 'test/byid/' + _id
+    url = Meteor.absoluteUrl 'test/' + _id
     HTTP.put url, { content: '0987654321'}, (err, res) ->
       test.fail(err) if err
       HTTP.get url, { headers: { 'Range': '0-'}},
@@ -659,7 +659,7 @@ Tinytest.addAsync 'REST API valid range requests', (test, onComplete) ->
 Tinytest.addAsync 'REST API invalid range requests', (test, onComplete) ->
    _id = testColl.insert { filename: 'writefile', contentType: 'text/plain' }, (err, _id) ->
       test.fail(err) if err
-      url = Meteor.absoluteUrl 'test/byid/' + _id
+      url = Meteor.absoluteUrl 'test/' + _id
       HTTP.put url, { content: '0987654321'}, (err, res) ->
          test.fail(err) if err
          HTTP.get url, { headers: { 'Range': '0-10'}}, (err, res) ->
@@ -691,7 +691,7 @@ Tinytest.addAsync 'REST API invalid range requests', (test, onComplete) ->
 Tinytest.addAsync 'REST API requests header manipilation', (test, onComplete) ->
   _id = testColl.insert { filename: 'writefile', contentType: 'text/plain' }, (err, _id) ->
     test.fail(err) if err
-    url = Meteor.absoluteUrl 'test/byid/' + _id
+    url = Meteor.absoluteUrl 'test/' + _id
     HTTP.put url, { content: '0987654321'}, (err, res) ->
       test.fail(err) if err
       HTTP.get url+'?download=true', (err, res) ->
@@ -709,7 +709,7 @@ Tinytest.addAsync 'REST API requests header manipilation', (test, onComplete) ->
 Tinytest.addAsync 'REST API requests header manipilation, UTF-8', (test, onComplete) ->
   _id = testColl.insert { filename: '中文指南.txt', contentType: 'text/plain' }, (err, _id) ->
     test.fail(err) if err
-    url = Meteor.absoluteUrl 'test/byid/' + _id
+    url = Meteor.absoluteUrl 'test/' + _id
     HTTP.put url, { content: '0987654321'}, (err, res) ->
       test.fail(err) if err
       HTTP.get url+'?download=true', (err, res) ->
@@ -751,7 +751,7 @@ if Meteor.isClient
   Tinytest.addAsync 'Reject HTTP GET without true allow rule', subWrapper(noReadSub, (test, onComplete) ->
     _id = noReadColl.insert { filename: 'writefile', contentType: 'text/plain' }, (err, _id) ->
       test.fail(err) if err
-      url = Meteor.absoluteUrl 'noread/byid/' + _id
+      url = Meteor.absoluteUrl 'noread/' + _id
       HTTP.put url, { content: '0987654321'}, (err, res) ->
         test.fail(err) if err
         HTTP.get url, (err, res) ->
@@ -766,7 +766,7 @@ if Meteor.isClient
   Tinytest.addAsync 'Reject HTTP PUT larger than write allow rule allows', subWrapper(noReadSub, (test, onComplete) ->
       _id = noReadColl.insert { filename: 'writefile', contentType: 'text/plain' }, (err, _id) ->
          test.fail(err) if err
-         url = Meteor.absoluteUrl 'noread/byid/' + _id
+         url = Meteor.absoluteUrl 'noread/' + _id
          HTTP.put url, { content: '0123456789abcdef'}, (err, res) ->
             test.isNotNull err
             if err.response?  # Not sure why, but under phantomjs the error object is different
@@ -814,7 +814,7 @@ if Meteor.isClient
 
     testColl.resumable.on 'fileSuccess', (file) ->
       test.equal thisId, file.uniqueIdentifier
-      url = Meteor.absoluteUrl 'test/byid/' + file.uniqueIdentifier
+      url = Meteor.absoluteUrl 'test/' + file.uniqueIdentifier
       HTTP.get url, (err, res) ->
         test.fail(err) if err
         test.equal res.content,'ABCDEFGHIJ'
@@ -841,7 +841,7 @@ if Meteor.isClient
 
     testColl.resumable.on 'fileSuccess', (file) ->
       test.equal thisId, file.uniqueIdentifier
-      url = Meteor.absoluteUrl 'test/byid/' + file.uniqueIdentifier
+      url = Meteor.absoluteUrl 'test/' + file.uniqueIdentifier
       HTTP.get url, (err, res) ->
         test.fail(err) if err
         test.equal res.content,'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'

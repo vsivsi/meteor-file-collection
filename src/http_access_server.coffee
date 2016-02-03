@@ -23,9 +23,11 @@ if Meteor.isServer
 
       next = share.bind_env next
 
-      unless req.method is 'POST'
+      unless req.method is 'POST' and not req.diced
          next()
          return
+
+      req.diced = true   # Don't reenter for the same request on multiple routes
 
       responseSent = false
       handleFailure = (msg, err = "", retCode = 500) ->
@@ -334,18 +336,9 @@ if Meteor.isServer
 
                   next()
 
-      @router.route('/*')
-         .all (req, res, next) ->  # Make sure a file has been selected by some rule
-            unless req.gridFS
-               res.writeHead(404, share.defaultResponseHeaders)
-               res.end()
-               return
-            next()
-
-      # Loop over the app supplied http paths
-      for r in http when typeof r.handler is 'function'
          # Add an express middleware for each custom request handler
-         @router[r.method] r.path, r.handler.bind(@)
+         if typeof r.handler is 'function'
+            @router[r.method] r.path, r.handler.bind(@)
 
       # Add all of generic request handling methods to the express route
       @router.route('/*')

@@ -1,5 +1,9 @@
 ## Revision history
 
+### v1.3.1
+
+* Fixed bugs affecting the built-in resumable.js support when application specified GET/POST routes also matched `/_resumable`. Fixes ensure that multipart parsing for POST requests only happens once, and that `_resumable` routes are fully handled before invoking application route handlers. Thanks to @lightpriest and @mzygmunt for reporting.
+
 ### v1.3.0
 
 * Added ability to define custom HTTP OPTIONS request handlers, e.g. to support CORS
