@@ -198,7 +198,7 @@ meteor
 
 You should now be able to point your browser to `http://localhost:3000/` and play with the sample app.
 
-A more advanced example that implements a basic image gallery with upload and download support and automatic thumbnail generation using the [job-collection package](https://atmospherejs.com/package/jobCollection) is available here: https://github.com/vsivsi/meteor-file-job-sample-app
+A more advanced example that implements a basic image gallery with upload and download support and automatic thumbnail generation using the [job-collection package](https://atmospherejs.com/vsivsi/job-collection) is available here: https://github.com/vsivsi/meteor-file-job-sample-app
 
 To run tests (using Meteor tiny-test):
 
