@@ -403,7 +403,7 @@ myFiles = new FileCollection('myFiles',
         path: '/:md5',  // this will be at route "/gridfs/myFiles/:md5"
         lookup: function (params, query) {  // uses express style url params
           return { md5: params.md5 };       // a query mapping url to myFiles
-        }
+        },
         handler: function (req, res, next) {  // Custom express.js handler for OPTIONS
            res.writeHead(200, {
               'Content-Type': 'text/plain',
