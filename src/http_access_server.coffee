@@ -377,18 +377,21 @@ if Meteor.isServer
 
    # Set up all of the middleware, including optional support for Resumable.js chunked uploads
    share.setupHttpAccess = (options) ->
-      r = express.Router()
-      r.use express.query()   # Parse URL query strings
-      r.use cookieParser()    # Parse cookies
-      r.use handle_auth       # Turn x-auth-tokens into Meteor userIds
-      WebApp.rawConnectHandlers.use(@baseURL, share.bind_env(r))
 
       # Set up support for resumable.js if requested
       if options.resumable
          options.http = [] unless options.http?
          options.http = share.resumable_paths.concat options.http
 
-      # Setup application HTTP REST interface
-      @router = express.Router()
-      build_access_point.bind(@)(options.http, @router) if options.http?
-      WebApp.rawConnectHandlers.use(@baseURL, share.bind_env(@router))
+      # Don't setup any middleware unless there are routes defined
+      if options.http?.length > 0
+         r = express.Router()
+         r.use express.query()   # Parse URL query strings
+         r.use cookieParser()    # Parse cookies
+         r.use handle_auth       # Turn x-auth-tokens into Meteor userIds
+         WebApp.rawConnectHandlers.use(@baseURL, share.bind_env(r))
+
+         # Setup application HTTP REST interface
+         @router = express.Router()
+         build_access_point.bind(@)(options.http, @router)
+         WebApp.rawConnectHandlers.use(@baseURL, share.bind_env(@router))
