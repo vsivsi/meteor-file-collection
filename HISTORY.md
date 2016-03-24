@@ -1,5 +1,11 @@
 ## Revision history
 
+### v1.3.2
+
+* Fixed bug when no HTTP options array is provided and resumable.js isn't used. Thanks to @ndarilek the PR.
+* Updated npm dependencies.
+* Documentation improvements.
+
 ### v1.3.1
 
 * Fixed bugs affecting the built-in resumable.js support when application specified GET/POST routes also matched `/_resumable`. Fixes ensure that multipart parsing for POST requests only happens once, and that `_resumable` routes are fully handled before invoking application route handlers. Thanks to @lightpriest and @mzygmunt for reporting.
