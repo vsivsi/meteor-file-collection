@@ -5,8 +5,14 @@ node_js:
 before_install:
   - "curl https://install.meteor.com | /bin/sh"
   - "npm install -g spacejam"
-  - "export PHANTOMJS_CDNURL=http://cnpmjs.org/downloads"
-  - "npm install -g phantomjs-prebuilt"
+  # - "export PHANTOMJS_CDNURL=http://cnpmjs.org/downloads"
+  # - "npm install -g phantomjs-prebuilt"
   - "export PATH=$PATH:$HOME/.meteor"
+
+install:
+  - mkdir travis-phantomjs
+  - wget https://s3.amazonaws.com/travis-phantomjs/phantomjs-2.0.0-ubuntu-12.04.tar.bz2 -O $PWD/travis-phantomjs/phantomjs-2.1.1-ubuntu-12.04.tar.bz2
+  - tar -xvf $PWD/travis-phantomjs/phantomjs-2.0.0-ubuntu-12.04.tar.bz2 -C $PWD/travis-phantomjs
+  - export PATH=$PWD/travis-phantomjs:$PATH
 
 script: "spacejam test-packages ./ --use-system-phantomjs"
