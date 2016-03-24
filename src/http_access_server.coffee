@@ -385,9 +385,10 @@ if Meteor.isServer
 
       # Set up support for resumable.js if requested
       if options.resumable
+         options.http = [] unless options.http?
          options.http = share.resumable_paths.concat options.http
 
       # Setup application HTTP REST interface
       @router = express.Router()
-      build_access_point.bind(@)(options.http, @router)
+      build_access_point.bind(@)(options.http, @router) if options.http?
       WebApp.rawConnectHandlers.use(@baseURL, share.bind_env(@router))
