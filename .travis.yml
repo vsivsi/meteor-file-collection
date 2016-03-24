@@ -5,7 +5,8 @@ node_js:
 before_install:
   - "curl https://install.meteor.com | /bin/sh"
   - "npm install -g spacejam"
-  - "npm install -g phantomjs-prebuilt --phantomjs_cdnurl=http://cnpmjs.org/downloads"
+  - "export PHANTOMJS_CDNURL=http://cnpmjs.org/downloads"
+  - "npm install -g phantomjs-prebuilt"
   - "export PATH=$PATH:$HOME/.meteor"
 
 script: "spacejam test-packages ./ --use-system-phantomjs"
