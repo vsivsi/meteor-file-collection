@@ -65,7 +65,8 @@ if Meteor.isServer
             indexOptions = {}
             if typeof options.resumableIndexName is 'string'
                indexOptions.name = options.resumableIndexName
-            @._ensureIndex({
+
+            @db.collection("#{@root}.files").ensureIndex({
                   'metadata._Resumable.resumableIdentifier': 1
                   'metadata._Resumable.resumableChunkNumber': 1
                   length: 1

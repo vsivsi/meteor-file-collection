@@ -1,5 +1,9 @@
 ## Revision history
 
+### V.NEXT
+
+* Use the internal MongoDB 2.1.x driver to create the indexes, not the Meteor provided 1.4.x driver, which is incompatible with MongoDB 3.2. Thanks to @snajjar for reporting.
+
 ### v1.3.2
 
 * Fixed bug when no HTTP options array is provided and resumable.js isn't used. Thanks to @ndarilek the PR.
