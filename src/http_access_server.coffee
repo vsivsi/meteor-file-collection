@@ -365,12 +365,15 @@ if Meteor.isServer
 
    handle_auth = (req, res, next) ->
       unless req.meteorUserId?
-         # Lookup userId if token is provided in HTTP heder
+         # Lookup userId if token is provided in HTTP header
          if req.headers?['x-auth-token']?
             req.meteorUserId = lookup_userId_by_token req.headers['x-auth-token']
          # Or as a URL query of the same name
          else if req.cookies?['X-Auth-Token']?
             req.meteorUserId = lookup_userId_by_token req.cookies['X-Auth-Token']
+         # or use query string, some times useful in cordova inappbrowser
+         else if req.query?['xauthtoken']?
+            req.meteorUserId = lookup_userId_by_token req.query['xauthtoken']
          else
             req.meteorUserId = null
       next()
