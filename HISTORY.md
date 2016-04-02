@@ -1,8 +1,9 @@
 ## Revision history
 
-### V.NEXT
+### V1.3.3
 
 * Use the internal MongoDB 2.1.x driver to create the indexes, not the Meteor provided 1.4.x driver, which is incompatible with MongoDB 3.2. Thanks to @snajjar for reporting.
+* Updated package dependencies.
 
 ### v1.3.2
 
