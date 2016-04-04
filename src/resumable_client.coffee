@@ -31,7 +31,7 @@ if Meteor.isClient
 
       r = new Resumable
          target: url
-         generateUniqueIdentifier: (file) -> "#{new Meteor.Collection.ObjectID()}"
+         generateUniqueIdentifier: (file) -> "#{new Mongo.ObjectID()}"
          fileParameterName: 'file'
          chunkSize: @chunkSize
          testChunks: true

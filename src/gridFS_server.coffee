@@ -96,7 +96,7 @@ if Meteor.isServer
 
                # Make darn sure we're creating a valid gridFS .files document
                check file,
-                  _id: Meteor.Collection.ObjectID
+                  _id: Mongo.ObjectID
                   length: Match.Where (x) =>
                      check x, Match.Integer
                      x is 0
