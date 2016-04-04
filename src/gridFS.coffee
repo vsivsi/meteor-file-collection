@@ -9,9 +9,9 @@ share.defaultRoot = 'fs'
 
 share.insert_func = (file = {}, chunkSize) ->
    try
-      id = new Meteor.Collection.ObjectID("#{file._id}")
+      id = new Mongo.ObjectID("#{file._id}")
    catch
-      id = new Meteor.Collection.ObjectID()
+      id = new Mongo.ObjectID()
    subFile = {}
    subFile._id = id
    subFile.length = 0
