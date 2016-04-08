@@ -4,7 +4,7 @@
 ###     See included LICENSE file for details.
 ***************************************************************************/
 
-var currentVersion = '1.3.3';
+var currentVersion = '1.3.4';
 
 Package.describe({
   summary: 'Collections that efficiently store files using MongoDB GridFS, with built-in HTTP support',

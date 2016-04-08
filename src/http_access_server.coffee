@@ -381,7 +381,7 @@ if Meteor.isServer
       # Set up support for resumable.js if requested
       if options.resumable
          options.http = [] unless options.http?
-         options.http = share.resumable_paths.concat options.http
+         options.http = options.http.concat share.resumable_paths
 
       # Don't setup any middleware unless there are routes defined
       if options.http?.length > 0

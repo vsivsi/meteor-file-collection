@@ -42,8 +42,9 @@ if Meteor.isClient
          maxFilesErrorCallback: undefined
          prioritizeFirstAndLastChunk: false
          query: undefined
-         headers: {},
-         maxChunkRetries:5
+         headers: {}
+         maxChunkRetries: 5
+         withCredentials: true
 
       unless r.support
          console.warn "resumable.js not supported by this Browser, uploads will be disabled"
