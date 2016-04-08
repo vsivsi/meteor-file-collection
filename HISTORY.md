@@ -1,5 +1,11 @@
 ## Revision history
 
+### V1.3.4
+
+* Added `withCredentials: true` to the default Resumable object parameters to allow authentication with CORS
+* Changed precedence of developer provided HTTP request handlers to come before default resumable.js route handlers, to permit adding headers to responses on that route.
+* Updated resumable.js to latest `master`
+
 ### V1.3.3
 
 * Use the internal MongoDB 2.1.x driver to create the indexes, not the Meteor provided 1.4.x driver, which is incompatible with MongoDB 3.2. Thanks to @snajjar for reporting.
