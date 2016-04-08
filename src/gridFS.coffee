@@ -7,6 +7,8 @@
 share.defaultChunkSize = 2*1024*1024 - 1024
 share.defaultRoot = 'fs'
 
+share.resumableBase = '/_resumable'
+
 share.insert_func = (file = {}, chunkSize) ->
    try
       id = new Mongo.ObjectID("#{file._id}")
