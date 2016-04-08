@@ -26,7 +26,7 @@ if Meteor.isClient
          return fBound
 
    share.setup_resumable = () ->
-      url = "#{@baseURL}/_resumable"
+      url = "#{@baseURL}#{share.resumableBase}"
       url = Meteor.absoluteUrl(url) if Meteor.isCordova
 
       r = new Resumable
