@@ -28,10 +28,6 @@ if Meteor.isClient
    share.setup_resumable = () ->
       url = "#{@baseURL}#{share.resumableBase}"
       url = Meteor.absoluteUrl(url) if Meteor.isCordova
-
-      url = "http://127.0.0.1:3000#{url}"
-      console.log "URL: #{url}"
-
       r = new Resumable
          target: url
          generateUniqueIdentifier: (file) -> "#{new Mongo.ObjectID()}"
