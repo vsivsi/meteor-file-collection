@@ -1,5 +1,9 @@
 ## Revision history
 
+### V.NEXT
+
+* Updated Meteor package deps to 1.3.1 versions
+
 ### V1.3.4
 
 * Added `withCredentials: true` to the default Resumable object parameters to allow authentication with CORS
