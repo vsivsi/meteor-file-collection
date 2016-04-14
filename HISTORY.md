@@ -5,6 +5,7 @@
 * Added `withCredentials: true` to the default Resumable object parameters to allow authentication with CORS
 * Changed precedence of developer provided HTTP request handlers to come before default resumable.js route handlers, to permit adding headers to responses on that route.
 * Updated resumable.js to latest `master`
+* Updated npm dependencies.
 
 ### V1.3.3
 
