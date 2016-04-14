@@ -391,12 +391,26 @@ myFiles = new FileCollection('myFiles',
         path: '/:md5',  // this will be at route "/gridfs/myFiles/:md5"
         lookup: function (params, query) {  // uses express style url params
           return { md5: params.md5 };       // a query mapping url to myFiles
+        },
+        handler: function (req, res, next) {
+           if (req.headers && req.headers.origin) {
+             res.setHeader('Access-Control-Allow-Origin', 'http://meteor.local'); // For Cordova
+             res.setHeader('Access-Control-Allow-Credentials', true);
+           }
+           next();
         }
       },
       { method: 'put',  // Enable a PUT endpoint
         path: '/:md5',  // this will be at route "/gridfs/myFiles/:md5"
         lookup: function (params, query) {  // uses express style url params
           return { md5: params.md5 };       // a query mapping url to myFiles
+        },
+        handler: function (req, res, next) {
+           if (req.headers && req.headers.origin) {
+             res.setHeader('Access-Control-Allow-Origin', 'http://meteor.local'); // For Cordova
+             res.setHeader('Access-Control-Allow-Credentials', true);
+           }
+           next();
         }
       },
       { method: 'options',  // Enable an OPTIONS endpoint (for CORS)
@@ -407,7 +421,9 @@ myFiles = new FileCollection('myFiles',
         handler: function (req, res, next) {  // Custom express.js handler for OPTIONS
            res.writeHead(200, {
               'Content-Type': 'text/plain',
-              'Access-Control-Allow-Origin': 'http://meteor.local',
+              'Access-Control-Allow-Origin': 'http://meteor.local',  // For Cordova
+              'Access-Control-Allow-Credentials': true,
+              'Access-Control-Allow-Headers': 'x-auth-token, user-agent',
               'Access-Control-Allow-Methods': 'GET, PUT'
            });
            res.end();

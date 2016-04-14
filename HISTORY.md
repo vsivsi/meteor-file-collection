@@ -3,6 +3,7 @@
 ### V.NEXT
 
 * Updated Meteor package deps to 1.3.1 versions
+* Documentation updates (CORS)
 
 ### V1.3.4
 
