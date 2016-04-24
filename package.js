@@ -31,7 +31,7 @@ Package.onUse(function(api) {
   api.use('mongo@1.1.6', ['server', 'client']);
   api.use('minimongo@1.0.13', 'server');
   api.use('check@1.1.3', ['server', 'client']);
-  api.addFiles('resumable/resumable.js', 'client');
+  api.addFiles('flow/dist/flow.js', 'client');
   api.addFiles('src/gridFS.coffee', ['server','client']);
   api.addFiles('src/server_shared.coffee', 'server');
   api.addFiles('src/gridFS_server.coffee', 'server');
