@@ -366,11 +366,14 @@ if Meteor.isServer
    handle_auth = (req, res, next) ->
       unless req.meteorUserId?
          # Lookup userId if token is provided in HTTP heder
+         # console.log(req.headers.cookie.split('=')[1]);
          if req.headers?['x-auth-token']?
             req.meteorUserId = lookup_userId_by_token req.headers['x-auth-token']
          # Or as a URL query of the same name
          else if req.cookies?['X-Auth-Token']?
             req.meteorUserId = lookup_userId_by_token req.cookies['X-Auth-Token']
+         else if req.headers.cookie?
+            req.meteorUserId = lookup_userId_by_token req.headers.cookie.split('=')[1]
          else
             req.meteorUserId = null
       next()
