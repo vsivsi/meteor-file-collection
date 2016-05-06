@@ -1,15 +1,15 @@
-# file-collection
-
-[![Build Status](https://travis-ci.org/vsivsi/meteor-file-collection.svg)](https://travis-ci.org/vsivsi/meteor-file-collection)
+# file-collection-server
 
 ## Introduction
 
-file-collection is a Meteor.js package that cleanly extends Meteor's Collection metaphor for efficiently dealing with collections of files and their data. File Collections are fully reactive, and if you know how to use Meteor Collections, you already know most of what you need to begin working with this package.
+file-collection-server is an experimental fork of [file-collection](https://github.com/vsivsi/meteor-file-collection/) Meteor.js package that cleanly extends Meteor's Collection metaphor for efficiently dealing with collections of files and their data. File Collections are fully reactive, and if you know how to use Meteor Collections, you already know most of what you need to begin working with this package.
+
+This fork removes the client part of the package to be able to work with different client implementations.
 
 Major features:
 
 * HTTP upload and download including support for Meteor authentication
-* Client and Server integration of [resumable.js](http://resumablejs.com/) for robust chunked uploading
+* Server integration of [resumable.js](http://resumablejs.com/) and [flow.js](https://github.com/flowjs/flow.js) for robust chunked uploading
 * Also compatible with traditional HTTP POST or PUT file uploading
 * HTTP range requests support random access for resumable downloads, media seeking, etc.
 * Robust file locking allows safe replacement and removal of files even on a busy server

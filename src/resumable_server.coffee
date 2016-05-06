@@ -129,7 +129,7 @@ if Meteor.isServer
    # Handle HTTP POST requests from Resumable.js or Flow.js
 
    resumable_post_lookup = (params, query, multipart) ->
-      return { _id: share.safeObjectID(multipart?.params?.resumableIdentifier || req.multipart?.params?.flowIdentifier) }
+      return { _id: share.safeObjectID(multipart?.params?.resumableIdentifier || multipart?.params?.flowIdentifier) }
 
    resumable_post_handler = (req, res, next) ->
 
@@ -141,6 +141,7 @@ if Meteor.isServer
          return
 
       resumable = req.multipart.params
+      resumable.resumableIdentifier = resumable.resumableIdentifier || resumable.flowIdentifier
       resumable.resumableTotalSize = parseInt resumable.resumableTotalSize || resumable.flowTotalSize
       resumable.resumableTotalChunks = parseInt resumable.resumableTotalChunks || resumable.flowTotalChunks
       resumable.resumableChunkNumber = parseInt resumable.resumableChunkNumber || resumable.flowChunkNumber
@@ -161,6 +162,7 @@ if Meteor.isServer
               ((resumable.resumableChunkNumber is resumable.resumableTotalChunks) and
                (resumable.resumableCurrentChunkSize < 2*resumable.resumableChunkSize)))
 
+         console.error("Error in POST params (%d)", req.gridFS.chunkSize, resumable)
          res.writeHead(501, share.defaultResponseHeaders)
          res.end()
          return
