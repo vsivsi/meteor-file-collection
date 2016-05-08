@@ -138,6 +138,17 @@ if Meteor.isServer
       for h, v of share.defaultResponseHeaders
          headers[h] = v
 
+      ## If If-Modified-Since header present, and parses to a date, then we
+      ## return 304 (Not Modified Since) if the modification date is less than
+      ## the specified date, or they both format to the same UTC string
+      ## (which can deal with some sub-second rounding caused by formatting).
+      if req.headers['if-modified-since']
+         since = Date.parse req.headers['if-modified-since']  ## NaN if invaild
+         if since and req.gridFS.uploadDate and (req.headers['if-modified-since'] == req.gridFS.uploadDate.toUTCString() or since >= req.gridFS.uploadDate.getTime())
+            res.writeHead 304, headers
+            res.end()
+            return
+
       # If range request in the header
       if req.headers['range']
         # Set status code to partial data
