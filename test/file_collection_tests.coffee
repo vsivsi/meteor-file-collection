@@ -4,6 +4,9 @@
 #     See included LICENSE file for details.
 ############################################################################
 
+if Meteor.isServer
+  os = Npm.require 'os'
+
 bind_env = (func) ->
   if typeof func is 'function'
     return Meteor.bindEnvironment func, (err) -> throw err
@@ -296,7 +299,7 @@ if Meteor.isServer
           readstream.on 'data', bind_env (chunk) ->
             test.equal chunk.toString(), '1234567890','Incorrect data read back from stream'
           readstream.on 'end', bind_env () ->
-            testfile = "/tmp/FileCollection." + file._id + ".test"
+            testfile = os.tmpdir() + "FileCollection." + file._id + ".test"
             testColl.exportFile file, testfile, bind_env (err, doc) ->
               test.fail(err) if err
               testColl.importFile testfile, {}, bind_env (err, doc) ->
@@ -326,7 +329,7 @@ if Meteor.isServer
         readstream.on 'data', bind_env (chunk) ->
           test.equal chunk.toString(), 'ZYXWVUTSRQ','Incorrect data read back from stream'
         readstream.on 'end', bind_env () ->
-          testfile = "/tmp/FileCollection." + file._id + ".test"
+          testfile = os.tmpdir() + "FileCollection." + file._id + ".test"
           testColl.exportFile file, testfile, bind_env (err, doc) ->
             test.fail(err) if err
             testColl.importFile testfile, {}, bind_env (err, doc) ->

@@ -1,7 +1,9 @@
 ## Revision history
 
-### V.NEXT
+### V1.3.5
 
+* Added GET support for `Last-Modified-Since` HTTP header (thanks @edemaine)
+* Fixed broken server tests when run on Windows (thanks @edemaine)
 * Updated Meteor package deps to 1.3.1 versions
 * Documentation updates (CORS)
 

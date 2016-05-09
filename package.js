@@ -4,7 +4,7 @@
 ###     See included LICENSE file for details.
 ***************************************************************************/
 
-var currentVersion = '1.3.4';
+var currentVersion = '1.3.5';
 
 Package.describe({
   summary: 'Collections that efficiently store files using MongoDB GridFS, with built-in HTTP support',
@@ -14,7 +14,7 @@ Package.describe({
 });
 
 Npm.depends({
-  mongodb: '2.1.16',
+  mongodb: '2.1.18',
   'gridfs-locking-stream': '1.1.0',
   'gridfs-locks': '1.3.4',
   dicer: '0.2.5',
