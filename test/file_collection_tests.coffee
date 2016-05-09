@@ -300,6 +300,7 @@ if Meteor.isServer
             test.equal chunk.toString(), '1234567890','Incorrect data read back from stream'
           readstream.on 'end', bind_env () ->
             testfile = os.tmpdir() + "FileCollection." + file._id + ".test"
+            console.log "Test file 1: #{testfile}"
             testColl.exportFile file, testfile, bind_env (err, doc) ->
               test.fail(err) if err
               testColl.importFile testfile, {}, bind_env (err, doc) ->
@@ -330,6 +331,7 @@ if Meteor.isServer
           test.equal chunk.toString(), 'ZYXWVUTSRQ','Incorrect data read back from stream'
         readstream.on 'end', bind_env () ->
           testfile = os.tmpdir() + "FileCollection." + file._id + ".test"
+          console.log "Test file 1: #{testfile}"
           testColl.exportFile file, testfile, bind_env (err, doc) ->
             test.fail(err) if err
             testColl.importFile testfile, {}, bind_env (err, doc) ->
