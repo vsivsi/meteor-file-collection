@@ -301,10 +301,14 @@ if Meteor.isServer
               test.fail(err) if err
               testColl.importFile testfile, {}, bind_env (err, doc) ->
                 test.fail(err) if err
-                readstream = testColl.findOneStream {_id: doc._id }
-                readstream.on 'data', bind_env (chunk) ->
-                  test.equal chunk.toString(), '1234567890','Incorrect data read back from file stream'
-                readstream.on 'end', bind_env () ->
+                test.equal typeof doc, 'object', "No document imported"
+                if typeof doc == 'object'
+                  readstream = testColl.findOneStream {_id: doc._id }
+                  readstream.on 'data', bind_env (chunk) ->
+                    test.equal chunk.toString(), '1234567890','Incorrect data read back from file stream'
+                  readstream.on 'end', bind_env () ->
+                    onComplete()
+                else
                   onComplete()
         writestream.write '1234567890'
         writestream.end()
@@ -327,10 +331,14 @@ if Meteor.isServer
             test.fail(err) if err
             testColl.importFile testfile, {}, bind_env (err, doc) ->
               test.fail(err) if err
-              readstream = testColl.findOneStream {_id: doc._id }
-              readstream.on 'data', bind_env (chunk) ->
-                test.equal chunk.toString(), 'ZYXWVUTSRQ','Incorrect data read back from file stream'
-              readstream.on 'end', bind_env () ->
+              test.equal typeof doc, 'object', "No document imported"
+              if typeof doc == 'object'
+                readstream = testColl.findOneStream {_id: doc._id }
+                readstream.on 'data', bind_env (chunk) ->
+                  test.equal chunk.toString(), 'ZYXWVUTSRQ','Incorrect data read back from file stream'
+                readstream.on 'end', bind_env () ->
+                  onComplete()
+              else
                 onComplete()
       writestream.write 'ZYXWVUTSRQ'
       writestream.end()
@@ -385,6 +393,31 @@ Tinytest.addAsync 'maxUploadSize enforced by when HTTP POST upload is too large'
          else
             console.warn "PhantomJS skipped statusCode check"
          onComplete()
+
+Tinytest.addAsync 'If-Modified-Since header support', (test, onComplete) ->
+  _id = testColl.insert { filename: 'writefile', contentType: 'text/plain' }, (err, _id) ->
+    test.fail(err) if err
+    url = Meteor.absoluteUrl 'test/' + _id
+    HTTP.get url, (err, res) ->
+      test.fail(err) if err
+      test.equal res.statusCode, 200, 'Failed without If-Modified-Since header'
+      modified = res.headers['last-modified']
+      test.equal typeof modified, 'string', 'Invalid Last-Modified response'
+      HTTP.get url, {headers: {'If-Modified-Since': modified}}, (err, res) ->
+        test.fail(err) if err
+        test.equal res.statusCode, 304, 'Returned file despite present If-Modified-Since'
+        HTTP.get url, {headers: {'If-Modified-Since': 'hello'}}, (err, res) ->
+          test.fail(err) if err
+          test.equal res.statusCode, 200, 'Skipped file despite unparsable If-Modified-Since'
+          modified = new Date(Date.parse(modified) - 2000).toUTCString()  ## past test
+          HTTP.get url, {headers: {'If-Modified-Since': modified}}, (err, res) ->
+            test.fail(err) if err
+            test.equal res.statusCode, 200, 'Skipped file despite past If-Modified-Since'
+            modified = new Date(Date.parse(modified) + 4000).toUTCString()  ## future test
+            HTTP.get url, {headers: {'If-Modified-Since': modified}}, (err, res) ->
+              test.fail(err) if err
+              test.equal res.statusCode, 304, 'Returned file despite future If-Modified-Since'
+              onComplete()
 
 Tinytest.addAsync 'REST API POST/GET/DELETE', (test, onComplete) ->
   _id = testColl.insert { filename: 'writefile', contentType: 'text/plain' }, (err, _id) ->
