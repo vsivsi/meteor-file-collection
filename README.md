@@ -167,7 +167,7 @@ if (Meteor.isClient) {
       Meteor.subscribe('myData', Meteor.userId());
       // $.cookie() assumes use of "jquery-cookie" Atmosphere package.
       // You can use any other cookie package you may prefer...
-      $.cookie('X-Auth-Token', Accounts._storedLoginToken());
+      $.cookie('X-Auth-Token', Accounts._storedLoginToken(), { path: '/' });
     });
   });
 }
