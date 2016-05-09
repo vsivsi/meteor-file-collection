@@ -5,7 +5,7 @@
 * Added GET support for `Last-Modified-Since` HTTP header (thanks @edemaine)
 * Fixed broken server tests when run on Windows (thanks @edemaine)
 * Updated Meteor package deps to 1.3.2.x versions
-* Documentation updates (CORS)
+* Documentation updates for CORS, and cookie handling in sample code. 
 
 ### V1.3.4
 
