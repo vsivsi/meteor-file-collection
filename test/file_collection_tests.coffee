@@ -6,6 +6,7 @@
 
 if Meteor.isServer
   os = Npm.require 'os'
+  path = Npm.require 'path'
 
 bind_env = (func) ->
   if typeof func is 'function'
@@ -299,8 +300,7 @@ if Meteor.isServer
           readstream.on 'data', bind_env (chunk) ->
             test.equal chunk.toString(), '1234567890','Incorrect data read back from stream'
           readstream.on 'end', bind_env () ->
-            testfile = os.tmpdir() + "/FileCollection." + file._id + ".test"
-            console.log "Test file 1: #{testfile}"
+            testfile = path.join os.tmpdir(), "/FileCollection." + file._id + ".test"
             testColl.exportFile file, testfile, bind_env (err, doc) ->
               test.fail(err) if err
               testColl.importFile testfile, {}, bind_env (err, doc) ->
@@ -330,8 +330,7 @@ if Meteor.isServer
         readstream.on 'data', bind_env (chunk) ->
           test.equal chunk.toString(), 'ZYXWVUTSRQ','Incorrect data read back from stream'
         readstream.on 'end', bind_env () ->
-          testfile = os.tmpdir() + "/FileCollection." + file._id + ".test"
-          console.log "Test file 1: #{testfile}"
+          testfile = path.join os.tmpdir(), "/FileCollection." + file._id + ".test"
           testColl.exportFile file, testfile, bind_env (err, doc) ->
             test.fail(err) if err
             testColl.importFile testfile, {}, bind_env (err, doc) ->
