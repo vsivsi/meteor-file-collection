@@ -24,13 +24,9 @@ if Meteor.isClient
 
          @base = @root
          @baseURL = options.baseURL ? "/gridfs/#{@root}"
+         @resumableURL = "#{@baseURL}#{share.resumableBase}"
          @chunkSize = options.chunkSize ? share.defaultChunkSize
          super @root + '.files', { idGeneration: 'MONGO' }
-
-         # This call sets up the optional support for resumable.js
-         # See the resumable.coffee file for more information
-         if options.resumable
-            share.setup_resumable.bind(@)()
 
       # remove works as-is. No modifications necessary so it currently goes straight to super
 

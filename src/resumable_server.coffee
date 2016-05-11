@@ -126,26 +126,27 @@ if Meteor.isServer
       lock.on 'timed-out', () -> callback new Meteor.Error "File Lock timed out"
       lock.on 'error', (err) -> callback err
 
-   # Handle HTTP POST requests from Resumable.js
+   # Handle HTTP POST requests from Resumable.js or Flow.js
 
    resumable_post_lookup = (params, query, multipart) ->
-      return { _id: share.safeObjectID(multipart?.params?.resumableIdentifier) }
+      return { _id: share.safeObjectID(multipart?.params?.resumableIdentifier || multipart?.params?.flowIdentifier) }
 
    resumable_post_handler = (req, res, next) ->
 
       # This has to be a resumable POST
-      unless req.multipart?.params?.resumableIdentifier
+      unless req.multipart?.params?.resumableIdentifier || req.multipart?.params?.flowIdentifier
          console.error "Missing resumable.js multipart information"
          res.writeHead(501, share.defaultResponseHeaders)
          res.end()
          return
 
       resumable = req.multipart.params
-      resumable.resumableTotalSize = parseInt resumable.resumableTotalSize
-      resumable.resumableTotalChunks = parseInt resumable.resumableTotalChunks
-      resumable.resumableChunkNumber = parseInt resumable.resumableChunkNumber
-      resumable.resumableChunkSize = parseInt resumable.resumableChunkSize
-      resumable.resumableCurrentChunkSize = parseInt resumable.resumableCurrentChunkSize
+      resumable.resumableIdentifier = resumable.resumableIdentifier || resumable.flowIdentifier
+      resumable.resumableTotalSize = parseInt resumable.resumableTotalSize || resumable.flowTotalSize
+      resumable.resumableTotalChunks = parseInt resumable.resumableTotalChunks || resumable.flowTotalChunks
+      resumable.resumableChunkNumber = parseInt resumable.resumableChunkNumber || resumable.flowChunkNumber
+      resumable.resumableChunkSize = parseInt resumable.resumableChunkSize || resumable.flowChunkSize
+      resumable.resumableCurrentChunkSize = parseInt resumable.resumableCurrentChunkSize || resumable.flowCurrentChunkSize
 
       if req.maxUploadSize > 0
          unless resumable.resumableTotalSize <= req.maxUploadSize
@@ -161,6 +162,7 @@ if Meteor.isServer
               ((resumable.resumableChunkNumber is resumable.resumableTotalChunks) and
                (resumable.resumableCurrentChunkSize < 2*resumable.resumableChunkSize)))
 
+         console.error("Error in POST params (%d)", req.gridFS.chunkSize, resumable)
          res.writeHead(501, share.defaultResponseHeaders)
          res.end()
          return
@@ -214,7 +216,7 @@ if Meteor.isServer
                res.end())
 
    resumable_get_lookup = (params, query) ->
-      q = { _id: share.safeObjectID(query.resumableIdentifier) }
+      q = { _id: share.safeObjectID(query.resumableIdentifier || query.flowIdentifier) }
       return q
 
    # This handles Resumable.js "test GET" requests, that exist to determine
@@ -230,8 +232,8 @@ if Meteor.isServer
             }
             {
                length: parseInt query.resumableCurrentChunkSize
-               'metadata._Resumable.resumableIdentifier': query.resumableIdentifier
-               'metadata._Resumable.resumableChunkNumber': parseInt query.resumableChunkNumber
+               'metadata._Resumable.resumableIdentifier': query.resumableIdentifier || query.flowIdentifier
+               'metadata._Resumable.resumableChunkNumber': parseInt query.resumableChunkNumber || query.flowChunkNumber
             }
          ]
 
