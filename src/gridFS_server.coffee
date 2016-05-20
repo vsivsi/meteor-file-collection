@@ -139,6 +139,9 @@ if Meteor.isServer
          self = @ # Necessary in the method definition below
 
          Meteor.server.method_handlers["#{@_prefix}remove"] = (selector) ->
+
+            check selector, Object
+
             unless LocalCollection._selectorIsIdPerhapsAsObject(selector)
                throw new Meteor.Error 403, "Not permitted. Untrusted code may only remove documents by ID."
 
