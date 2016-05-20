@@ -4,6 +4,7 @@ node_js:
 
 before_install:
   - "curl https://install.meteor.com | /bin/sh"
+  - "npm install -g coffee-script"
   - "npm install -g spacejam"
   # - "export PHANTOMJS_CDNURL=http://cnpmjs.org/downloads"
   # - "npm install -g phantomjs-prebuilt"
