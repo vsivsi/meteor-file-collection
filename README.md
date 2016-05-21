@@ -57,6 +57,8 @@ Additional changes are detailed in the HISTORY file.
 
 ### Design philosophy
 
+**Update: CollectionFS appears to no longer be actively maintained, so caveat emptor.**
+
 My goal in writing this package was to stay true to the spirit of Meteor and build something efficient and secure that "just works" with a minimum of fuss.
 
 If you've been searching for ways to deal with file data on Meteor, you've probably also encountered [collectionFS](https://atmospherejs.com/cfs/standard-packages). If not, you should definitely check it out. It's a great set of packages written by smart people, and I even pitched in to help with a rewrite of their MongoDB gridFS support.
