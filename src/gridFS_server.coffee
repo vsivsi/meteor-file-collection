@@ -32,7 +32,7 @@ if Meteor.isServer
 
          @chunkSize = options.chunkSize ? share.defaultChunkSize
 
-         @db = Meteor.wrapAsync(mongodb.MongoClient.connect)(process.env.MONGO_URL,{})
+         @db = Meteor.wrapAsync(mongodb.MongoClient.connect)(process.env.MONGO_URL, options.mongoOptions ? {})
 
          @lockOptions =
             timeOut: options.locks?.timeOut ? 360
