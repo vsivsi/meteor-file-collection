@@ -27,7 +27,7 @@ if Meteor.isClient
 
    share.setup_resumable = () ->
       url = "#{@baseURL}#{share.resumableBase}"
-      url = Meteor.absoluteUrl(url) if Meteor.isCordova
+      url = Meteor.absoluteUrl(url.replace /^\//, '') if Meteor.isCordova
       r = new Resumable
          target: url
          generateUniqueIdentifier: (file) -> "#{new Mongo.ObjectID()}"
