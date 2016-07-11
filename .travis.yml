@@ -10,4 +10,4 @@ before_install:
   # - "npm install -g phantomjs-prebuilt"
   - "export PATH=$PATH:$HOME/.meteor"
 
-script: "spacejam test-packages ./ --use-system-phantomjs"
+script: "spacejam test-packages ./"
