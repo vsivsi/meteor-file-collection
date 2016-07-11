@@ -1,5 +1,10 @@
 ## Revision history
 
+### V1.3.6
+
+* Fixed absolute URL for Cordova downloads. (thanks @crapthings)
+* Updated npm and atmosphere dependencies for Meteor 1.3.4.4
+
 ### V1.3.5
 
 * Added GET support for `Last-Modified-Since` HTTP header (thanks @edemaine)
