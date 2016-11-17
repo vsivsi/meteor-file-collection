@@ -353,6 +353,13 @@ if Meteor.isServer
 
       # Add all of generic request handling methods to the express route
       @router.route('/*')
+         .all (req, res, next) ->   # There needs to be a valid req.gridFS object here
+            if req.gridFS?
+               next()
+               return
+            else
+               res.writeHead(404, share.defaultResponseHeaders)
+               res.end()
          .head(get.bind(@))   # Generic HTTP method handlers
          .get(get.bind(@))
          .put(put.bind(@))
