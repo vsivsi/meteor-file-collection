@@ -1,5 +1,12 @@
 ## Revision history
 
+### V1.3.7
+
+* Fixed server internal error when an HTTP requests matches the file-collection `baseURL` but does not match any of the defined HTTP interface definition paths. Also added unit test for this case. Thanks to @nathanbrizzee for reporting.
+* Fixed (via gridfs-locking-stream npm package) an event memory leak when renewing locks on open files.
+* Updated resumable.js to latest upstream version
+* Updated npm and atmosphere dependencies for Meteor 1.4.2.3
+
 ### V1.3.6
 
 * Fixed absolute URL for Cordova downloads. (thanks @crapthings)
