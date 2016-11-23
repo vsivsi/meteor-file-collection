@@ -220,7 +220,7 @@ if Meteor.isServer
          callback = share.bind_env callback
          cbCalled = false
          mods = {}
-         mods._id = file._id if file._id
+         mods._id = file._id if file._id?
          mods.filename = file.filename if file.filename?
          mods.aliases = file.aliases if file.aliases?
          mods.contentType = file.contentType if file.contentType?
