@@ -96,7 +96,9 @@ if Meteor.isServer
 
                # Make darn sure we're creating a valid gridFS .files document
                check file,
-                  _id: Mongo.ObjectID
+                  _id: Match.Where (x) => 
+                     check x, Mongo.ObjectID
+                     x is Mongo.ObjectID()
                   length: Match.Where (x) =>
                      check x, Match.Integer
                      x is 0
@@ -218,6 +220,7 @@ if Meteor.isServer
          callback = share.bind_env callback
          cbCalled = false
          mods = {}
+         mods._id = file._id if file._id
          mods.filename = file.filename if file.filename?
          mods.aliases = file.aliases if file.aliases?
          mods.contentType = file.contentType if file.contentType?
