@@ -32,7 +32,6 @@ Package.onUse(function(api) {
   api.use('mongo@1.1.14', ['server', 'client']);
   api.use('minimongo@1.0.19', 'server');
   api.use('check@1.2.4', ['server', 'client']);
-  // api.use('jquery@1.11.10', 'client');
   api.addFiles('resumable/resumable.js', 'client');
   api.addFiles('src/gridFS.coffee', ['server','client']);
   api.addFiles('src/server_shared.coffee', 'server');
@@ -45,7 +44,6 @@ Package.onUse(function(api) {
 });
 
 Package.onTest(function (api) {
-  // api.use('jquery@1.11.10', 'client');
   api.use('vsivsi:file-collection@' + currentVersion, ['server', 'client']);
   api.use('coffeescript@1.11.1_4', ['server', 'client']);
   api.use('tinytest@1.0.12', ['server', 'client']);
