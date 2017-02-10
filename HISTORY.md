@@ -1,5 +1,12 @@
 ## Revision history
 
+### V.NEXT
+
+* Added check to guard against catastrophic remote file deletion triggered by [this Meteor bug](https://github.com/vsivsi/meteor-file-collection/issues/152). 
+* Updated resumable.js to latest upstream version
+* Removed jquery Atmosphere package as a dependency, as resumable.js no longer requires it.
+* Documentation improvements
+
 ### V1.3.7
 
 * Fixed server internal error when an HTTP requests matches the file-collection `baseURL` but does not match any of the defined HTTP interface definition paths. Also added unit test for this case. Thanks to @nathanbrizzee for reporting.
