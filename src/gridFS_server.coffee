@@ -149,7 +149,7 @@ if Meteor.isServer
             cursor = self.find selector
 
             if cursor.count() > 1
-               throw new Meteor.Error 500, "Remote remove selector targets multiple files. See "
+               throw new Meteor.Error 500, "Remote remove selector targets multiple files.\nSee https://github.com/vsivsi/meteor-file-collection/issues/152#issuecomment-278824127"
 
             [file] = cursor.fetch()
 

@@ -1,8 +1,8 @@
 ## Revision history
 
-### V.NEXT
+### V1.3.8
 
-* Added check to guard against catastrophic remote file deletion triggered by [this Meteor bug](https://github.com/vsivsi/meteor-file-collection/issues/152). 
+* Added check to guard against catastrophic remote file deletion triggered by [this Meteor bug](https://github.com/vsivsi/meteor-file-collection/issues/152).
 * Updated resumable.js to latest upstream version
 * Removed jquery Atmosphere package as a dependency, as resumable.js no longer requires it.
 * Documentation improvements
