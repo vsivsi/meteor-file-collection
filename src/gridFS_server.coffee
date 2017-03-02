@@ -7,6 +7,7 @@
 if Meteor.isServer
 
    mongodb = Npm.require 'mongodb'
+   # mongodb_test = NpmModuleMongodb
    grid = Npm.require 'gridfs-locking-stream'
    gridLocks = Npm.require 'gridfs-locks'
    fs = Npm.require 'fs'
@@ -237,7 +238,7 @@ if Meteor.isServer
 
          # Make sure that we have an ID and it's valid
          if file._id
-            found = @findOne {_id: file._id}
+            found = @findOne {_id: new Mongo.ObjectID "#{file._id}" }
 
          unless file._id and found
             file._id = @insert mods
@@ -264,6 +265,8 @@ if Meteor.isServer
                writeStream.on 'close', (retFile) ->
                   if retFile
                      retFile._id = new Mongo.ObjectID retFile._id.toHexString()
+                     console.log "Callback!"
+                     console.dir retFile._id
                      callback(null, retFile)
                writeStream.on 'error', (err) ->
                   callback(err)
@@ -281,6 +284,10 @@ if Meteor.isServer
          opts = {}
          opts.sort = options.sort if options.sort?
          opts.skip = options.skip if options.skip?
+
+         console.log "The ID: #{selector._id} ", selector._id, selector._id.length, "#{selector._id}".length, typeof selector._id
+         console.dir selector
+
          file = @findOne selector, opts
 
          if file
@@ -300,6 +307,8 @@ if Meteor.isServer
                range:
                  startPos: range.start
                  endPos: range.end
+
+            console.log "And out"
 
             if readStream
                if options.autoRenewLock

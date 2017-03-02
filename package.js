@@ -14,8 +14,7 @@ Package.describe({
 });
 
 Npm.depends({
-  // latest mongodb driver is 2.2.x, but early revs, currently seems broken
-  mongodb: '2.1.21',
+  mongodb: '2.2.24',
   'gridfs-locking-stream': '1.1.1',
   'gridfs-locks': '1.3.4',
   dicer: '0.2.5',
@@ -30,6 +29,7 @@ Package.onUse(function(api) {
   api.use('coffeescript@1.12.3_1', ['server','client']);
   api.use('webapp@1.3.13', 'server');
   api.use('mongo@1.1.15', ['server', 'client']);
+  // api.use('npm-mongo@2.2.16_1', 'server');
   api.use('minimongo@1.0.20', 'server');
   api.use('check@1.2.5', ['server', 'client']);
   api.addFiles('resumable/resumable.js', 'client');
@@ -44,6 +44,7 @@ Package.onUse(function(api) {
 });
 
 Package.onTest(function (api) {
+  api.use('npm-mongo@2.2.16_1', 'server');
   api.use('vsivsi:file-collection@' + currentVersion, ['server', 'client']);
   api.use('coffeescript@1.12.3_1', ['server', 'client']);
   api.use('tinytest@1.0.12', ['server', 'client']);

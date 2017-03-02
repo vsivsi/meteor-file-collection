@@ -6,8 +6,9 @@
 
 if Meteor.isServer
 
-   express = Npm.require 'express'
    mongodb = Npm.require 'mongodb'
+   # mongodb_test = NpmModuleMongodb
+   express = Npm.require 'express'
    grid = Npm.require 'gridfs-locking-stream'
    gridLocks = Npm.require 'gridfs-locks'
    dicer = Npm.require 'dicer'
