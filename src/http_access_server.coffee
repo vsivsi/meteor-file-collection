@@ -1,5 +1,5 @@
 ############################################################################
-#     Copyright (C) 2014-2016 by Vaughn Iverson
+#     Copyright (C) 2014-2017 by Vaughn Iverson
 #     fileCollection is free software released under the MIT/X11 license.
 #     See included LICENSE file for details.
 ############################################################################
@@ -353,6 +353,13 @@ if Meteor.isServer
 
       # Add all of generic request handling methods to the express route
       @router.route('/*')
+         .all (req, res, next) ->   # There needs to be a valid req.gridFS object here
+            if req.gridFS?
+               next()
+               return
+            else
+               res.writeHead(404, share.defaultResponseHeaders)
+               res.end()
          .head(get.bind(@))   # Generic HTTP method handlers
          .get(get.bind(@))
          .put(put.bind(@))

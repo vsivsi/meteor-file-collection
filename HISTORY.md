@@ -1,5 +1,24 @@
 ## Revision history
 
+### V1.3.8
+
+* Added check to guard against catastrophic remote file deletion triggered by [this Meteor bug](https://github.com/vsivsi/meteor-file-collection/issues/152).
+* Updated resumable.js to latest upstream version
+* Removed jquery Atmosphere package as a dependency, as resumable.js no longer requires it.
+* Documentation improvements
+
+### V1.3.7
+
+* Fixed server internal error when an HTTP requests matches the file-collection `baseURL` but does not match any of the defined HTTP interface definition paths. Also added unit test for this case. Thanks to @nathanbrizzee for reporting.
+* Fixed (via gridfs-locking-stream npm package) an event memory leak when renewing locks on open files.
+* Updated resumable.js to latest upstream version
+* Updated npm and atmosphere dependencies for Meteor 1.4.2.3
+
+### V1.3.6
+
+* Fixed absolute URL for Cordova downloads. (thanks @crapthings)
+* Updated npm and atmosphere dependencies for Meteor 1.3.4.4
+
 ### V1.3.5
 
 * Added GET support for `Last-Modified-Since` HTTP header (thanks @edemaine)

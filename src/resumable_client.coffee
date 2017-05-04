@@ -1,5 +1,5 @@
 ############################################################################
-#     Copyright (C) 2014-2016 by Vaughn Iverson
+#     Copyright (C) 2014-2017 by Vaughn Iverson
 #     fileCollection is free software released under the MIT/X11 license.
 #     See included LICENSE file for details.
 ############################################################################
@@ -27,7 +27,7 @@ if Meteor.isClient
 
    share.setup_resumable = () ->
       url = "#{@baseURL}#{share.resumableBase}"
-      url = Meteor.absoluteUrl(url) if Meteor.isCordova
+      url = Meteor.absoluteUrl(url.replace /^\//, '') if Meteor.isCordova
       r = new Resumable
          target: url
          generateUniqueIdentifier: (file) -> "#{new Mongo.ObjectID()}"

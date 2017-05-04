@@ -1,10 +1,10 @@
 /***************************************************************************
-###     Copyright (C) 2014-2016 by Vaughn Iverson
+###     Copyright (C) 2014-2017 by Vaughn Iverson
 ###     fileCollection is free software released under the MIT/X11 license.
 ###     See included LICENSE file for details.
 ***************************************************************************/
 
-var currentVersion = '1.3.5';
+var currentVersion = '1.3.8';
 
 Package.describe({
   summary: 'Collections that efficiently store files using MongoDB GridFS, with built-in HTTP support',
@@ -14,23 +14,24 @@ Package.describe({
 });
 
 Npm.depends({
-  mongodb: '2.1.19',
-  'gridfs-locking-stream': '1.1.0',
+  // latest mongodb driver is 2.2.x, but early revs, currently seems broken
+  mongodb: '2.1.21',
+  'gridfs-locking-stream': '1.1.1',
   'gridfs-locks': '1.3.4',
   dicer: '0.2.5',
-  async: '1.5.2',
-  express: '4.13.4',
-  'cookie-parser': '1.4.1',
+  async: '2.1.4',
+  express: '4.14.1',
+  'cookie-parser': '1.4.3',
   // Version 2.x of through2 is Streams3, so don't go there yet!
   through2: '0.6.5'
 });
 
 Package.onUse(function(api) {
-  api.use('coffeescript@1.0.17', ['server','client']);
-  api.use('webapp@1.2.8', 'server');
-  api.use('mongo@1.1.7', ['server', 'client']);
-  api.use('minimongo@1.0.16', 'server');
-  api.use('check@1.2.1', ['server', 'client']);
+  api.use('coffeescript@1.12.3_1', ['server','client']);
+  api.use('webapp@1.3.13', 'server');
+  api.use('mongo@1.1.15', ['server', 'client']);
+  api.use('minimongo@1.0.20', 'server');
+  api.use('check@1.2.5', ['server', 'client']);
   api.addFiles('resumable/resumable.js', 'client');
   api.addFiles('src/gridFS.coffee', ['server','client']);
   api.addFiles('src/server_shared.coffee', 'server');
@@ -44,14 +45,13 @@ Package.onUse(function(api) {
 
 Package.onTest(function (api) {
   api.use('vsivsi:file-collection@' + currentVersion, ['server', 'client']);
-  api.use('coffeescript@1.0.17', ['server', 'client']);
-  api.use('tinytest@1.0.10', ['server', 'client']);
-  api.use('test-helpers@1.0.9', ['server','client']);
-  api.use('http@1.1.5', ['server','client']);
-  api.use('ejson@1.0.11',['server','client']);
-  api.use('mongo@1.1.7', ['server', 'client']);
-  api.use('check@1.2.1', ['server', 'client']);
-  api.use('tracker@1.0.13', 'client');
-  // api.use('jquery@1.11.4', 'client');
+  api.use('coffeescript@1.12.3_1', ['server', 'client']);
+  api.use('tinytest@1.0.12', ['server', 'client']);
+  api.use('test-helpers@1.0.11', ['server','client']);
+  api.use('http@1.2.11', ['server','client']);
+  api.use('ejson@1.0.13',['server','client']);
+  api.use('mongo@1.1.15', ['server', 'client']);
+  api.use('check@1.2.5', ['server', 'client']);
+  api.use('tracker@1.1.2', 'client');
   api.addFiles('test/file_collection_tests.coffee', ['server', 'client']);
 });

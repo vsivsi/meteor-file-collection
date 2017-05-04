@@ -1,5 +1,5 @@
 ############################################################################
-#     Copyright (C) 2014-2016 by Vaughn Iverson
+#     Copyright (C) 2014-2017 by Vaughn Iverson
 #     fileCollection is free software released under the MIT/X11 license.
 #     See included LICENSE file for details.
 ############################################################################
@@ -360,6 +360,18 @@ Tinytest.addAsync 'REST API PUT/GET', (test, onComplete) ->
            test.fail(err) if err
            test.equal res.content, '0987654321'
            onComplete()
+
+Tinytest.addAsync 'REST API GET null id', (test, onComplete) ->
+  _id = testColl.insert { filename: 'writefile', contentType: 'text/plain' }, (err, _id) ->
+    test.fail(err) if err
+    url = Meteor.absoluteUrl 'test/'
+    HTTP.get url, (err, res) ->
+      test.isNotNull err
+      if err.response?  # Not sure why, but under phantomjs the error object is different
+        test.equal err.response.statusCode, 404
+      else
+        console.warn "PhantomJS skipped statusCode check"
+      onComplete()
 
 Tinytest.addAsync 'maxUploadSize enforced by when HTTP PUT upload is too large', (test, onComplete) ->
    _id = testColl.insert { filename: 'writefile', contentType: 'text/plain' }, (err, _id) ->

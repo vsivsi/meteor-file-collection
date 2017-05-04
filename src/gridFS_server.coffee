@@ -1,5 +1,5 @@
 ############################################################################
-#     Copyright (C) 2014-2016 by Vaughn Iverson
+#     Copyright (C) 2014-2017 by Vaughn Iverson
 #     fileCollection is free software released under the MIT/X11 license.
 #     See included LICENSE file for details.
 ############################################################################
@@ -133,11 +133,12 @@ if Meteor.isServer
 
             remove: (userId, file) =>
                ## Remove is now handled via the default method override below, so this should
-               ## Never be called.
+               ## never be called.
                return true
 
          self = @ # Necessary in the method definition below
 
+         ## Remove method override for this server-side collection
          Meteor.server.method_handlers["#{@_prefix}remove"] = (selector) ->
 
             check selector, Object
@@ -145,7 +146,13 @@ if Meteor.isServer
             unless LocalCollection._selectorIsIdPerhapsAsObject(selector)
                throw new Meteor.Error 403, "Not permitted. Untrusted code may only remove documents by ID."
 
-            file = self.findOne selector
+            cursor = self.find selector
+
+            if cursor.count() > 1
+               throw new Meteor.Error 500, "Remote remove selector targets multiple files.\nSee https://github.com/vsivsi/meteor-file-collection/issues/152#issuecomment-278824127"
+
+            [file] = cursor.fetch()
+
             if file
                if share.check_allow_deny.bind(self) 'remove', this.userId, file
                   return self.remove file

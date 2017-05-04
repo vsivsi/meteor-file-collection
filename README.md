@@ -4,7 +4,7 @@
 
 ## Introduction
 
-file-collection is a Meteor.js package that cleanly extends Meteor's Collection metaphor for efficiently dealing with collections of files and their data. File Collections are fully reactive, and if you know how to use Meteor Collections, you already know most of what you need to begin working with this package.
+file-collection is a Meteor.js package that cleanly extends Meteor's Collection metaphor to efficiently manage collections of files and their data. File Collections are fully reactive, and if you know how to use Meteor Collections, you already know most of what you need to begin working with this package.
 
 Major features:
 
