@@ -383,7 +383,61 @@ Here are some example HTTP interface definition objects to get you started:
 The HTTP access in file-collection can be configured for compatibility with [Cross Origin Resource Sharing (CORS)](https://en.wikipedia.org/wiki/Cross-origin_resource_sharing) via use of a custom handler for the `'options'`
 request method.
 
-This provides a simple way to support accessing file-collection files in [Apache Cordova](https://github.com/meteor/meteor/wiki/Meteor-Cordova-integration) client applications using resumable endpoint:
+This provides a simple way to support accessing file-collection files in [Apache Cordova](https://github.com/meteor/meteor/wiki/Meteor-Cordova-integration) client applications:
+
+```javascript
+myFiles = new FileCollection('myFiles',
+  { resumable: true,    // Enable built-in resumable.js chunked upload support
+    http: [             // Define HTTP route
+      { method: 'get',  // Enable a GET endpoint
+        path: '/:md5',  // this will be at route "/gridfs/myFiles/:md5"
+        lookup: function (params, query) {  // uses express style url params
+          return { md5: params.md5 };       // a query mapping url to myFiles
+        },
+        handler: function (req, res, next) {
+           if (req.headers && req.headers.origin) {
+             res.setHeader('Access-Control-Allow-Origin', 'http://meteor.local'); // For Cordova
+             res.setHeader('Access-Control-Allow-Credentials', true);
+           }
+           next();
+        }
+      },
+      { method: 'put',  // Enable a PUT endpoint
+        path: '/:md5',  // this will be at route "/gridfs/myFiles/:md5"
+        lookup: function (params, query) {  // uses express style url params
+          return { md5: params.md5 };       // a query mapping url to myFiles
+        },
+        handler: function (req, res, next) {
+           if (req.headers && req.headers.origin) {
+             res.setHeader('Access-Control-Allow-Origin', 'http://meteor.local'); // For Cordova
+             res.setHeader('Access-Control-Allow-Credentials', true);
+           }
+           next();
+        }
+      },
+      { method: 'options',  // Enable an OPTIONS endpoint (for CORS)
+        path: '/:md5',  // this will be at route "/gridfs/myFiles/:md5"
+        lookup: function (params, query) {  // uses express style url params
+          return { md5: params.md5 };       // a query mapping url to myFiles
+        },
+        handler: function (req, res, next) {  // Custom express.js handler for OPTIONS
+           res.writeHead(200, {
+              'Content-Type': 'text/plain',
+              'Access-Control-Allow-Origin': 'http://meteor.local',  // For Cordova
+              'Access-Control-Allow-Credentials': true,
+              'Access-Control-Allow-Headers': 'x-auth-token, user-agent',
+              'Access-Control-Allow-Methods': 'GET, PUT'
+           });
+           res.end();
+           return;
+        }
+      }
+    ]
+  }
+);
+```
+
+The same code using resumable endpoint instead:
 
 ```javascript
 myFiles = new FileCollection('myFiles',
