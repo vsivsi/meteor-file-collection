@@ -437,7 +437,7 @@ myFiles = new FileCollection('myFiles',
 );
 ```
 
-The same code using resumable endpoint instead:
+If using resumable endpoint use this instead:
 
 ```javascript
 myFiles = new FileCollection('myFiles',
