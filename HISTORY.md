@@ -1,5 +1,9 @@
 ## Revision history
 
+### V.NEXT
+
+* Improvements in the Cordova documentation. Thanks @rsmelo92.
+
 ### V1.3.8
 
 * Added check to guard against catastrophic remote file deletion triggered by [this Meteor bug](https://github.com/vsivsi/meteor-file-collection/issues/152).
