@@ -437,10 +437,68 @@ myFiles = new FileCollection('myFiles',
 );
 ```
 
+If using resumable endpoint use this instead:
+
+```javascript
+myFiles = new FileCollection('myFiles',
+  { resumable: true,    // Enable built-in resumable.js chunked upload support
+    http: [             // Define HTTP route
+      { 
+        method: 'POST',  // Enable a POST endpoint
+        path: '/_resumable',  // this will be at route "/gridfs/images/_resumable"
+        lookup: function (params, query) {  // uses express style url params
+          return {};       // a dummy query
+        },
+        handler: function (req, res, next) {
+            if (req.headers && req.headers.origin) {
+                res.setHeader('Access-Control-Allow-Origin', req.headers.origin); // For Cordova
+                res.setHeader('Access-Control-Allow-Credentials', true);
+            }
+            next();
+        }
+      },
+      {
+        method: 'head',  // Enable an HEAD endpoint (for CORS)
+        path: '/_resumable',  // this will be at route "/gridfs/images/_resumable/"
+        lookup: function (params, query) {  // uses express style url params
+            return { };       // a dummy query
+        },
+        handler: function (req, res, next) {  // Custom express.js handler for HEAD
+           if (req.headers && req.headers.origin) {
+                  res.setHeader('Access-Control-Allow-Origin', req.headers.origin); // For Cordova
+                  res.setHeader('Access-Control-Allow-Credentials', true);
+              }
+            next();
+        }
+      },
+      {
+        method: 'options',  // Enable an OPTIONS endpoint (for CORS)
+        path: '/_resumable',  // this will be at route "/gridfs/images/_resumable/"
+        lookup: function (params, query) {  // uses express style url params
+            return { };       // a dummy query
+        },
+        handler: function (req, res, next) {  // Custom express.js handler for OPTIONS
+            res.writeHead(200, {
+                'Content-Type': 'text/plain',
+                'Access-Control-Allow-Origin': req.headers.origin,  // For Cordova
+                'Access-Control-Allow-Credentials': true,
+                'Access-Control-Allow-Headers': 'x-auth-token, user-agent',
+                'Access-Control-Allow-Methods': 'GET, POST, HEAD, OPTIONS'
+            });
+            res.end();
+            return;
+        }
+      }
+    ]
+  }
+);
+```
+
 **Note!:** Reportedly due to a bug in Cordova, you need to add the following line into your mobile-config.js
 ```
 App.accessRule("blob:*");
 ```
+Please notice that this package will only work with "blob" types when using resumable on Cordova enviroment. If you are using a "file" type remember to convert it to blob before the upload.
 
 #### HTTP authentication
 
