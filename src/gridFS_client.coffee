@@ -8,24 +8,26 @@ if Meteor.isClient
 
    class FileCollection extends Mongo.Collection
 
-      constructor: (@root = share.defaultRoot, options = {}) ->
+      constructor: (root, options = {}) ->
+         unless Mongo.Collection is Mongo.Collection.prototype.constructor
+           throw new Meteor.Error 'The global definition of Mongo.Collection has been patched by another package, and the prototype constructor has been left in an inconsistent state. Please see this link for a workaround: https://github.com/vsivsi/meteor-file-sample-app/issues/2#issuecomment-120780592'
+
+         if typeof root is 'object'
+            options = root
+            root = share.defaultRoot
+
+         super root + '.files', { idGeneration: 'MONGO' }
+
          unless @ instanceof FileCollection
             return new FileCollection(root, options)
 
          unless @ instanceof Mongo.Collection
             throw new Meteor.Error 'The global definition of Mongo.Collection has changed since the file-collection package was loaded. Please ensure that any packages that redefine Mongo.Collection are loaded before file-collection.'
 
-         unless Mongo.Collection is Mongo.Collection.prototype.constructor
-           throw new Meteor.Error 'The global definition of Mongo.Collection has been patched by another package, and the prototype constructor has been left in an inconsistent state. Please see this link for a workaround: https://github.com/vsivsi/meteor-file-sample-app/issues/2#issuecomment-120780592'
-
-         if typeof @root is 'object'
-            options = @root
-            @root = share.defaultRoot
-
+         @root = root
          @base = @root
          @baseURL = options.baseURL ? "/gridfs/#{@root}"
          @chunkSize = options.chunkSize ? share.defaultChunkSize
-         super @root + '.files', { idGeneration: 'MONGO' }
 
          # This call sets up the optional support for resumable.js
          # See the resumable.coffee file for more information

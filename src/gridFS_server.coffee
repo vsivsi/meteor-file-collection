@@ -16,19 +16,27 @@ if Meteor.isServer
 
    class FileCollection extends Mongo.Collection
 
-      constructor: (@root = share.defaultRoot, options = {}) ->
+      constructor: (root = share.defaultRoot, options = {}) ->
+
+         # For CoffeeScript v2 this (aka @) cannot be referenced before a call to super
+         unless Mongo.Collection is Mongo.Collection.prototype.constructor
+           throw new Meteor.Error 'The global definition of Mongo.Collection has been patched by another package, and the prototype constructor has been left in an inconsistent state. Please see this link for a workaround: https://github.com/vsivsi/meteor-file-sample-app/issues/2#issuecomment-120780592'
+
+         if typeof root is 'object'
+            options = root
+            root = share.defaultRoot
+
+         # Call super's constructor
+         super root + '.files', { idGeneration: 'MONGO' }
+         @root = root
+
          unless @ instanceof FileCollection
             return new FileCollection(@root, options)
 
          unless @ instanceof Mongo.Collection
             throw new Meteor.Error 'The global definition of Mongo.Collection has changed since the file-collection package was loaded. Please ensure that any packages that redefine Mongo.Collection are loaded before file-collection.'
 
-         unless Mongo.Collection is Mongo.Collection.prototype.constructor
-           throw new Meteor.Error 'The global definition of Mongo.Collection has been patched by another package, and the prototype constructor has been left in an inconsistent state. Please see this link for a workaround: https://github.com/vsivsi/meteor-file-sample-app/issues/2#issuecomment-120780592'
 
-         if typeof @root is 'object'
-            options = @root
-            @root = share.defaultRoot
 
          @chunkSize = options.chunkSize ? share.defaultChunkSize
 
@@ -57,9 +65,6 @@ if Meteor.isServer
          @allows = { read: [], insert: [], write: [], remove: [] }
          @denys = { read: [], insert: [], write: [], remove: [] }
 
-         # Call super's constructor
-         super @root + '.files', { idGeneration: 'MONGO' }
-
          # Default indexes
          if options.resumable
             indexOptions = {}
@@ -83,7 +88,9 @@ if Meteor.isServer
          #    share.defaultResponseHeaders[h] = v
 
          # Setup specific allow/deny rules for gridFS, and tie-in the application settings
+         # FileCollection.__super__ needs to be set up for CoffeeScript v2
 
+         FileCollection.__super__ = Mongo.Collection.prototype;
          FileCollection.__super__.allow.bind(@)
             # Because allow rules are not guaranteed to run,
             # all checking is done in the deny rules below
@@ -246,7 +253,7 @@ if Meteor.isServer
 
          writeStream = Meteor.wrapAsync(@gfs.createWriteStream.bind(@gfs))
             root: @root
-            _id: mongodb.ObjectID("#{file._id}")
+            _id: mongodb.ObjectID("#{file._id._str}")
             mode: 'w'
             timeOut: @lockOptions.timeOut
             lockExpiration: @lockOptions.lockExpiration
@@ -258,7 +265,7 @@ if Meteor.isServer
                writeStream.on 'expires-soon', () =>
                   writeStream.renewLock (e, d) ->
                      if e or not d
-                        console.warn "Automatic Write Lock Renewal Failed: #{file._id}", e
+                        console.warn "Automatic Write Lock Renewal Failed: #{file._id.str}", e
 
             if callback?
                writeStream.on 'close', (retFile) ->
@@ -293,7 +300,7 @@ if Meteor.isServer
 
             readStream = Meteor.wrapAsync(@gfs.createReadStream.bind(@gfs))
                root: @root
-               _id: mongodb.ObjectID("#{file._id}")
+               _id: mongodb.ObjectID("#{file._id._str}")
                timeOut: @lockOptions.timeOut
                lockExpiration: @lockOptions.lockExpiration
                pollingInterval: @lockOptions.pollingInterval
@@ -306,7 +313,7 @@ if Meteor.isServer
                   readStream.on 'expires-soon', () =>
                      readStream.renewLock (e, d) ->
                         if e or not d
-                           console.warn "Automatic Read Lock Renewal Failed: #{file._id}", e
+                           console.warn "Automatic Read Lock Renewal Failed: #{file._id._str}", e
 
                if callback?
                   readStream.on 'close', () ->
@@ -323,7 +330,7 @@ if Meteor.isServer
             ret = 0
             @find(selector).forEach (file) =>
                res = Meteor.wrapAsync(@gfs.remove.bind(@gfs))
-                  _id: mongodb.ObjectID("#{file._id}")
+                  _id: mongodb.ObjectID("#{file._id._str}")
                   root: @root
                   timeOut: @lockOptions.timeOut
                   lockExpiration: @lockOptions.lockExpiration
