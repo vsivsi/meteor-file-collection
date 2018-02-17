@@ -8,7 +8,7 @@ if Meteor.isClient
 
    class FileCollection extends Mongo.Collection
 
-      constructor: (root, options = {}) ->
+      constructor: (root = share.defaultRoot, options = {}) ->
          unless Mongo.Collection is Mongo.Collection.prototype.constructor
            throw new Meteor.Error 'The global definition of Mongo.Collection has been patched by another package, and the prototype constructor has been left in an inconsistent state. Please see this link for a workaround: https://github.com/vsivsi/meteor-file-sample-app/issues/2#issuecomment-120780592'
 
