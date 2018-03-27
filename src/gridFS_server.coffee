@@ -265,7 +265,7 @@ if Meteor.isServer
                writeStream.on 'expires-soon', () =>
                   writeStream.renewLock (e, d) ->
                      if e or not d
-                        console.warn "Automatic Write Lock Renewal Failed: #{file._id.str}", e
+                        console.warn "Automatic Write Lock Renewal Failed: #{file._id._str}", e
 
             if callback?
                writeStream.on 'close', (retFile) ->
