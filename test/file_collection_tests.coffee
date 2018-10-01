@@ -499,7 +499,7 @@ createContent = (_id, data, name, chunkNum, chunkSize = 16) ->
     Content-Disposition: form-data; name="resumableIdentifier"\r
     Content-Type: text/plain\r
     \r
-    #{_id}\r
+    #{_id._str}\r
     --AaB03x\r
     Content-Disposition: form-data; name="resumableFilename"\r
     Content-Type: text/plain\r
@@ -529,7 +529,7 @@ createCheckQuery = (_id, data, name, chunkNum, chunkSize = 16) ->
   throw new Error "Bad chunkNum" if chunkNum > totalChunks
   begin = (chunkNum - 1) * chunkSize
   end = if chunkNum is totalChunks then data.length else chunkNum * chunkSize
-  "?resumableChunkNumber=#{chunkNum}&resumableChunkSize=#{chunkSize}&resumableCurrentChunkSize=#{end-begin}&resumableTotalSize=#{data.length}&resumableType=text/plain&resumableIdentifier=#{_id}&resumableFilename=#{name}&resumableRelativePath=#{name}&resumableTotalChunks=#{totalChunks}"
+  "?resumableChunkNumber=#{chunkNum}&resumableChunkSize=#{chunkSize}&resumableCurrentChunkSize=#{end-begin}&resumableTotalSize=#{data.length}&resumableType=text/plain&resumableIdentifier=#{_id._str}&resumableFilename=#{name}&resumableRelativePath=#{name}&resumableTotalChunks=#{totalChunks}"
 
 Tinytest.addAsync 'Basic resumable.js REST interface POST/GET/DELETE', (test, onComplete) ->
   testColl.insert { filename: 'writeresumablefile', contentType: 'text/plain' }, (err, _id) ->
@@ -858,7 +858,7 @@ if Meteor.isClient
     testColl.resumable.on 'fileAdded', (file) ->
       testColl.insert { _id: file.uniqueIdentifier, filename: file.fileName, contentType: file.file.type }, (err, _id) ->
         test.fail(err) if err
-        thisId = "#{_id}"
+        thisId = "#{_id._str}"
         testColl.resumable.upload()
 
     testColl.resumable.on 'fileSuccess', (file) ->
@@ -885,7 +885,7 @@ if Meteor.isClient
     testColl.resumable.on 'fileAdded', (file) ->
       testColl.insert { _id: file.uniqueIdentifier, filename: file.fileName, contentType: file.file.type }, (err, _id) ->
         test.fail(err) if err
-        thisId = "#{_id}"
+        thisId = "#{_id._str}"
         testColl.resumable.upload()
 
     testColl.resumable.on 'fileSuccess', (file) ->
