@@ -11,7 +11,7 @@
 **If you would like to become a maintainer, Great!. The best way to get there is to make some high quality PRs! Eventually I will probably get tired of merging them and will just give you permission to push and publish.
 If there is enough community interest, I will probably migrate all of my Meteor packages into a separate github org so that they can live on without my direct involvement.**
 
-**Why? Simple: I'm no longer actively developing or maintaining any Meteor based applications (and have no forseeable plans to do so). Having moved on, the effort to keep up with changes in the Meteor/Atmosphere ecosystem no longer has any payoff for me personally.**
+**Why? Simple: I'm no longer actively developing or maintaining any Meteor based applications (and have no foreseeable plans to do so). Having moved on, the effort to keep up with changes in the Meteor/Atmosphere ecosystem no longer has any payoff for me personally.**
 
 ## Introduction
 
@@ -509,7 +509,7 @@ myFiles = new FileCollection('myFiles',
 ```
 App.accessRule("blob:*");
 ```
-Please notice that this package will only work with "blob" types when using resumable on Cordova enviroment. If you are using a "file" type remember to convert it to blob before the upload.
+Please notice that this package will only work with "blob" types when using resumable on Cordova environment. If you are using a "file" type remember to convert it to blob before the upload.
 
 #### HTTP authentication
 
