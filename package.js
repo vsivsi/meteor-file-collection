@@ -27,7 +27,7 @@ Npm.depends({
 });
 
 Package.onUse(function(api) {
-  api.use('coffeescript@2.0.3_3', ['server','client']);
+  api.use('coffeescript@=2.0.3_3', ['server','client']);
   api.use('webapp@1.3.13', 'server');
   api.use('mongo@1.1.15', ['server', 'client']);
   api.use('minimongo@1.0.20', 'server');
@@ -45,7 +45,7 @@ Package.onUse(function(api) {
 
 Package.onTest(function (api) {
   api.use('vsivsi:file-collection@' + currentVersion, ['server', 'client']);
-  api.use('coffeescript@2.0.3_3', ['server', 'client']);
+  api.use('coffeescript@=2.0.3_3', ['server', 'client']);
   api.use('tinytest@1.0.12', ['server', 'client']);
   api.use('test-helpers@1.0.11', ['server','client']);
   api.use('http@1.2.11', ['server','client']);
