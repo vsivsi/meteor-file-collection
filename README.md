@@ -2,16 +2,15 @@
 
 [![Build Status](https://travis-ci.org/vsivsi/meteor-file-collection.svg)](https://travis-ci.org/vsivsi/meteor-file-collection)
 
-## Notice!
+## Thumptech version:
 
-#### **Effective 01-01-2018 this project will enter "maintenance mode". This means that I will no longer be implementing any new features or providing debugging help or "general support" via github issues.**
+I've simply decaffeinated and set up the dependencies so this works with the latest version of Meteor.
 
-**I will (for some period of time) still consider *high quality* pull-requests implementing bug fixes and generally useful new minor features. ("High quality" is admittedly subjective, but some must-haves: documentation, tests, backward compatibility, low change complexity, harmony with existing design...)**
+I haven't changed the API at all and all the readme should still apply.
 
-**If you would like to become a maintainer, Great!. The best way to get there is to make some high quality PRs! Eventually I will probably get tired of merging them and will just give you permission to push and publish.
-If there is enough community interest, I will probably migrate all of my Meteor packages into a separate github org so that they can live on without my direct involvement.**
+I removed the global export so you will need to use this however:
 
-**Why? Simple: I'm no longer actively developing or maintaining any Meteor based applications (and have no forseeable plans to do so). Having moved on, the effort to keep up with changes in the Meteor/Atmosphere ecosystem no longer has any payoff for me personally.**
+```import {FileCollection} from "meteor/vsivsi:file-collection";```
 
 ## Introduction
 

@@ -26,26 +26,28 @@ Npm.depends({
   through2: '0.6.5'
 });
 
+//https://github.com/meteor/meteor/issues/7273
 Package.onUse(function(api) {
-  api.use('coffeescript@=2.0.3_3', ['server','client']);
   api.use('webapp@1.3.13', 'server');
   api.use('mongo@1.1.15', ['server', 'client']);
   api.use('minimongo@1.0.20', 'server');
   api.use('check@1.2.5', ['server', 'client']);
+  //This is needed for ES6 imports/exports to work
+  api.use('ecmascript');
   api.addFiles('resumable/resumable.js', 'client');
-  api.addFiles('src/gridFS.coffee', ['server','client']);
-  api.addFiles('src/server_shared.coffee', 'server');
-  api.addFiles('src/gridFS_server.coffee', 'server');
-  api.addFiles('src/resumable_server.coffee', 'server');
-  api.addFiles('src/http_access_server.coffee', 'server');
-  api.addFiles('src/resumable_client.coffee', 'client');
-  api.addFiles('src/gridFS_client.coffee', 'client');
-  api.export('FileCollection');
+  api.addFiles('src/gridFS.js', ['server','client']);
+  api.addFiles('src/server_shared.js', 'server');
+  api.addFiles('src/gridFS_server.js', 'server');
+  api.addFiles('src/resumable_server.js', 'server');
+  api.addFiles('src/http_access_server.js', 'server');
+  api.addFiles('src/resumable_client.js', 'client');
+  api.addFiles('src/gridFS_client.js', 'client');
+  api.mainModule('src/exports.js');
+  //api.export('FileCollection');
 });
 
 Package.onTest(function (api) {
   api.use('vsivsi:file-collection@' + currentVersion, ['server', 'client']);
-  api.use('coffeescript@=2.0.3_3', ['server', 'client']);
   api.use('tinytest@1.0.12', ['server', 'client']);
   api.use('test-helpers@1.0.11', ['server','client']);
   api.use('http@1.2.11', ['server','client']);
@@ -53,5 +55,5 @@ Package.onTest(function (api) {
   api.use('mongo@1.1.15', ['server', 'client']);
   api.use('check@1.2.5', ['server', 'client']);
   api.use('tracker@1.1.2', 'client');
-  api.addFiles('test/file_collection_tests.coffee', ['server', 'client']);
+  api.addFiles('test/file_collection_tests.js', ['server', 'client']);
 });
