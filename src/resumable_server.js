@@ -163,7 +163,6 @@ if (Meteor.isServer) {
     });
 
     const resumable_post_handler = function(req, res, next) {
-
         // This has to be a resumable POST
         if (!req.multipart?.params?.resumableIdentifier) {
             console.error("Missing resumable.js multipart information");

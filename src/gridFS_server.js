@@ -25,7 +25,6 @@ const express = Npm.require('express');
 export class FileCollection extends Mongo.Collection {
 
     constructor(root, options) {
-
 // For CoffeeScript v2 this (aka @) cannot be referenced before a call to super
         if (root == null) {
             root = share.defaultRoot;
@@ -300,7 +299,7 @@ export class FileCollection extends Mongo.Collection {
 
     upsertStream(file, options, callback) {
         let found;
-        if (options === null) {
+        if (!options) {
             options = {};
         }
         if (callback == null) {
@@ -326,7 +325,7 @@ export class FileCollection extends Mongo.Collection {
             mods.metadata = file.metadata;
         }
 
-        if (options.autoRenewLock == null) {
+        if (options.autoRenewLock === null) {
             options.autoRenewLock = true;
         }
 

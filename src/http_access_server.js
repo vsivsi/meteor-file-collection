@@ -290,7 +290,6 @@ if (Meteor.isServer) {
     //        -T "universe.png" -H 'Content-Type: image/png' -H 'X-Auth-Token: tEPAwXbGwgfGiJL35'
 
     const put = function (req, res, next) {
-
 // Handle content type if it's present
         if (req.headers['content-type']) {
             req.gridFS.contentType = req.headers['content-type'];
@@ -457,7 +456,7 @@ if (Meteor.isServer) {
             });
     };
 
-    // Performs a meteor userId lookup by hased access token
+    // Performs a meteor userId lookup by hashed access token
 
     const lookup_userId_by_token = function (authToken) {
         const userDoc = Meteor.users?.findOne({
@@ -476,10 +475,14 @@ if (Meteor.isServer) {
     const handle_auth = function (req, res, next) {
         if (req.meteorUserId == null) {
             // Lookup userId if token is provided in HTTP header
-            if (req.headers?.['x-auth-token'] != null) {
-                req.meteorUserId = lookup_userId_by_token(req.headers['x-auth-token']);
-            // Or as a URL query of the same name
-                req.meteorUserId = lookup_userId_by_token(req.cookies['X-Auth-Token']);
+            if (req.headers?.['x-auth-token'] != null ||
+                req.cookies?.['X-Auth-Token'] != null
+            ) {
+                if(req.headers['x-auth-token'])
+                    req.meteorUserId = lookup_userId_by_token(req.headers['x-auth-token']);
+                // Or as a URL query of the same name
+                else if(req.cookies['X-Auth-Token'])
+                    req.meteorUserId = lookup_userId_by_token(req.cookies['X-Auth-Token']);
             } else {
                 req.meteorUserId = null;
             }

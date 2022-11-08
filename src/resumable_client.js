@@ -45,7 +45,7 @@ if (Meteor.isClient) {
         const r = new Resumable({
             target: url,
             generateUniqueIdentifier(file) {
-                return `${new Mongo.ObjectID()}`;
+                return `${new Mongo.ObjectID().toHexString()}`;
             },
             fileParameterName: 'file',
             chunkSize: this.chunkSize,
