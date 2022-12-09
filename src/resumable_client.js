@@ -9,7 +9,7 @@
 //     See included LICENSE file for details.
 //###########################################################################
 
-import {Resumable} from "../resumable";
+import Resumable from "./resumable";
 
 if (Meteor.isClient) {
 
@@ -63,7 +63,6 @@ if (Meteor.isClient) {
         });
 
         if (!r.support) {
-            console.warn("resumable.js not supported by this Browser, uploads will be disabled");
             return this.resumable = null;
         } else {
             return this.resumable = r;

@@ -12,15 +12,16 @@
 //###########################################################################
 
 import {WebApp} from "meteor/webapp";
+import gridLocks from './gridfs-locks';
+
+import grid from './gridfs-locking-stream';
 
 if (Meteor.isServer) {
 
     const express = Npm.require('express');
     const cookieParser = Npm.require('cookie-parser');
-    const mongodb = Npm.require('mongodb');
-    const grid = Npm.require('gridfs-locking-stream');
-    const gridLocks = Npm.require('gridfs-locks');
-    const dicer = Npm.require('dicer');
+
+    const Dicer = Npm.require('dicer');
 
     const find_mime_boundary = function (req) {
         const RE_BOUNDARY = /^multipart\/.+?(?:; boundary=(?:(?:"(.+)")|(?:([^\s]+))))$/i;
@@ -68,10 +69,10 @@ if (Meteor.isServer) {
         let fileType = 'text/plain';
         let fileName = 'blob';
 
-        const d = new dicer({boundary});
+        const dicer = new Dicer({boundary});
 
-        d.on('part', function (p) {
-            p.on('header', function (header) {
+        dicer.on('part', function (part) {
+            part.on('header', function (header) {
                 const RE_FILE = /^form-data; name="file"; filename="([^"]+)"/;
                 const RE_PARAM = /^form-data; name="([^"]+)"/;
                 for (let k in header) {
@@ -80,15 +81,16 @@ if (Meteor.isServer) {
                         fileType = v;
                     }
                     if (k === 'content-disposition') {
-                        var param, re;
-                        if (re = RE_FILE.exec(v)) {
-                            fileStream = p;
+                        const re = RE_FILE.exec(v);
+                        const param = RE_PARAM.exec(v)?.[1];
+                        if (re) {
+                            fileStream = part;
                             fileName = re[1];
-                        } else if (param = RE_PARAM.exec(v)?.[1]) {
-                            var data = '';
+                        } else if (param) {
+                            let data = '';
                             count++;
-                            p.on('data', d => data += d.toString());
-                            p.on('end', function () {
+                            part.on('data', d => data += d.toString());
+                            part.on('end', function () {
                                 count--;
                                 params[param] = data;
                                 if ((count === 0) && fileStream) {
@@ -108,6 +110,7 @@ if (Meteor.isServer) {
                     }
                 }
 
+
                 if ((count === 0) && fileStream) {
                     req.multipart = {
                         fileStream,
@@ -120,18 +123,18 @@ if (Meteor.isServer) {
                 }
             });
 
-            return p.on('error', err => handleFailure('Error in Dicer while parsing multipart:', err));
+            return part.on('error', err => handleFailure('Error in Dicer while parsing multipart:', err));
         });
 
-        d.on('error', err => handleFailure('Error in Dicer while parsing parts:', err));
+        dicer.on('error', err => handleFailure('Error in Dicer while parsing parts:', err));
 
-        d.on('finish', function () {
+        dicer.on('finish', function () {
             if (!fileStream) {
                 return handleFailure("Error in Dicer, no file found in POST");
             }
         });
 
-        return req.pipe(d);
+        return req.pipe(dicer);
     };
 
     // Handle a generic HTTP POST file upload
@@ -241,9 +244,10 @@ if (Meteor.isServer) {
 
             // Set default headers
             headers['Content-Type'] = req.gridFS.contentType;
-            headers['Content-MD5'] = req.gridFS.md5;
+            headers['Content-MD5'] = req.gridFS.md5 || req.gridFS.metadata.md5; //Mongo 6 has no MD5 at root record
             headers['Content-Length'] = req.gridFS.length;
             headers['Last-Modified'] = req.gridFS.uploadDate.toUTCString();
+
 
             // Open file to stream
             if (req.method !== 'HEAD') {
@@ -329,7 +333,6 @@ if (Meteor.isServer) {
 
     // Setup all of the application specified paths and file lookups in express
     // Also performs allow/deny permission checks for POST/PUT/DELETE
-
     const build_access_point = function (http) {
 
         // Loop over the app supplied http paths

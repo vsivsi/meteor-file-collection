@@ -12,18 +12,24 @@
 //     See included LICENSE file for details.
 //###########################################################################
 import {Meteor} from 'meteor/meteor'
-import {Mongo} from 'meteor/mongo';
+import {Mongo, MongoInternals} from 'meteor/mongo';
 
-const mongodb = Npm.require('mongodb');
-const grid = Npm.require('gridfs-locking-stream');
-const gridLocks = Npm.require('gridfs-locks');
+//const mongodb = Npm.require('mongodb');
+const {MongoClient} = require("mongodb");
+
+import {stdout} from 'node:process';
+
+import grid from './gridfs-locking-stream';
+
+
+const ObjectID = require("bson-objectid");
+
 const fs = Npm.require('fs');
 const path = Npm.require('path');
-const dicer = Npm.require('dicer');
-const express = Npm.require('express');
+
+import crypto from "crypto";
 
 export class FileCollection extends Mongo.Collection {
-
     constructor(root, options) {
 // For CoffeeScript v2 this (aka @) cannot be referenced before a call to super
         if (root == null) {
@@ -45,6 +51,11 @@ export class FileCollection extends Mongo.Collection {
         super(root + '.files', {idGeneration: 'MONGO'});
         this.root = root;
 
+        this.bucket = new MongoInternals.NpmModule.GridFSBucket(
+            MongoInternals.defaultRemoteCollectionDriver().mongo.db,
+            {bucketName: this.root}
+        );
+
         if (!(this instanceof FileCollection)) {
             return new FileCollection(this.root, options);
         }
@@ -53,26 +64,17 @@ export class FileCollection extends Mongo.Collection {
             throw new Meteor.Error('The global definition of Mongo.Collection has changed since the file-collection package was loaded. Please ensure that any packages that redefine Mongo.Collection are loaded before file-collection.');
         }
 
-
         this.chunkSize = options.chunkSize != null ? options.chunkSize : share.defaultChunkSize;
 
-        this.db = Meteor.wrapAsync(mongodb.MongoClient.connect)(process.env.MONGO_URL, {});
+        //this.db = Meteor.wrapAsync(mongodb.MongoClient.connect)(process.env.MONGO_URL, {});
+        //const db = Meteor.wrapAsync(()=>mongodb.MongoClient.connect(process.env.MONGO_URL, {}));
+        //process.env.MONGO_URL =  mongodb://127.0.0.1:27017/panda, we only need the first part before panda
+        const client = new MongoClient(process.env.MONGO_URL);
 
-        this.lockOptions = {
-            timeOut: (options.locks != null ? options.locks.timeOut : undefined) != null ? (options.locks != null ? options.locks.timeOut : undefined) : 360,
-            lockExpiration: (options.locks != null ? options.locks.lockExpiration : undefined) != null ? (options.locks != null ? options.locks.lockExpiration : undefined) : 90,
-            pollingInterval: (options.locks != null ? options.locks.pollingInterval : undefined) != null ? (options.locks != null ? options.locks.pollingInterval : undefined) : 5
-        };
+        this.db = client.db('panda');//db;//Meteor.wrapAsync(mongodb.MongoClient.connect)(process.env.MONGO_URL, {});
 
-        this.locks = gridLocks.LockCollection(this.db, {
-                root: this.root,
-                timeOut: this.lockOptions.timeOut,
-                lockExpiration: this.lockOptions.lockExpiration,
-                pollingInterval: this.lockOptions.pollingInterval
-            }
-        );
-
-        this.gfs = new grid(this.db, mongodb, this.root);
+        //DB, mongo driver dependency injection, root name of gridfs collection
+        this.gfs = new grid(this.db, MongoClient, this.root);
 
         this.baseURL = options.baseURL != null ? options.baseURL : `/gridfs/${this.root}`;
 
@@ -92,7 +94,7 @@ export class FileCollection extends Mongo.Collection {
                 indexOptions.name = options.resumableIndexName;
             }
 
-            this.db.collection(`${this.root}.files`).ensureIndex({
+            this.db.collection(`${this.root}.files`).createIndex({
                 'metadata._Resumable.resumableIdentifier': 1,
                 'metadata._Resumable.resumableChunkNumber': 1,
                 length: 1
@@ -101,16 +103,6 @@ export class FileCollection extends Mongo.Collection {
 
         this.maxUploadSize = options.maxUploadSize != null ? options.maxUploadSize : -1; // Negative is no limit...
 
-        //# Delay this feature until demand is clear. Unit tests / documentation needed.
-
-        // unless options.additionalHTTPHeaders? and (typeof options.additionalHTTPHeaders is 'object')
-        //    options.additionalHTTPHeaders = {}
-        //
-        // for h, v of options.additionalHTTPHeaders
-        //    share.defaultResponseHeaders[h] = v
-
-        // Setup specific allow/deny rules for gridFS, and tie-in the application settings
-        // FileCollection.__super__ needs to be set up for CoffeeScript v2
 
         FileCollection.__super__ = Mongo.Collection.prototype;
         FileCollection.__super__.allow.bind(this)({
@@ -149,7 +141,6 @@ export class FileCollection extends Mongo.Collection {
 
                 // Enforce a uniform chunkSize
                 if (file.chunkSize !== this.chunkSize) {
-                    console.warn("Invalid chunksize");
                     return true;
                 }
 
@@ -244,6 +235,7 @@ export class FileCollection extends Mongo.Collection {
     }
 
     insert(file, callback) {
+        return console.warn('FileCollection insert no longer supported. Just use upsertStream');
         if (file == null) {
             file = {};
         }
@@ -297,84 +289,37 @@ export class FileCollection extends Mongo.Collection {
         }
     }
 
-    upsertStream(file, options, callback) {
-        let found;
-        if (!options) {
-            options = {};
-        }
-        if (callback == null) {
-            callback = undefined;
-        }
-        if ((callback == null) && (typeof options === 'function')) {
-            callback = options;
-            options = {};
-        }
-        callback = share.bind_env(callback);
-        const cbCalled = false;
-        const mods = {};
-        if (file.filename != null) {
-            mods.filename = file.filename;
-        }
-        if (file.aliases != null) {
-            mods.aliases = file.aliases;
-        }
-        if (file.contentType != null) {
-            mods.contentType = file.contentType;
-        }
-        if (file.metadata != null) {
-            mods.metadata = file.metadata;
-        }
-
-        if (options.autoRenewLock === null) {
-            options.autoRenewLock = true;
-        }
-
-        if (options.mode === 'w+') {
-            throw new Meteor.Error("The ability to append file data in upsertStream() was removed in version 1.0.0");
-        }
-
-        // Make sure that we have an ID and it's valid
-        if (file._id) {
-            found = this.findOne({_id: file._id});
-        }
-
-        if (!file._id || !found) {
-            file._id = this.insert(mods);
-        } else if (Object.keys(mods).length > 0) {
-            this.update({_id: file._id}, {$set: mods});
-        }
-
-        const writeStream = Meteor.wrapAsync(this.gfs.createWriteStream.bind(this.gfs))({
-            root: this.root,
-            _id: mongodb.ObjectID(`${file._id._str}`),
-            mode: 'w',
-            timeOut: this.lockOptions.timeOut,
-            lockExpiration: this.lockOptions.lockExpiration,
-            pollingInterval: this.lockOptions.pollingInterval
-        });
+    upsertStream(file, callback) {
+        const self = this;
+        //todo: we should check to see if the stream already exists?
+        const writeStream = this.bucket.openUploadStream( //https://mongodb.github.io/node-mongodb-native/4.12/classes/GridFSBucket.html#openUploadStream
+            //new ObjectID(`${file._id._str}`), //ID
+            file.filename,//filename
+            {//options https://mongodb.github.io/node-mongodb-native/4.12/interfaces/GridFSBucketWriteStreamOptions.html
+                metadata: file.metadata,
+                contentType: file.contentType,
+            }
+        )
 
         if (writeStream) {
+            writeStream.on('finish', function (retFile) {
+                if (retFile) {
+                    //We have to generate the MD5 ourselves as this functionality was removed from mongo 6
+                    const md5 = Meteor.wrapAsync(callback => {
+                        const hash = crypto.createHash('md5'); //TODO: is options/encoding needed?
+                        const fileStream = this.bucket.openDownloadStream(retFile._id);
+                        fileStream.pipe(hash);
+                        hash.on('finish', () => callback(null, hash.digest('hex')));
+                    })();
 
-            if (options.autoRenewLock) {
-                writeStream.on('expires-soon', () => {
-                    return writeStream.renewLock(function (e, d) {
-                        if (e || !d) {
-                            return console.warn(`Automatic Write Lock Renewal Failed: ${file._id._str}`, e);
-                        }
-                    });
-                });
-            }
-
-            if (callback != null) {
-                writeStream.on('close', function (retFile) {
-                    if (retFile) {
-                        retFile._id = new Mongo.ObjectID(retFile._id.toHexString());
-                        return callback(null, retFile);
-                    }
-                });
-                writeStream.on('error', err => callback(err));
-            }
-
+                    self.update(
+                        new Mongo.ObjectID(retFile._id.toString()),
+                        {$set: {'metadata.md5': md5}}
+                    );
+                    return callback ? callback(null, retFile) : null;
+                }
+            });
+            writeStream.on('error', err => callback ? callback(err) : null);
             return writeStream;
         }
 
@@ -382,70 +327,22 @@ export class FileCollection extends Mongo.Collection {
     }
 
     findOneStream(selector, options, callback) {
-        if (options == null) {
-            options = {};
+        let bsonOID;
+
+        if (selector && selector.hasOwnProperty('_id')) {
+            bsonOID = new ObjectID(selector._id.toHexString());
+        } else if (selector) {// if (selector.hasOwnProperty('md5')) {
+            //TODO, this can work as a normal selector
+            bsonOID = Meteor.wrapAsync(cb => {
+                this.bucket.find(selector).forEach((result) => {
+                    if (!result) return cb(`no file found for ${JSON.stringify(selector)}`);
+                    return cb(null, result._id);
+                });
+            })();
+        } else {
+            return console.error('Please provide _id or md5 in selector');
         }
-        if (callback == null) {
-            callback = undefined;
-        }
-        if ((callback == null) && (typeof options === 'function')) {
-            callback = options;
-            options = {};
-        }
-
-        callback = share.bind_env(callback);
-        const opts = {};
-        if (options.sort != null) {
-            opts.sort = options.sort;
-        }
-        if (options.skip != null) {
-            opts.skip = options.skip;
-        }
-        const file = this.findOne(selector, opts);
-
-        if (file) {
-            if (options.autoRenewLock == null) {
-                options.autoRenewLock = true;
-            }
-
-            // Init the start and end range, default to full file or start/end as specified
-            const range = {
-                start: (options.range != null ? options.range.start : undefined) != null ? (options.range != null ? options.range.start : undefined) : 0,
-                end: (options.range != null ? options.range.end : undefined) != null ? (options.range != null ? options.range.end : undefined) : file.length - 1
-            };
-
-            const readStream = Meteor.wrapAsync(this.gfs.createReadStream.bind(this.gfs))({
-                root: this.root,
-                _id: mongodb.ObjectID(`${file._id._str}`),
-                timeOut: this.lockOptions.timeOut,
-                lockExpiration: this.lockOptions.lockExpiration,
-                pollingInterval: this.lockOptions.pollingInterval,
-                range: {
-                    startPos: range.start,
-                    endPos: range.end
-                }
-            });
-
-            if (readStream) {
-                if (options.autoRenewLock) {
-                    readStream.on('expires-soon', () => {
-                        return readStream.renewLock(function (e, d) {
-                            if (e || !d) {
-                                return console.warn(`Automatic Read Lock Renewal Failed: ${file._id._str}`, e);
-                            }
-                        });
-                    });
-                }
-
-                if (callback != null) {
-                    readStream.on('close', () => callback(null, file));
-                    readStream.on('error', err => callback(err));
-                }
-                return readStream;
-            }
-        }
-
-        return null;
+        return this.bucket.openDownloadStream(bsonOID);
     }
 
     remove(selector, callback) {
@@ -456,22 +353,16 @@ export class FileCollection extends Mongo.Collection {
         if (selector != null) {
             let ret = 0;
             this.find(selector).forEach(file => {
-                const res = Meteor.wrapAsync(this.gfs.remove.bind(this.gfs))({
-                    _id: mongodb.ObjectID(`${file._id._str}`),
-                    root: this.root,
-                    timeOut: this.lockOptions.timeOut,
-                    lockExpiration: this.lockOptions.lockExpiration,
-                    pollingInterval: this.lockOptions.pollingInterval
-                });
+                const res = Meteor.wrapAsync(callback =>{
+                    this.bucket.delete(new ObjectID(`${file._id._str}`), callback);
+                })();
                 return ret += res ? 1 : 0;
             });
-            (callback != null) && callback(null, ret);
             return ret;
         } else {
             const err = new Meteor.Error("Remove with an empty selector is not supported");
             if (callback != null) {
                 callback(err);
-                return;
             } else {
                 throw err;
             }
