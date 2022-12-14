@@ -1,3 +1,5 @@
+# Works with latest meteor.  Avoids globals.  NOT YET COMPATIBLE WITH REDIS
+
 # file-collection
 
 [![Build Status](https://travis-ci.org/vsivsi/meteor-file-collection.svg)](https://travis-ci.org/vsivsi/meteor-file-collection)
