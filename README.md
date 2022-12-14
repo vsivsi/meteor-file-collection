@@ -10,6 +10,8 @@ I've simply decaffeinated and set up the dependencies so this works with the lat
 
 I haven't changed the API at all and all the readme should still apply.
 
+Compatible with Mongo 6, totally updated driver code.
+
 The 'locking' system is completely removed and all submodules have been pulled into this single repo.
 
 I removed the global export so you will need to use this however:
