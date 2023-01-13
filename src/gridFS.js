@@ -12,7 +12,7 @@
 //Meteor will put this into the package namespace, it doesn't become a global
 share = {};
 
-share.defaultChunkSize = (2*1024*1024) - 1024;
+share.defaultChunkSize = 261120;//(2*1024*1024) - 1024;
 share.defaultRoot = 'fs';
 
 share.resumableBase = '/_resumable';

@@ -92,6 +92,8 @@
     };
     $.opts = opts || {};
     $.getOpt = function (o) {
+      console.log('getopt called');
+      console.dir(o);
       let $opt = this;
       // Get multiple option if passed an array
       if (o instanceof Array) {
@@ -510,18 +512,22 @@
 
       // Callback when something happens within the chunk
       const chunkEvent = function (event, message) {
+        console.log('chunkEvent');
         // event can be 'progress', 'success', 'error' or 'retry'
         switch (event) {
           case 'progress':
+            console.log('->progress');
             $.resumableObj.fire('fileProgress', $, message);
             break;
           case 'error':
+            console.log('->error');
             $.abort();
             _error = true;
             $.chunks = [];
             $.resumableObj.fire('fileError', $, message);
             break;
           case 'success':
+            console.log('->success');
             if (_error) return;
             $.resumableObj.fire('fileProgress', $, message); // it's at least progress
             if ($.isComplete()) {
@@ -529,6 +535,7 @@
             }
             break;
           case 'retry':
+            console.log('->retry');
             $.resumableObj.fire('fileRetry', $);
             break;
         }
@@ -662,7 +669,7 @@
             if (chunk.status() === 'pending' && chunk.preprocessState !== 1) {
               chunk.send();
               found = true;
-              return (false);
+              return false;
             }
           });
         }
@@ -703,6 +710,7 @@
 
       // Computed properties
       const chunkSize = $.getOpt('chunkSize');
+      console.log(`chunk size is ${chunkSize}`);
       $.loaded = 0;
       $.startByte = $.offset * chunkSize;
       $.endByte = Math.min($.fileObjSize, ($.offset + 1) * chunkSize);
