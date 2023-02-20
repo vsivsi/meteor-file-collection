@@ -324,19 +324,23 @@ export class FileCollection extends Mongo.Collection {
                     const receivedChunks = chunksReceived[identifier];
                     receivedChunks.add(chunkNumber);
                     if (receivedChunks.size === totalChunks) {
+                        delete chunksReceived[identifier];
                         const targetId = new Mongo.ObjectID(identifier);
                         //We have to generate the MD5 ourselves as this functionality was removed from mongo 6
                         let file = self.findOne({_id: targetId}); //TODO, see if this should be resumableIdentifier
 
 
-                        //Todo: initial delay
-                        //Todo: retry limit
+                        //Todo: move these to shared ops
+                        let retries = 100;
+                        const retryDelay = 100;//ms
                         function md5WhenReady() {
                             file = self.findOne({_id: targetId}); //TODO, see if this should be resumableIdentifier
                             if (!file.length) {
+                                retries--;
                                 Meteor.setTimeout(() => {
-                                    md5WhenReady();
-                                }, 100);
+                                    if(retries)md5WhenReady();
+                                    else console.error(`Timeout waiting for upload to complete.  MD5 not generated for `)
+                                }, retryDelay);
                             } else {
                                 const stream = self.findOneStream({_id:file._id});
                                 const getMd5 = Meteor.wrapAsync(callback => {
