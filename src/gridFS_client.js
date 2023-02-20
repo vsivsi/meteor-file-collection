@@ -59,12 +59,14 @@ export class FileCollection extends Mongo.Collection {
     // you shouldn't be able to POST or PUT to a file that hasn't been inserted.
 
     insert(file, callback) {
+
         // This call ensures that a full gridFS file document
         // gets built from whatever is provided
         if (callback == null) {
             callback = undefined;
         }
         file = share.insert_func(file, this.chunkSize);
+        //return console.log('not inserting');
         return super.insert(file, callback);
     }
 

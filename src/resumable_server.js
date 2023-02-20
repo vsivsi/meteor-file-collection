@@ -78,41 +78,41 @@ if (Meteor.isServer) {
                         const partId = mongodb.ObjectID(`${part._id}`);
 
                         async.series([
-                                    // Move the chunks to the correct file
-                                    cb => chunks.updateMany({files_id: partId, n: 0},
+                                // Move the chunks to the correct file
+                                cb => chunks.updateMany({files_id: partId, n: 0},
+                                    {
+                                        $set: {
+                                            files_id: fileId,
+                                            n: part.metadata._Resumable.resumableChunkNumber - 1
+                                        }
+                                    },
+                                    cb),
+                                // Delete the temporary chunk file documents
+                                cb => files.deleteOne({_id: partId}, cb)
+                            ],
+                            (err, res) => {
+                                if (err) {
+                                    return cb(err);
+                                }
+                                if (part.metadata._Resumable.resumableChunkNumber !== part.metadata._Resumable.resumableTotalChunks) {
+                                    return cb();
+                                } else {
+                                    // check for a final hanging gridfs chunk
+                                    return chunks.updateMany({files_id: partId, n: 1},
                                         {
                                             $set: {
                                                 files_id: fileId,
-                                                n: part.metadata._Resumable.resumableChunkNumber - 1
+                                                n: part.metadata._Resumable.resumableChunkNumber
                                             }
                                         },
-                                        cb),
-                                    // Delete the temporary chunk file documents
-                                    cb => files.deleteOne({_id: partId}, cb)
-                                ],
-                                (err, res) => {
-                                    if (err) {
-                                        return cb(err);
-                                    }
-                                    if (part.metadata._Resumable.resumableChunkNumber !== part.metadata._Resumable.resumableTotalChunks) {
-                                        return cb();
-                                    } else {
-                                        // check for a final hanging gridfs chunk
-                                        return chunks.updateMany({files_id: partId, n: 1},
-                                            {
-                                                $set: {
-                                                    files_id: fileId,
-                                                    n: part.metadata._Resumable.resumableChunkNumber
-                                                }
-                                            },
-                                            function (err, res) {
-                                                if (err) {
-                                                    return cb(err);
-                                                }
-                                                return cb();
-                                            });
-                                    }
-                                });
+                                        function (err, res) {
+                                            if (err) {
+                                                return cb(err);
+                                            }
+                                            return cb();
+                                        });
+                                }
+                            });
 
                     },
                     err => {
@@ -134,7 +134,7 @@ if (Meteor.isServer) {
                                     }
                                 },
                                 err => callback(err)
-                                );
+                            );
                         });
                     });
             });
@@ -144,9 +144,11 @@ if (Meteor.isServer) {
 
     // Handle HTTP POST requests from Resumable.js
 
-    const resumable_post_lookup = (params, query, multipart) => ({
-        _id: share.safeObjectID(multipart?.params?.resumableIdentifier)
-    });
+    const resumable_post_lookup = (params, query, multipart) => {
+        return {
+            _id: share.safeObjectID(multipart?.params?.resumableIdentifier)
+        }
+    };
 
     const resumable_post_handler = function (req, res, next) {
         // This has to be a resumable POST

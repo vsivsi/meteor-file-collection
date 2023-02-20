@@ -17,10 +17,7 @@ import {Mongo, MongoInternals} from 'meteor/mongo';
 //const mongodb = Npm.require('mongodb');
 const {MongoClient} = require("mongodb");
 
-import {stdout} from 'node:process';
-
 import grid from './gridfs-locking-stream';
-
 
 const ObjectID = require("bson-objectid");
 
@@ -28,6 +25,9 @@ const fs = Npm.require('fs');
 const path = Npm.require('path');
 
 import crypto from "crypto";
+
+//Keep track of the chunks received so the md5 generation can be fired ONLY when the file has completed uploading
+const chunksReceived = {};
 
 export class FileCollection extends Mongo.Collection {
     constructor(root, options) {
@@ -115,7 +115,6 @@ export class FileCollection extends Mongo.Collection {
         FileCollection.__super__.deny.bind(this)({
 
             insert: (userId, file) => {
-
 // Make darn sure we're creating a valid gridFS .files document
                 check(file, {
                         _id: Mongo.ObjectID,
@@ -141,6 +140,7 @@ export class FileCollection extends Mongo.Collection {
 
                 // Enforce a uniform chunkSize
                 if (file.chunkSize !== this.chunkSize) {
+                    console.error('denied, chunksize incorrect');
                     return true;
                 }
 
@@ -235,7 +235,11 @@ export class FileCollection extends Mongo.Collection {
     }
 
     insert(file, callback) {
-        return console.warn('FileCollection insert no longer supported. Just use upsertStream');
+
+        //Create a stub in the 'chunksReceived' so we can keep track of progress
+        //TODO: only do this if resumable upload
+        chunksReceived[file._id.toHexString()] = new Set();
+
         if (file == null) {
             file = {};
         }
@@ -243,7 +247,8 @@ export class FileCollection extends Mongo.Collection {
             callback = undefined;
         }
         file = share.insert_func(file, this.chunkSize);
-        return super.insert(file, callback);
+        const insert = super.insert(file, callback);
+        return insert;
     }
 
 // Update is dangerous! The checks inside attempt to keep you out of
@@ -276,8 +281,16 @@ export class FileCollection extends Mongo.Collection {
                 throw err;
             }
         } else {
-            return super.update(selector, modifier, options, callback);
+            const result = super.update(selector, modifier, options, callback);
+
+            let sel = selector;
+            if (sel.toHexString) sel = {_id: selector.toHexString()};
+
+            return result;
+
         }
+
+
     }
 
     upsert(selector, modifier, options, callback) {
@@ -289,7 +302,7 @@ export class FileCollection extends Mongo.Collection {
         }
     }
 
-    upsertStream(file, callback) {
+    upsertStream(file, callback, othershit) {
         const self = this;
         //todo: we should check to see if the stream already exists?
         const writeStream = this.bucket.openUploadStream( //https://mongodb.github.io/node-mongodb-native/4.12/classes/GridFSBucket.html#openUploadStream
@@ -302,24 +315,55 @@ export class FileCollection extends Mongo.Collection {
         )
 
         if (writeStream) {
+            //The finish event will occur on every chunk, we need to make sure it is the last one.
             writeStream.on('finish', function (retFile) {
-                if (retFile) {
-                    //We have to generate the MD5 ourselves as this functionality was removed from mongo 6
-                    const md5 = Meteor.wrapAsync(callback => {
-                        const hash = crypto.createHash('md5'); //TODO: is options/encoding needed?
-                        const fileStream = this.bucket.openDownloadStream(retFile._id);
-                        fileStream.pipe(hash);
-                        hash.on('finish', () => callback(null, hash.digest('hex')));
-                    })();
+                if (retFile?.metadata._Resumable) { //todo: maybe still generate md5 for non-resumable somehow.
+                    const chunkNumber = retFile.metadata._Resumable.resumableChunkNumber;
+                    const totalChunks = retFile.metadata._Resumable.resumableTotalChunks;
+                    const identifier = retFile.metadata._Resumable.resumableIdentifier;
+                    const receivedChunks = chunksReceived[identifier];
+                    receivedChunks.add(chunkNumber);
+                    if (receivedChunks.size === totalChunks) {
+                        const targetId = new Mongo.ObjectID(identifier);
+                        //We have to generate the MD5 ourselves as this functionality was removed from mongo 6
+                        let file = self.findOne({_id: targetId}); //TODO, see if this should be resumableIdentifier
 
-                    self.update(
-                        new Mongo.ObjectID(retFile._id.toString()),
-                        {$set: {'metadata.md5': md5}}
-                    );
+
+                        //Todo: initial delay
+                        //Todo: retry limit
+                        function md5WhenReady() {
+                            file = self.findOne({_id: targetId}); //TODO, see if this should be resumableIdentifier
+                            if (!file.length) {
+                                Meteor.setTimeout(() => {
+                                    md5WhenReady();
+                                }, 100);
+                            } else {
+                                const stream = self.findOneStream({_id:file._id});
+                                const getMd5 = Meteor.wrapAsync(callback => {
+                                    const hash = crypto.createHash('md5'); //TODO: is options/encoding needed?
+                                      stream.pipe(hash);
+                                      hash.on('finish', () => callback(null, hash.digest('hex')));
+                                });
+                                const md5 = getMd5();
+                                self.update(
+                                    {_id: targetId}, //TODO: check type of ID
+                                    {$set: {'metadata.md5': md5}}, null, (e, r) => {
+                                    }
+                                );
+                            }
+                        }
+
+                        md5WhenReady();
+
+
+                    }
                     return callback ? callback(null, retFile) : null;
                 }
             });
             writeStream.on('error', err => callback ? callback(err) : null);
+            writeStream.on('close', function (error) {
+            });
+
             return writeStream;
         }
 
@@ -345,7 +389,9 @@ export class FileCollection extends Mongo.Collection {
         return this.bucket.openDownloadStream(bsonOID);
     }
 
-    remove(selector, callback) {
+    //remove is no longer needed.  calling super.remove works perfectly fine, I confirmed the file data is deleted
+/*    remove(selector, callback) {
+        console.log('remove method called');
         if (callback == null) {
             callback = undefined;
         }
@@ -353,8 +399,10 @@ export class FileCollection extends Mongo.Collection {
         if (selector != null) {
             let ret = 0;
             this.find(selector).forEach(file => {
-                const res = Meteor.wrapAsync(callback =>{
-                    this.bucket.delete(new ObjectID(`${file._id._str}`), callback);
+                const res = Meteor.wrapAsync(callback => {
+                    const objectID = new ObjectID(`${file._id._str}`);
+                    //The normal collection remove method works just fine
+                    super.remove({_id:objectID}, callback)
                 })();
                 return ret += res ? 1 : 0;
             });
@@ -367,7 +415,7 @@ export class FileCollection extends Mongo.Collection {
                 throw err;
             }
         }
-    }
+    }*/
 
     importFile(filePath, file, callback) {
         callback = share.bind_env(callback);

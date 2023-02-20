@@ -21,7 +21,8 @@ share.insert_func = function(file, chunkSize) {
     let id;
     if (file == null) { file = {}; }
     try {
-        id = new Mongo.ObjectID(`${file._id}`);
+        if(typeof file._id === 'object' && file._id.constructor.name === 'ObjectID')id = file._id;
+        else id = new Mongo.ObjectID(`${file._id}`);
     } catch (error) {
         id = new Mongo.ObjectID();
     }

@@ -275,6 +275,9 @@ if (Meteor.isServer) {
 
         // Stream file
         if (stream) {
+
+            //d41d8cd98f00b204e9800998ecf8427e empty file
+            headers['Content-MD5'] = headers['Content-MD5'] || 'd41d8cd98f00b204e9800998ecf8427e';
             res.writeHead(statusCode, headers);
             return stream.pipe(res)
                 .on('close', () => res.end()).on('error', function (err) {
