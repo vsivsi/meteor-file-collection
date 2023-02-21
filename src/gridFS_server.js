@@ -287,10 +287,7 @@ export class FileCollection extends Mongo.Collection {
             if (sel.toHexString) sel = {_id: selector.toHexString()};
 
             return result;
-
         }
-
-
     }
 
     upsert(selector, modifier, options, callback) {
@@ -302,24 +299,27 @@ export class FileCollection extends Mongo.Collection {
         }
     }
 
-    upsertStream(file, callback, othershit) {
+    upsertStream(file, callback) {
         const self = this;
-        //todo: we should check to see if the stream already exists?
         const writeStream = this.bucket.openUploadStream( //https://mongodb.github.io/node-mongodb-native/4.12/classes/GridFSBucket.html#openUploadStream
-            //new ObjectID(`${file._id._str}`), //ID
             file.filename,//filename
             {//options https://mongodb.github.io/node-mongodb-native/4.12/interfaces/GridFSBucketWriteStreamOptions.html
-                metadata: file.metadata,
-                contentType: file.contentType,
+                metadata: {contentType: file.contentType, ...file.metadata},
+                contentType: file.contentType, //TODO: this will be deprecated
             }
         )
 
         if (writeStream) {
             //The finish event will occur on every chunk, we need to make sure it is the last one.
+            //Trying to fire this from resumable_server.js just doesn't work.  I think only the raw db is available there.
             writeStream.on('finish', function (retFile) {
                 if (retFile?.metadata._Resumable) { //todo: maybe still generate md5 for non-resumable somehow.
+                    //This superfluous, as there is a proper complete callback in resumable_server,
+                    //there does not seem to be easy access to this class there though, so
+
                     const chunkNumber = retFile.metadata._Resumable.resumableChunkNumber;
                     const totalChunks = retFile.metadata._Resumable.resumableTotalChunks;
+                    const contentType = retFile.metadata._Resumable.resumableType;
                     const identifier = retFile.metadata._Resumable.resumableIdentifier;
                     const receivedChunks = chunksReceived[identifier];
                     receivedChunks.add(chunkNumber);
@@ -329,7 +329,6 @@ export class FileCollection extends Mongo.Collection {
                         //We have to generate the MD5 ourselves as this functionality was removed from mongo 6
                         let file = self.findOne({_id: targetId}); //TODO, see if this should be resumableIdentifier
 
-
                         //Todo: move these to shared ops
                         let retries = 100;
                         const retryDelay = 100;//ms
@@ -338,28 +337,34 @@ export class FileCollection extends Mongo.Collection {
                             if (!file.length) {
                                 retries--;
                                 Meteor.setTimeout(() => {
-                                    if(retries)md5WhenReady();
+                                    if (retries) md5WhenReady();
                                     else console.error(`Timeout waiting for upload to complete.  MD5 not generated for `)
                                 }, retryDelay);
                             } else {
-                                const stream = self.findOneStream({_id:file._id});
+                                const stream = self.findOneStream({_id: file._id});
                                 const getMd5 = Meteor.wrapAsync(callback => {
                                     const hash = crypto.createHash('md5'); //TODO: is options/encoding needed?
-                                      stream.pipe(hash);
-                                      hash.on('finish', () => callback(null, hash.digest('hex')));
+                                    stream.pipe(hash);
+                                    hash.on('finish', () => callback(null, hash.digest('hex')));
                                 });
                                 const md5 = getMd5();
+
                                 self.update(
                                     {_id: targetId}, //TODO: check type of ID
-                                    {$set: {'metadata.md5': md5}}, null, (e, r) => {
+                                    {
+                                        $set: {
+                                            md5: md5, //TODO: this will eventually be deprecated
+                                            'metadata.md5': md5,
+                                            'metadata.contentType': contentType,
+                                        }
+                                    },
+                                    null,
+                                    (e, r) => {
                                     }
                                 );
                             }
                         }
-
                         md5WhenReady();
-
-
                     }
                     return callback ? callback(null, retFile) : null;
                 }
@@ -394,32 +399,32 @@ export class FileCollection extends Mongo.Collection {
     }
 
     //remove is no longer needed.  calling super.remove works perfectly fine, I confirmed the file data is deleted
-/*    remove(selector, callback) {
-        console.log('remove method called');
-        if (callback == null) {
-            callback = undefined;
-        }
-        callback = share.bind_env(callback);
-        if (selector != null) {
-            let ret = 0;
-            this.find(selector).forEach(file => {
-                const res = Meteor.wrapAsync(callback => {
-                    const objectID = new ObjectID(`${file._id._str}`);
-                    //The normal collection remove method works just fine
-                    super.remove({_id:objectID}, callback)
-                })();
-                return ret += res ? 1 : 0;
-            });
-            return ret;
-        } else {
-            const err = new Meteor.Error("Remove with an empty selector is not supported");
-            if (callback != null) {
-                callback(err);
-            } else {
-                throw err;
+    /*    remove(selector, callback) {
+            console.log('remove method called');
+            if (callback == null) {
+                callback = undefined;
             }
-        }
-    }*/
+            callback = share.bind_env(callback);
+            if (selector != null) {
+                let ret = 0;
+                this.find(selector).forEach(file => {
+                    const res = Meteor.wrapAsync(callback => {
+                        const objectID = new ObjectID(`${file._id._str}`);
+                        //The normal collection remove method works just fine
+                        super.remove({_id:objectID}, callback)
+                    })();
+                    return ret += res ? 1 : 0;
+                });
+                return ret;
+            } else {
+                const err = new Meteor.Error("Remove with an empty selector is not supported");
+                if (callback != null) {
+                    callback(err);
+                } else {
+                    throw err;
+                }
+            }
+        }*/
 
     importFile(filePath, file, callback) {
         callback = share.bind_env(callback);

@@ -59,6 +59,7 @@ export class FileCollection extends Mongo.Collection {
     // you shouldn't be able to POST or PUT to a file that hasn't been inserted.
 
     insert(file, callback) {
+        if(file.contentType)console.warn('gridfs.contentType is deprecated. Use gridfs.metadata.contentype instead');
 
         // This call ensures that a full gridFS file document
         // gets built from whatever is provided

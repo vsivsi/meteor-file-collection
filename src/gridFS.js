@@ -35,7 +35,7 @@ share.insert_func = function(file, chunkSize) {
     subFile.filename = file.filename != null ? file.filename : '';
     subFile.metadata = file.metadata != null ? file.metadata : {};
     subFile.aliases = file.aliases != null ? file.aliases : [];
-    subFile.contentType = file.contentType != null ? file.contentType : 'application/octet-stream';
+    subFile.contentType = file.metadata?.contentType || file.contentType || 'application/octet-stream';
     return subFile;
 };
 
@@ -45,7 +45,7 @@ share.reject_file_modifier = function(modifier) {
         Match.ObjectIncluding({ _id:        Match.Any }),
         Match.ObjectIncluding({ length:     Match.Any }),
         Match.ObjectIncluding({ chunkSize:  Match.Any }),
-        Match.ObjectIncluding({ md5:        Match.Any }),
+        //Match.ObjectIncluding({ md5:        Match.Any }), //We allow modification of the MD5 here as mongo is deprecating it being generated
         Match.ObjectIncluding({ uploadDate: Match.Any })
     );
 

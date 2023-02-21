@@ -10,13 +10,74 @@ I've simply decaffeinated and set up the dependencies so this works with the lat
 
 I haven't changed the API at all and all the readme should still apply.
 
-Compatible with Mongo 6, totally updated driver code.
+Probably only compatible with Mongo 6, as I changed the DB access methods directly.
+
+MD5 generation is handled by crypto.js rather than mongo db commands, it is stored in both .md5 and metadata.md5
+
+Content type is stored in both .contentType and metadata.contentType
 
 The 'locking' system is completely removed and all submodules have been pulled into this single repo.
 
 I removed the global export so you will need to use this however:
 
 ```import {FileCollection} from "meteor/vsivsi:file-collection";```
+
+You can uncomment
+```javascript
+//api.export('FileCollection');
+```
+in package.js to enable it again.
+
+My file added handler looks like this:
+
+```javascript
+import {FileCollection} from "meteor/vsivsi:file-collection";
+
+export const MyFilesCollection = new FileCollection('files', {
+    resumable: true,
+    resumableIndexName: 'test', //this can't be changed later
+    http: [
+        {
+            method: 'get',
+            path: '/md5/:md5/:fileName?',
+            lookup:  params => ({md5: params.md5})
+        }
+    ]
+});
+
+if (Meteor.isClient) {
+    Meteor.startup(function () {
+        MyFilesCollection.resumable.on('fileAdded', function (file) {
+            Session.set(file.uniqueIdentifier, 0);
+            return MyFilesCollection.insert({
+                _id: file.uniqueIdentifier,
+                filename: file.fileName,
+                metadata: {contentType: file.file.type}
+            }, function (err, _id) {
+                if (err) {
+                    console.warn("File creation failed!", err);
+                    return;
+                }
+                return MyFilesCollection.resumable.upload();
+            });
+        });
+    });
+}
+```
+
+Mongo 6 deprecated the record.md5 and record.contenttype fields. It is recommended to update your queries to avoid this.
+Recommend setting queries for md5 to something like this for compatibility, but everything should still work until the actual deprecation.
+
+orignal
+```javascript
+{md5:someMd5}
+```
+replace with
+```javascript
+{$or:[{md5:someMd5},{'metadata.md5':someMd5}]}
+```
+
+This version of file collection will put the md5 in both locations for now, and will still allow contenttype, but will throw a warning.
 
 ## Introduction
 

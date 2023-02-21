@@ -24,6 +24,7 @@ if (Meteor.isServer) {
         const fileId = mongodb.ObjectID(`${file.metadata._Resumable.resumableIdentifier}`);
 
         const files = this.db.collection(`${this.root}.files`);
+        const main = this.db.collection(`${this.root}`);
 
         const query = {
             'metadata._Resumable.resumableIdentifier': file.metadata._Resumable.resumableIdentifier,
@@ -117,25 +118,15 @@ if (Meteor.isServer) {
                     },
                     err => {
                         if (err) return callback(err);
-                        // Build up the command for the md5 hash calculation
-                        const md5Command = {
-                            filemd5: fileId,
-                            root: `${this.root}`
-                        };
-                        // Send the command to calculate the md5 hash of the file
-                        //TODO: MD5 is handled elsewhere
-                        return this.db.command(md5Command, function (err, results) {
-                            if (err) return callback(err);
-                            // Update the size and md5 to the file data
-                            return files.updateOne({_id: fileId}, {
-                                    $set: {
-                                        length: file.metadata._Resumable.resumableTotalSize,
-                                        md5: results.md5
-                                    }
-                                },
-                                err => callback(err)
-                            );
-                        });
+                        // Update the size, this will trigger md5 generation in gridFS_server.js
+                        return files.updateOne({_id: fileId}, {
+                                $set: {
+                                    length: file.metadata._Resumable.resumableTotalSize,
+                                }
+                            },
+                            err => callback(err)
+                        );
+
                     });
             });
         });
