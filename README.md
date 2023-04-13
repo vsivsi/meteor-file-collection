@@ -1,4 +1,4 @@
-# Works with latest meteor.  Avoids globals.  NOT YET COMPATIBLE WITH REDIS
+# Works with latest meteor.  Avoids globals.
 
 # file-collection
 
@@ -78,6 +78,39 @@ replace with
 ```
 
 This version of file collection will put the md5 in both locations for now, and will still allow contenttype, but will throw a warning.
+
+
+## Upgrading
+
+My .meteor/packages is like this at the start:
+```
+# Meteor packages used by this project, one per line.
+# Check this file (and the other files in this directory) into your repository.
+#
+# 'meteor add' and 'meteor remove' will edit this file for you,
+# but you can also edit it by hand.
+
+meteor-base@1.5.1             # Packages every Meteor app needs to have
+mongo@1.16.4                   # The database Meteor supports right now
+blaze-html-templates@1.0.4    # Compile .html files into Meteor Blaze views
+session@1.2.1                 # Client-side reactive dictionary for your app
+tracker@1.3.0                 # Meteor's client-side reactive programming library
+
+
+cultofcoders:redis-oplog
+disable-oplog
+vsivsi:file-collection
+
+...
+```
+
+I clone the my repo into the /packages folder of my project and I believe that calling 'meteor update' will install it over the top of the any previous instance as I have set the version number to 2.0.0 (major bump due to breaking api changes)
+
+I believe what I did was mongodump all my collections, upgrade mongo, use mongorestore, rewrite the package until it worked again.
+
+So theoretically, if you were to enable the global 'FileCollection', define it somewhere at startup, or use ES6 imports, upgrade your database, and then install the package, it should work.
+
+The package has been working fine in my intranet app since d68bb3993c49a0bf7b5c781ac94413675ed1322c
 
 ## Introduction
 
