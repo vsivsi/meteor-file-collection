@@ -1,17 +1,116 @@
+# Works with latest meteor.  Avoids globals.
+
 # file-collection
 
 [![Build Status](https://travis-ci.org/vsivsi/meteor-file-collection.svg)](https://travis-ci.org/vsivsi/meteor-file-collection)
 
-## Notice!
+## Thumptech version:
 
-#### **Effective 01-01-2018 this project will enter "maintenance mode". This means that I will no longer be implementing any new features or providing debugging help or "general support" via github issues.**
+I've simply decaffeinated and set up the dependencies so this works with the latest version of Meteor.
 
-**I will (for some period of time) still consider *high quality* pull-requests implementing bug fixes and generally useful new minor features. ("High quality" is admittedly subjective, but some must-haves: documentation, tests, backward compatibility, low change complexity, harmony with existing design...)**
+I haven't changed the API at all and all the readme should still apply.
 
-**If you would like to become a maintainer, Great!. The best way to get there is to make some high quality PRs! Eventually I will probably get tired of merging them and will just give you permission to push and publish.
-If there is enough community interest, I will probably migrate all of my Meteor packages into a separate github org so that they can live on without my direct involvement.**
+Probably only compatible with Mongo 6, as I changed the DB access methods directly.
 
-**Why? Simple: I'm no longer actively developing or maintaining any Meteor based applications (and have no forseeable plans to do so). Having moved on, the effort to keep up with changes in the Meteor/Atmosphere ecosystem no longer has any payoff for me personally.**
+MD5 generation is handled by crypto.js rather than mongo db commands, it is stored in both .md5 and metadata.md5
+
+Content type is stored in both .contentType and metadata.contentType
+
+The 'locking' system is completely removed and all submodules have been pulled into this single repo.
+
+I removed the global export so you will need to use this however:
+
+```import {FileCollection} from "meteor/vsivsi:file-collection";```
+
+You can uncomment
+```javascript
+//api.export('FileCollection');
+```
+in package.js to enable it again.
+
+My file added handler looks like this:
+
+```javascript
+import {FileCollection} from "meteor/vsivsi:file-collection";
+
+export const MyFilesCollection = new FileCollection('files', {
+    resumable: true,
+    resumableIndexName: 'test', //this can't be changed later
+    http: [
+        {
+            method: 'get',
+            path: '/md5/:md5/:fileName?',
+            lookup:  params => ({md5: params.md5})
+        }
+    ]
+});
+
+if (Meteor.isClient) {
+    Meteor.startup(function () {
+        MyFilesCollection.resumable.on('fileAdded', function (file) {
+            Session.set(file.uniqueIdentifier, 0);
+            return MyFilesCollection.insert({
+                _id: file.uniqueIdentifier,
+                filename: file.fileName,
+                metadata: {contentType: file.file.type}
+            }, function (err, _id) {
+                if (err) {
+                    console.warn("File creation failed!", err);
+                    return;
+                }
+                return MyFilesCollection.resumable.upload();
+            });
+        });
+    });
+}
+```
+
+Mongo 6 deprecated the record.md5 and record.contenttype fields. It is recommended to update your queries to avoid this.
+Recommend setting queries for md5 to something like this for compatibility, but everything should still work until the actual deprecation.
+
+orignal
+```javascript
+{md5:someMd5}
+```
+replace with
+```javascript
+{$or:[{md5:someMd5},{'metadata.md5':someMd5}]}
+```
+
+This version of file collection will put the md5 in both locations for now, and will still allow contenttype, but will throw a warning.
+
+
+## Upgrading
+
+My .meteor/packages is like this at the start:
+```
+# Meteor packages used by this project, one per line.
+# Check this file (and the other files in this directory) into your repository.
+#
+# 'meteor add' and 'meteor remove' will edit this file for you,
+# but you can also edit it by hand.
+
+meteor-base@1.5.1             # Packages every Meteor app needs to have
+mongo@1.16.4                   # The database Meteor supports right now
+blaze-html-templates@1.0.4    # Compile .html files into Meteor Blaze views
+session@1.2.1                 # Client-side reactive dictionary for your app
+tracker@1.3.0                 # Meteor's client-side reactive programming library
+
+
+cultofcoders:redis-oplog
+disable-oplog
+vsivsi:file-collection
+
+...
+```
+
+I clone the my repo into the /packages folder of my project and I believe that calling 'meteor update' will install it over the top of the any previous instance as I have set the version number to 2.0.0 (major bump due to breaking api changes)
+
+I believe what I did was mongodump all my collections, upgrade mongo, use mongorestore, rewrite the package until it worked again.
+
+So theoretically, if you were to enable the global 'FileCollection', define it somewhere at startup, or use ES6 imports, upgrade your database, and then install the package, it should work.
+
+The package has been working fine in my intranet app since d68bb3993c49a0bf7b5c781ac94413675ed1322c
 
 ## Introduction
 
